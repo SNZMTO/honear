@@ -89,10 +89,18 @@ function unSilence(): Blob {
 const VOLUME_D_ESSAI = 0.5;
 const A_PEU_PRES = 0.01;
 
+/** La séance audio de la page, là où le navigateur la donne (Safari, depuis l'iOS 16.4). */
+interface SeanceAudio {
+  type: string;
+}
+const seanceAudio = (): SeanceAudio | undefined => (navigator as Navigator & { readonly audioSession?: SeanceAudio }).audioSession;
+
 /**
  * Le haut-parleur du téléphone : un seul élément audio, posé dans le cadre, qui joue tous les extraits.
  * @param volume le volume de ce téléphone, de 0 à 1, lu à chaque image. Là où l'élément audio ne se règle pas (l'iPhone), le son
- * passe par le moteur audio du navigateur, qui, lui, se règle : les extraits de Deezer le permettent.
+ * passe par le moteur audio du navigateur, qui, lui, se règle (les extraits de Deezer le permettent) ; mais l'iPhone tait ce moteur
+ * en mode silencieux, sauf si la page dit qu'elle joue de la musique (`audioSession`). Un iPhone qui ne sait pas le dire garde
+ * l'élément seul : il joue toujours, au volume du téléphone.
  */
 export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number): HautParleur {
   const audio = document.createElement('audio');
@@ -102,13 +110,17 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
   audio.volume = VOLUME_D_ESSAI;
   const volumeReglable = Math.abs(audio.volume - VOLUME_D_ESSAI) < A_PEU_PRES;
   audio.volume = 1;
+  // La page joue de la musique : elle s'entend, même l'iPhone en silencieux.
+  const seance = seanceAudio();
+  if (seance !== undefined) seance.type = 'playback';
+  const parLeMoteur = !volumeReglable && seance !== undefined;
   // Pour passer par le moteur audio, l'élément doit charger ses extraits en demandant la permission de leur serveur.
-  if (!volumeReglable) audio.crossOrigin = 'anonymous';
+  if (parLeMoteur) audio.crossOrigin = 'anonymous';
   /** Le gain du moteur audio, une fois branché dans un geste ; sans lui, c'est le volume de l'élément qu'on règle. */
   let gain: GainNode | undefined;
   let moteur: AudioContext | undefined;
   const brancherLeMoteur = (): void => {
-    if (volumeReglable || moteur !== undefined || typeof AudioContext !== 'function') return;
+    if (!parLeMoteur || moteur !== undefined || typeof AudioContext !== 'function') return;
     try {
       moteur = new AudioContext();
       gain = moteur.createGain();
