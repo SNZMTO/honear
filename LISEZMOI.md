@@ -829,6 +829,9 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   l'ampli le règle (sa moitié gauche baisse, la droite monte), sur l'ampli même sur un grand écran, en petit sur le coin de la
   platine au téléphone (`scene/telephone/volume.ts`). Là où l'élément audio ne se règle pas (l'iPhone), le son passe par le moteur
   audio du navigateur : les extraits de Deezer le permettent.
+- **Le bac** : un thème peut épingler ses playlists avant la recherche (`PLAYLISTS_EPINGLEES`) ; les génériques proposent
+  « Anime Essentials », les vrais génériques d'animés. Une piste hors de l'alphabet latin n'est pas jouable.
+- **La platine** : ses commandes s'appellent Titres (combien de chansons) et Secondes (la durée de l'extrait).
 - **La table** : d'une seule teinte (`noyer`), sans nappe de lumière ; seules les veines la nuancent.
 - **Les couleurs** : un crème plus chaud ; la caisse du bac en vert sapin, comme la platine et l'ampli, sa fente sur le premier rang ;
   l'intercalaire « Hits du moment » en miel.
