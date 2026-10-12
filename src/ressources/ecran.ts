@@ -39,6 +39,8 @@ export const TELEPHONE = {
   tenue: 0.07,
   /** D'un écran à l'autre, le nouveau se fond sur l'ancien en ce temps-là (rien, quand on a demandé moins d'animations). */
   fondu: 0.22,
+  /** Au téléphone, le bois qu'on ne montre pas au-dessus de la platine, en px de la scène : l'écran commence au bord de la platine. */
+  boisAuDessus: 28,
   /** Un bouton rond qu'on tourne d'un cran (Pistes, Extrait, Mode, le volume) y va en ce temps-là, en ralentissant. */
   tourne: 0.25,
   /**
@@ -53,9 +55,25 @@ export const TELEPHONE = {
    * il se tait en ce temps-là, là où le téléphone laisse baisser le volume.
    */
   son: { ecartAdmis: 0.15, fondu: 0.6 },
-  /** Le volume de ce téléphone, de 0 à 1 : à 30 % en arrivant, pour ne pas agresser les oreilles ; un toucher le change de 10 %. */
-  volume: { depart: 0.3, pas: 0.1 },
+  /**
+   * Le volume de ce téléphone, de 0 à 1 : à 30 % en arrivant, pour ne pas agresser les oreilles. L'oreille l'entend à cette
+   * puissance (un volume « cubique », comme sur les ordinateurs) ; les petits bruits des touches ne se taisent jamais tout à fait.
+   * On tourne le bouton en glissant le doigt (vers la droite ou vers le haut, il monte) : tant de px de la page le font aller
+   * d'un bout à l'autre ; un toucher sans glisser, ou une flèche du clavier, le change d'un pas.
+   */
+  volume: { depart: 0.3, courbe: 3, bruitsAuMoins: 0.3, pas: 0.1, course: 160 },
 } as const;
+
+/**
+ * Les petits bruits du téléphone : une note brève qui glisse de `de` à `a` (en hertz) en ce temps-là, à cette force (avant le
+ * volume) ; la touche qu'on enfonce sonne grave et ronde, le bouton qui passe un cran, plus sec. Le silence où chaque bruit s'éteint.
+ */
+export const BRUITS = {
+  touche: { de: 520, a: 180, duree: 0.06, fort: 0.5 },
+  cran: { de: 1800, a: 900, duree: 0.025, fort: 0.25 },
+  silence: 0.0001,
+} as const;
+export type NomDeBruit = 'touche' | 'cran';
 
 /**
  * Le grand écran (un ordinateur, une tablette couchée) : une fenêtre au moins tant de fois plus large que haute, et au moins

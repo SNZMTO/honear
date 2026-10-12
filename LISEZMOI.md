@@ -829,8 +829,20 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   l'ampli le règle (sa moitié gauche baisse, la droite monte), sur l'ampli même sur un grand écran, en petit sur le coin de la
   platine au téléphone (`scene/telephone/volume.ts`). Là où l'élément audio ne se règle pas (l'iPhone), le son passe par le moteur
   audio du navigateur : les extraits de Deezer le permettent.
-- **La lumière de la lampe** : cinq paliers doux, des ellipses de bois clair un peu transparentes, dans l'esprit facetté du reste.
-- **Les couleurs** : un crème plus chaud ; la caisse du bac en vert sapin, comme la platine et l'ampli, sa fente sur le premier rang.
+- **La table** : d'une seule teinte (`noyer`), sans nappe de lumière ; seules les veines la nuancent.
+- **Les couleurs** : un crème plus chaud ; la caisse du bac en vert sapin, comme la platine et l'ampli, sa fente sur le premier rang ;
+  l'intercalaire « Hits du moment » en miel.
+- **Plein écran** : le cadre prend toute la fenêtre, bord à bord ; au téléphone, l'écran commence au bord de la platine
+  (`TELEPHONE.boisAuDessus`), et un téléphone plus long voit plus de table en bas. Le premier toucher passe en plein écran là où
+  le navigateur le permet (Android) ; posé sur l'écran d'accueil (manifeste et icône, `src/ecran/jeu/application.ts`), il s'ouvre
+  en plein écran, iPhone compris. Les liens du bas tiennent dans un petit flotteur, en bas à droite.
+- **Le son** : l'extrait passe par l'élément audio seul (le plus sûr sur iPhone, même en silencieux) ; le volume suit une courbe
+  cubique (`TELEPHONE.volume.courbe`), à 30 % au départ. On tourne le bouton librement (glisser, molette, flèches). L'iPhone ne
+  laisse pas une page régler le volume : là, pas de bouton, ce sont ceux du téléphone. De petits bruits de touche et de cran, par le
+  moteur audio (`BRUITS`).
+- **En jeu** : « Quitter », en haut à gauche, sur tous les écrans d'une room (le serveur détache la ligne, qui peut rouvrir une
+  room) ; les points de chacun sous sa pochette ; en 4 choix, deux colonnes de deux étiquettes, la choisie enfoncée en kraft ; sur
+  un grand écran, l'aiguille gauche de l'ampli dit où en est la face, la droite, l'extrait.
 - **Ce qui bouge** : un bouton rond tourne d'un cran à l'autre (`TELEPHONE.tourne`) ; la touche principale de chaque écran respire
   (`TELEPHONE.pouls`) ; rien de cela en version sobre.
 - **Le tutoriel** : cinq diapositives à la première visite sur un appareil, et « Comment on joue ? » en bas de l'accueil pour les

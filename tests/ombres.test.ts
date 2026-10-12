@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { MEUBLE } from '../src/ressources/meuble';
 import { test } from 'node:test';
 import { cercle, rectangle } from '../src/lowpoly/contours';
 import { decalagesDOmbre } from '../src/lowpoly/ombrePortee';
@@ -434,14 +433,12 @@ test('sur la planche, toute ombre est de la même encre, en deux ou trois palier
       // Une ombre mobile n'a que des paliers, chacun dans son calque.
       if (portee.role === 'ombre') assert.equal(sousCalques(portee).length, portee.contenu.length, portee.nom);
     }
-    // Hors des ombres, pas de voile : les seuls aplats translucides sont le rose posé sur les joues, quelle que soit la peau, et la
-    // lumière de la lampe, des ellipses de bois clair à peine opaques dont la pile fait le fondu de la nappe.
+    // Hors des ombres, pas de voile : les seuls aplats translucides sont le rose posé sur les joues, quelle que soit la peau.
     const { teinte, ton, opacite } = AVATAR.joue;
     for (const c of calques(image.scene).filter((c) => !/\/ombre(\/|$)/.test(c.nom))) {
       for (const d of c.contenu) {
         if (d.genre !== 'aplat' || d.opacite === undefined) continue;
-        if (c.nom === 'noyer/lumiere') assert.deepEqual([d.teinte, d.opacite], [MEUBLE.noyer.eclaire, LAMPE.nappe.opacite], image.fichier);
-        else assert.deepEqual([d.teinte, d.ton, d.opacite], [teinte, ton, opacite], `${image.fichier} : ${c.nom}`);
+        assert.deepEqual([d.teinte, d.ton, d.opacite], [teinte, ton, opacite], `${image.fichier} : ${c.nom}`);
       }
     }
   }

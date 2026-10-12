@@ -65,7 +65,7 @@ export const COULEURS_DES_THEMES = {
   tubesDeLEte: 'orangeBrule',
   rock: 'rougeTomate',
   generiques: 'bleuPetrole',
-  hitsDuMoment: 'laque',
+  hitsDuMoment: 'miel',
 } as const satisfies Readonly<Record<string, NomDeTeinte>>;
 
 export type CleDeTheme = keyof typeof COULEURS_DES_THEMES;

@@ -14,7 +14,7 @@ import type { Textes } from '../../ressources/textes';
 import { CARACTERES } from '../../ressources/typo';
 import { VERSO_DU_JEU } from '../../scene/disque/verso';
 import { remplir } from '../../scene/phrases';
-import { PROPORTION_DU_TELEPHONE, regardPourLaFenetre } from '../../scene/telephone/grand';
+import { PROPORTION_DU_TELEPHONE } from '../../scene/telephone/grand';
 import { encrier as creerLEncrier } from '../../scene/rendu/texte';
 import { SCENE_ENTIERE } from '../allegements';
 import { horlogeDuNavigateur } from '../horloge';
@@ -67,9 +67,9 @@ function codeDeLAdresse(): string | undefined {
 }
 
 /**
- * La fenêtre : le jeu la remplit toujours, quelle que soit sa taille. Le cadre en prend la proportion (au moins celle du téléphone),
- * et le regard s'ouvre d'autant sur le meuble (voir `regardPourLaFenetre`). Sur une fenêtre bien plus large que haute (un
- * ordinateur), les liens des pages légales restent en vue.
+ * La fenêtre : le jeu la remplit toujours, bord à bord, quelle que soit sa taille. Le cadre la prend entière, et le regard en a la
+ * proportion (voir `regardPourLaFenetre`). Sur une fenêtre bien plus large que haute (un ordinateur), les liens des pages légales
+ * restent en vue.
  * @returns la proportion de la fenêtre, à lire à chaque image.
  */
 const CENTIEMES = 100;
@@ -77,16 +77,27 @@ function suivreLaFenetre(cadre: HTMLElement): () => number {
   let proportion = PROPORTION_DU_TELEPHONE;
   const mesurer = (): void => {
     const { innerWidth: l, innerHeight: h } = window;
-    // Arrondie au centième : une fenêtre qu'on étire ne remonte pas la scène à chaque pixel.
-    proportion = h > 0 ? Math.round((l / h) * CENTIEMES) / CENTIEMES : PROPORTION_DU_TELEPHONE;
-    const { largeur, hauteur } = regardPourLaFenetre(proportion);
-    cadre.style.aspectRatio = `${largeur} / ${hauteur}`;
-    cadre.style.width = `min(100vw, calc(100svh * ${largeur} / ${hauteur}))`;
+    // Celle du cadre, qui prend l'écran entier ; arrondie au centième : une fenêtre qu'on étire ne remonte pas la scène à chaque pixel.
+    const { clientWidth: lc, clientHeight: hc } = cadre;
+    proportion = hc > 0 ? Math.round((lc / hc) * CENTIEMES) / CENTIEMES : PROPORTION_DU_TELEPHONE;
     document.body.classList.toggle('grand', l >= h * GRAND_ECRAN.plusLargeQueHaut && h >= GRAND_ECRAN.hauteurAuMoins);
   };
   mesurer();
   window.addEventListener('resize', mesurer);
   return () => proportion;
+}
+
+/**
+ * Sur un écran tactile (un téléphone, une tablette), le premier toucher met le jeu en plein écran, là où le navigateur le permet
+ * (Android) ; l'iPhone ne le permet qu'au jeu posé sur l'écran d'accueil, qui s'ouvre alors en plein écran de lui-même.
+ */
+function pleinEcranAuPremierToucher(): void {
+  const page = document.documentElement;
+  if (!window.matchMedia('(pointer: coarse)').matches || typeof page.requestFullscreen !== 'function') return;
+  const aLaMain = (): void => {
+    if (document.fullscreenElement === null) void page.requestFullscreen({ navigationUI: 'hide' }).catch(() => undefined);
+  };
+  window.addEventListener('pointerup', aLaMain, { once: true });
 }
 
 /**
@@ -209,10 +220,19 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     ...(lien !== undefined ? { lien } : {}),
   });
 
+  // Une room qu'on a quittée s'oublie, et l'adresse redevient celle du site.
+  let dansUneRoom = false;
   const retenir = (aGarder: AGarder): void => {
     if (aGarder.pochette !== undefined) ecrire(surLAppareil, GARDE.pochette, aGarder.pochette);
     ecrire(surLAppareil, GARDE.session, aGarder.session);
-    if (aGarder.room === undefined) return;
+    if (aGarder.room === undefined) {
+      if (!dansUneRoom) return;
+      dansUneRoom = false;
+      ecrire(enSession, GARDE.room, undefined);
+      window.history.replaceState(null, '', '/');
+      return;
+    }
+    dansUneRoom = true;
     ecrire(enSession, GARDE.room, aGarder.room);
     // L'adresse de la page devient celle de la room : on la recharge, on la partage, on y revient.
     const ici = `/${aGarder.room.code}`;
@@ -231,10 +251,12 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     depart,
     retenir,
     vibrer: (cle) => vibreur.vibrer(cle),
+    confirmer: (question) => window.confirm(question),
     son: true,
     fenetre: suivreLaFenetre(cadre),
     // Les liens des pages légales, en bas : à l'accueil et au compte, là où rien d'autre ne se touche en bas de l'écran.
     enChangeant: (genre) => document.body.classList.toggle('pied', genre === 'accueil' || genre === 'compte'),
   });
   brancherLeTuto(textes);
+  pleinEcranAuPremierToucher();
 }

@@ -9,6 +9,7 @@
 import { dessinerLAmpli } from '../ampli';
 import { dessinerLeBac } from '../bac';
 import type { Calque } from '../calque';
+import { TELEPHONE } from '../../ressources/ecran';
 import { regardSurLeMeuble, type Regard } from '../meuble';
 import { CENTRE_DU_PLATEAU } from '../platine';
 import { empriseDe } from '../rendu/emprise';
@@ -26,8 +27,12 @@ const BAS = SUR_LA_PLATINE.origine[1] + SUR_LA_PLATINE.hauteur;
 export const HAUTEUR_DU_GRAND_ECRAN = BAS - HAUT;
 /** La largeur du meuble entier, avec ses marges. */
 export const LARGEUR_DU_MEUBLE = MEUBLE.largeur;
-/** La proportion d'une fenêtre de téléphone (celle du regard du téléphone), et celle où le regard montre le meuble entier. */
-export const PROPORTION_DU_TELEPHONE = SUR_LA_PLATINE.largeur / SUR_LA_PLATINE.hauteur;
+/** Au téléphone, le bois au-dessus de la platine ne se montre pas : le haut de l'écran est le bord de la platine. */
+const ROGNE = TELEPHONE.boisAuDessus;
+/** Le regard de cet écran est-il celui du téléphone posé sur la platine (le seul qu'on rogne en haut) ? */
+const surLaPlatine = (ecran: Regard): boolean => ecran.origine[0] === SUR_LA_PLATINE.origine[0] && ecran.origine[1] === SUR_LA_PLATINE.origine[1];
+/** La proportion d'une fenêtre de téléphone (celle du regard du téléphone, rogné), et celle où le regard montre le meuble entier. */
+export const PROPORTION_DU_TELEPHONE = SUR_LA_PLATINE.largeur / (SUR_LA_PLATINE.hauteur - ROGNE);
 const PROPORTION_DU_MEUBLE = LARGEUR_DU_MEUBLE / HAUTEUR_DU_GRAND_ECRAN;
 
 /** Où en est une fenêtre de cette proportion, du téléphone (0) au meuble entier (1). */
@@ -35,14 +40,19 @@ export const ouverture = (proportion: number): number =>
   Math.min(1, Math.max(0, (proportion - PROPORTION_DU_TELEPHONE) / (PROPORTION_DU_MEUBLE - PROPORTION_DU_TELEPHONE)));
 
 /**
- * Le regard qui remplit une fenêtre de cette proportion (sa largeur sur sa hauteur), posé sur un écran du téléphone : à mesure que
- * la fenêtre s'élargit, il grandit du regard de l'écran jusqu'à la hauteur du grand écran, et son milieu glisse de celui de l'écran
- * vers celui du meuble ; son bas reste celui de l'écran, sous ce qu'on y touche. Une fenêtre plus étroite qu'un téléphone garde
- * le regard du téléphone.
+ * Le regard qui remplit une fenêtre de cette proportion (sa largeur sur sa hauteur), posé sur un écran du téléphone, sans bande
+ * nulle part : à mesure que la fenêtre s'élargit, il grandit du regard de l'écran jusqu'à la hauteur du grand écran, et son milieu
+ * glisse de celui de l'écran vers celui du meuble ; son bas reste celui de l'écran, sous ce qu'on y touche. Au téléphone, il commence
+ * au bord de la platine ; une fenêtre plus étroite (un téléphone plus long) garde sa largeur, et descend plus bas sur la table.
  */
 export function regardPourLaFenetre(proportion: number, ecran: Regard = SUR_LA_PLATINE): Regard {
+  const rogne = surLaPlatine(ecran) ? ROGNE : 0;
+  const visible = ecran.hauteur - rogne;
+  if (proportion < ecran.largeur / visible) {
+    return { origine: [ecran.origine[0], ecran.origine[1] + rogne], largeur: ecran.largeur, hauteur: Math.round(ecran.largeur / proportion) };
+  }
   const t = ouverture(proportion);
-  const hauteur = ecran.hauteur + t * (HAUTEUR_DU_GRAND_ECRAN - ecran.hauteur);
+  const hauteur = visible + t * (HAUTEUR_DU_GRAND_ECRAN - visible);
   const largeur = Math.max(ecran.largeur, Math.round(hauteur * proportion));
   const milieuDeLEcran = ecran.origine[0] + ecran.largeur / 2;
   const milieu = milieuDeLEcran + t * (MEUBLE.origine[0] + MEUBLE.largeur / 2 - milieuDeLEcran);
@@ -71,12 +81,18 @@ export function rangerSousLeDisque(objets: readonly Calque[], ecran: Regard, pro
  * Le meuble au repos autour d'un écran du téléphone, ce que ce regard en voit : le bac rangé, la platine à l'arrêt, l'ampli
  * allumé, chacun s'il n'y est pas déjà. Une piste dessine sa propre platine : on ne lui en ajoute pas.
  */
-export function meubleAutour(a: Ecritoire, objets: readonly Calque[], regard: Regard, platine = true): Calque[] {
+export function meubleAutour(
+  a: Ecritoire,
+  objets: readonly Calque[],
+  regard: Regard,
+  platine = true,
+  aiguilles?: readonly [number, number],
+): Calque[] {
   const deja = new Set(objets.map((objet) => objet.nom));
   const candidats = [
     ...(deja.has('bac') ? [] : [dessinerLeBac(bacDesPlaylistsPretes(a.textes), DENSITE, a.encrier.largeur)]),
     ...(deja.has('platine') || !platine ? [] : [platineArretee(a)]),
-    ...(deja.has('ampli') ? [] : [dessinerLAmpli(ampliDuSalon(a.textes, true), DENSITE)]),
+    ...(deja.has('ampli') ? [] : [dessinerLAmpli(ampliDuSalon(a.textes, true, aiguilles), DENSITE)]),
   ];
   // Ce que le regard ne voit pas ne se dessine pas : une fenêtre de téléphone ne voit ni le bac ni l'ampli.
   return candidats.filter((c) => {

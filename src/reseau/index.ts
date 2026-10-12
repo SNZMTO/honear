@@ -16,7 +16,7 @@ import { createServer, type IncomingMessage } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hitParade } from '../regles/partie';
-import { PAGES_LEGALES } from '../ressources/reglages';
+import { APPLICATION, PAGES_LEGALES } from '../ressources/reglages';
 import { RESEAU } from '../ressources/reseau';
 import type { Textes } from '../ressources/textes';
 import { demarrerLeServeur } from '../serveur/serveur';
@@ -175,6 +175,17 @@ function pagesLegales(c: ConfigurationDuSite): Record<string, string> {
   return pages;
 }
 
+/** Le manifeste et l'icône de l'application, fabriqués à côté de la page : par leur adresse, avec leur type. */
+function fichiersDeLApplication(c: ConfigurationDuSite): Record<string, { readonly type: string; readonly contenu: string }> {
+  const types = { [APPLICATION.manifeste]: 'application/manifest+json; charset=utf-8', [APPLICATION.icone]: 'image/svg+xml' };
+  const fichiers: Record<string, { readonly type: string; readonly contenu: string }> = {};
+  for (const [chemin, type] of Object.entries(types)) {
+    const fichier = join(dirname(c.page), chemin.slice(1));
+    if (existsSync(fichier)) fichiers[chemin] = { type, contenu: readFileSync(fichier, 'utf8') };
+  }
+  return fichiers;
+}
+
 /** Entre deux ménages des comptes, en millisecondes. */
 const MENAGE = RESEAU.comptes.inactif.menage * 1000;
 
@@ -288,6 +299,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
     ouvrirLaPorte({
       page: readFileSync(c.page, 'utf8'),
       legales: pagesLegales(c),
+      fichiers: fichiersDeLApplication(c),
       // Ce que le site dit de lui-même : de quoi vérifier une mise en place d'un coup d'œil.
       sante: () => ({
         rooms: serveur.rooms,

@@ -4,9 +4,9 @@
  */
 
 export const PALETTE = {
-  // Le meuble : noyer, du sombre (loin de la lampe) au clair (sous la lampe).
+  // Le meuble : la table en noyer, et deux tons plus sombre et plus clair.
   noyerSombre: '#4F2E19',
-  noyer: '#7C4A28',
+  noyer: '#734929', // la table, d'une seule teinte
   noyerClair: '#A8703F',
 
   // La platine.

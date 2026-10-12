@@ -46,7 +46,7 @@ import { pastillesDUnePochette, placesEnEventail, type JoueurPose, type PlaceDeL
 import { eventail } from '../../scene/tablee';
 import { kraftDuSalon } from '../../scene/telephone/kraft';
 import { dansLeRegard, DENSITE, papier, SUR_LA_PLATINE, type Ecritoire } from '../../scene/telephone/pieces';
-import { etiquetteEtSonMot } from '../../scene/telephone/reponse';
+import { etiquetteEtSonMot, placeDuChoix } from '../../scene/telephone/reponse';
 import { LEGENDES_DES_ECRANS as L } from '../etape5/legendes.fr';
 import { choixDExemple, journalDExemple, laPiste } from '../etape5/scenes';
 import { reponseDExemple } from '../exemples';
@@ -347,10 +347,13 @@ function lesQuatreEtiquettes(a: Ecritoire): Animation {
     const p = papier(
       nom,
       R,
-      [C.x, C.y[rang] ?? 0],
+      placeDuChoix(rang),
       C.largeur,
       angle,
-      [{ contenu: `${c.titre} · ${c.artiste}`, role: 'techniqueFort', auPlus: 'mention' }],
+      [
+        { contenu: c.titre, role: 'techniqueFort', auPlus: 'mention' },
+        { contenu: c.artiste, role: 'technique', auPlus: 'mention' },
+      ],
       a.encrier,
       {
         role: 'mobile',

@@ -1,20 +1,17 @@
 /**
- * Le dessus du meuble : du noyer, la nappe de lumière de la lampe en fondu, et un veinage en longues facettes aux bouts
- * émoussés. Une grande surface calme.
+ * Le dessus du meuble : du noyer d'une seule teinte, et un veinage en longues facettes aux bouts émoussés. Une grande surface calme.
  */
 
 import { hasard } from '../../lowpoly/aleatoire';
-import { ellipse, rectangle } from '../../lowpoly/contours';
+import { rectangle } from '../../lowpoly/contours';
 import { facetteAPlat, peindre, type Facette } from '../../lowpoly/facette';
 import { veine } from '../../lowpoly/formes/veine';
-import { azimutDeLaLampe, type Nuance } from '../../lowpoly/ombrage';
-import { decouper, placer } from '../../lowpoly/polygones';
-import { TON_DE_BASE } from '../../lowpoly/tons';
+import type { Nuance } from '../../lowpoly/ombrage';
+import { placer } from '../../lowpoly/polygones';
 import type { Vec2 } from '../../lowpoly/vecteurs';
 import type { Densite } from '../../ressources/densites';
-import { LAMPE } from '../../ressources/lampe';
 import { MEUBLE } from '../../ressources/meuble';
-import { aplat, aPlatSurLeMeuble, calque, peinture, type Calque } from '../calque';
+import { calque, peinture, type Calque } from '../calque';
 
 /** Portion du meuble à dessiner, dans son plan. */
 export interface Zone {
@@ -23,9 +20,6 @@ export interface Zone {
   readonly largeur: number;
   readonly profondeur: number;
 }
-
-/** Le grand axe de la nappe suit la lumière : c'est l'azimut de la lampe. */
-const AXE_DE_LA_NAPPE = azimutDeLaLampe();
 
 interface Veine {
   readonly milieu: Vec2;
@@ -68,27 +62,11 @@ function veines(zone: Zone, densite: Densite): Veine[] {
 
 export function dessinerLeNoyer(zone: Zone, densite: Densite): Calque {
   const fond = rectangle(zone.x, zone.y, zone.largeur, zone.profondeur);
-  const { nu, eclaire } = MEUBLE.noyer;
+  const { nu } = MEUBLE.noyer;
   const veinage: Facette[] = veines(zone, densite).map((v) =>
     facetteAPlat(placer(veine(v.longueur, v.epaisseur), { en: v.milieu, angle: v.angle }), 0, nu, v.nuance),
   );
-  // La lumière : des ellipses de bois clair, à peine opaques, de la plus large à la plus étroite ; leur pile éclaircit le bois et
-  // ses veines peu à peu vers le cœur de la nappe, en fondu, sans marche qu'on voie.
-  const N = LAMPE.nappe;
-  // Chacune entière (découpée au bord de la zone, elle y ferait des pointes) ; celles qui ne touchent pas la zone ne se dessinent pas.
-  const lumiere = Array.from({ length: N.pas }, (_, rang) => {
-    const part = rang / Math.max(1, N.pas - 1);
-    const rayons: Vec2 = [N.du[0] + part * (N.au[0] - N.du[0]), N.du[1] + part * (N.au[1] - N.du[1])];
-    return ellipse(N.centre, rayons, densite.pansDeNappe, AXE_DE_LA_NAPPE);
-  })
-    .filter((contour) => decouper(contour, fond).length > 0)
-    .map((contour) => aplat([contour], eclaire, TON_DE_BASE, N.opacite));
-  // Les ellipses sont dans le plan du meuble : on les y couche, comme le bois.
-  return calque(
-    'noyer',
-    [peinture(peindre([facetteAPlat(fond, 0, nu)])), peinture(peindre(veinage)), aPlatSurLeMeuble('noyer/lumiere', 0, lumiere)],
-    {
-      role: 'decor',
-    },
-  );
+  return calque('noyer', [peinture(peindre([facetteAPlat(fond, 0, nu)])), peinture(peindre(veinage))], {
+    role: 'decor',
+  });
 }

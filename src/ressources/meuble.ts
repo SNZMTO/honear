@@ -1,12 +1,12 @@
 /**
- * Le meuble : son dessus en noyer. Trois teintes selon la lumière qu'il reçoit, et le réglage de son veinage.
+ * Le meuble : son dessus en noyer, d'une seule teinte, et le réglage de son veinage.
  */
 
 import type { NomDeTeinte } from './palette';
 
 export const MEUBLE = {
-  /** Le bois : nu, loin de la lampe, et celui que la nappe de lumière pose dessus, en fondu, vers son cœur. */
-  noyer: { nu: 'noyerSombre', eclaire: 'noyerClair' } satisfies Readonly<Record<string, NomDeTeinte>>,
+  /** Le bois : d'une seule teinte, sur toute la table, et ses veines un ton plus clair ou plus sombre. */
+  noyer: { nu: 'noyer' } satisfies Readonly<Record<string, NomDeTeinte>>,
 
   /** Le veinage : de longues facettes couchées dans la longueur du meuble. L'écart entre deux rangées vient de la densité. */
   veinage: {

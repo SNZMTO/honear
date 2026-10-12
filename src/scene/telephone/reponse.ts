@@ -90,6 +90,9 @@ export function etiquetteEtSonMot(
   return { calques: [...etiquette.calques, ...collees], mot: presque };
 }
 
+/** La place d'une étiquette du mode 4 choix, par son rang : deux colonnes de deux. */
+export const placeDuChoix = (rang: number): [number, number] => [T.choix.x[rang % T.choix.x.length] ?? 0, T.choix.y[rang] ?? 0];
+
 /**
  * Les quatre étiquettes à toucher du mode 4 choix, « etiquette-choix-1 » à « -4 » ; celle qu'on a touchée est enfoncée ; une fois
  * la réponse révélée, seule la bonne reste.
@@ -104,17 +107,22 @@ export function etiquettesAToucher(
   const C = T.choix;
   return choix.flatMap((c, rang) => {
     if (revelee !== undefined && !(c.titre === revelee.titre && c.artiste === revelee.artiste)) return [];
-    const y = (C.y[rang] ?? 0) + (touchee === rang ? 2 : 0);
+    // Celle qu'on a touchée s'enfonce : plaquée à plat sur la table, sans ombre, dans un papier plus sombre.
+    const enfoncee = touchee === rang;
+    const [x, y] = placeDuChoix(rang);
     return papier(
       `etiquette-choix-${rang + 1}`,
       regard,
-      [C.x, y],
+      [x, y + (enfoncee ? C.touchee.enfonce : 0)],
       C.largeur,
-      C.angles[rang] ?? 0,
-      [{ contenu: `${c.titre} · ${interprete(a.textes, c)}`, role: 'techniqueFort', auPlus: 'mention' }],
+      enfoncee ? 0 : (C.angles[rang] ?? 0),
+      [
+        { contenu: c.titre, role: 'techniqueFort', auPlus: 'mention' },
+        { contenu: interprete(a.textes, c), role: 'technique', auPlus: 'mention' },
+      ],
       a.encrier,
       // Une colonne d'étiquettes toutes pareilles : on les compare d'un coup d'œil.
-      { role: 'mobile', auMoins: C.largeur },
+      { role: 'mobile', auMoins: C.largeur, ...(enfoncee ? { teinte: C.touchee.teinte, plaque: true } : {}) },
     ).calques;
   });
 }
