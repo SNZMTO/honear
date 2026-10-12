@@ -243,3 +243,11 @@ test('« Piste N sur M » suit la partie : la première au salon, celle qu’on 
   assert.equal(piste(90), '3/3', 'à la finale : jamais au-delà de la dernière');
   assert.equal(numeroDeLaPiste(partieA([ouvre(15)], 0)).sur, 15, 'combien : ce que l’hôte a réglé en ouvrant la room');
 });
+
+test('rejoué jusqu’au bout, un journal ne l’est qu’une fois ; un événement de plus, et il l’est de nouveau', () => {
+  const journal: EvenementDePartie[] = arrivent('a', 'b');
+  const etat = partieA(journal, Infinity);
+  assert.equal(partieA(journal, Infinity), etat, 'le même état, sans tout rejouer');
+  journal.push({ genre: 'depart', a: 5, id: 'b' });
+  assert.equal(partieA(journal, Infinity).joueurs.length, 1, 'le journal s’est allongé : il est rejoué');
+});

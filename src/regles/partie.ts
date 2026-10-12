@@ -312,12 +312,22 @@ export function numeroDeLaPiste(etat: EtatDeLaPartie, decompte = false): { reado
   return { numero: Math.min(numero, Math.max(1, etat.pistes)), sur: etat.pistes };
 }
 
+/**
+ * Le dernier état de chaque journal, rejoué jusqu'au bout, et sa longueur d'alors : un journal ne fait que s'allonger (ou on en
+ * prend un autre). L'écran le demande à chaque image ; rejoué à chaque fois, il pesait de plus en plus lourd vers la fin d'une partie.
+ */
+const AU_BOUT = new WeakMap<readonly EvenementDePartie[], { readonly longueur: number; readonly etat: EtatDeLaPartie }>();
+
 /** L'état de la room à l'instant t : le journal rejoué, dans l'ordre de ses instants, jusqu'à t compris. */
 export function partieA(journal: readonly EvenementDePartie[], t: number): EtatDeLaPartie {
-  return [...journal]
+  const deja = t === Infinity ? AU_BOUT.get(journal) : undefined;
+  if (deja !== undefined && deja.longueur === journal.length) return deja.etat;
+  const etat = [...journal]
     .filter((e) => e.a <= t)
     .sort((x, y) => x.a - y.a)
     .reduce(suivre, ROOM_VIDE);
+  if (t === Infinity) AU_BOUT.set(journal, { longueur: journal.length, etat });
+  return etat;
 }
 
 /** Le hit-parade : les joueurs du premier au dernier, ex æquo dans l'ordre d'arrivée, chacun avec son rang. */

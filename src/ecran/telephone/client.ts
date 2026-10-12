@@ -46,7 +46,7 @@ import { kraftAuRepos } from '../../scene/telephone/kraft';
 import { toucheDeLHote, toucheQuitter } from '../../scene/telephone/quitter';
 import { angleDuVolume, boutonDuVolume, cranDuVolume, INDEX_DU_VOLUME, type PlaceDuVolume } from '../../scene/telephone/volume';
 import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
-import { autourDeLaPiste, lignesDeLaPiste, pochetteSurLeVerso } from '../../scene/telephone/piste';
+import { lignesDeLaPiste, pochetteSurLeVerso, pouceDeLaPiste, tableeDeLaPiste } from '../../scene/telephone/piste';
 import { vueDeLaPochette } from '../../scene/telephone/pochette';
 import { imagesDesTitres, vueDesTitres } from '../../scene/telephone/titres';
 import { calquesDeLaTouche } from '../../scene/touche';
@@ -234,6 +234,12 @@ const CLAVIERS: Readonly<Record<SorteDeChamp, { readonly touche: string; readonl
 /** Les millisecondes d'une seconde : les animations de la page comptent en millisecondes, nos tables en secondes. */
 const MS_PAR_SECONDE = 1000;
 
+/** Ce que tape la réponse la plus longue qu'on puisse taper, pour savoir la place que son étiquette peut prendre. */
+const ETIQUETTE_LA_PLUS_LARGE = 'M'.repeat(SAISIE_AU_PLUS);
+
+/** Les touches qui déplacent le curseur dans un champ : il revient au bout de ce qu'on a tapé, où on le voit. */
+const DEPLACEMENTS: ReadonlySet<string> = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown']);
+
 /** Ce qui dit qu'un doigt (ou la souris) s'est levé, ou que le navigateur l'a pris pour lui. */
 const FINS_DU_DOIGT = ['pointerup', 'pointercancel'] as const;
 
@@ -319,6 +325,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   vider(cadre);
   cadre.style.position = 'relative';
   const scene = couche(cadre, 'scene');
+  // Autour de la piste, deux couches : la tablée (le classement, le décor de saison), qui ne change qu'avec les points ; et ce qu'on
+  // touche, qui change à chaque lettre tapée. Une lettre ne redessine plus le classement.
+  const coucheDeLaTablee = couche(cadre, 'tablee');
   const autour = couche(cadre, 'autour');
   const couverture = couche(cadre, 'couverture');
   const coucheDuVolume = couche(cadre, 'volume');
@@ -335,6 +344,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   let ecranMonte: Montee | undefined;
   let piste: { readonly lanceeA: number; readonly ecran: EcranDeLaPiste; readonly fenetre: string } | undefined;
   let posees: Montee | undefined;
+  let tablee: Montee | undefined;
   let genre: EcranDuTelephone['genre'] | undefined;
   /** Ce que fait chaque zone posée, par son rang, et le calque qu'elle touche. */
   let choses: { readonly toucher: Toucher; readonly nom: NomDeCalque }[] = [];
@@ -659,7 +669,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   function animerLeDecor(): void {
     if (o.options.sobre) return;
     const t = o.horloge.maintenant();
-    for (const m of [ecranMonte, posees]) {
+    for (const m of [ecranMonte, tablee, posees]) {
       if (m === undefined || m.babioles.length === 0) continue;
       try {
         m.montage.regler(reglerLeDecorDeLaSaison(m.babioles, t));
@@ -898,6 +908,48 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     validerLeChamp();
   });
 
+  /**
+   * On entre dans l'étiquette de la réponse (on la touche, on y clique) : elle se vide, on voit qu'on y est, et l'on tape une
+   * nouvelle réponse. La dernière partie reste écrite tant qu'on n'y revient pas.
+   */
+  const viderLaReponse = (): void => {
+    if (champ.dataset['pour'] !== 'reponse' || champ.value === '') return;
+    champ.value = '';
+    changer(saisir(memoire, ''));
+  };
+  champ.addEventListener('focus', viderLaReponse);
+  champ.addEventListener('pointerdown', viderLaReponse);
+  /**
+   * Le curseur qu'on voit est toujours au bout de ce qu'on a tapé : celui du champ, qu'on ne voit pas, y reste aussi. Sans cela, un
+   * clic le posait n'importe où, et ce qu'on tapait ensuite (un mot effacé d'un coup, Ctrl + Retour arrière) partait du début.
+   */
+  const auBout = (): void => {
+    const fin = champ.value.length;
+    if (champ.selectionStart !== fin || champ.selectionEnd !== fin) champ.setSelectionRange(fin, fin);
+  };
+  champ.addEventListener('click', auBout);
+  champ.addEventListener('keyup', (ev) => {
+    if (DEPLACEMENTS.has(ev.key)) auBout();
+  });
+  champ.addEventListener('keydown', (ev) => {
+    // Un mot effacé d'un coup, ou une lettre effacée : depuis le bout, sauf si tout est choisi (on remplace alors tout).
+    if ((ev.key === 'Backspace' || ev.key === 'Delete') && !(champ.selectionStart === 0 && champ.selectionEnd === champ.value.length)) auBout();
+  });
+
+  /**
+   * Sur un ordinateur, on tape sans viser : une lettre tapée quand le champ est posé (l'étiquette de la réponse, le code, le nom…)
+   * mais que la page a le regard ailleurs (on a cliqué à côté, on est revenu d'un autre onglet) y va tout droit.
+   */
+  const taperSansViser = (ev: KeyboardEvent): void => {
+    if (champ.hidden || document.activeElement === champ || ev.ctrlKey || ev.metaKey || ev.altKey || ev.key.length !== 1) return;
+    if (document.activeElement instanceof HTMLInputElement || document.activeElement instanceof HTMLTextAreaElement) return;
+    // L'espace sur une touche qu'on a choisie au clavier l'enfonce : on ne la lui prend pas.
+    if (ev.key === ' ' && document.activeElement instanceof HTMLButtonElement) return;
+    if (document.querySelector('.tuto:not([hidden])') !== null) return;
+    champ.focus({ preventScroll: true });
+  };
+  window.addEventListener('keydown', taperSansViser, true);
+
   function fermerLaPiste(): void {
     poserLesImages([], SUR_LA_PLATINE);
     piste?.ecran.fermer();
@@ -905,6 +957,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     posees?.montage.demonter();
     posees = undefined;
     vider(autour);
+    tablee?.montage.demonter();
+    tablee = undefined;
+    vider(coucheDeLaTablee);
   }
 
   function montrerUnEcran(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>): void {
@@ -996,26 +1051,38 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     // Ce qu'on pose autour reste à l'écran pendant que le regard suit la piste : il a sa couche, au-dessus d'elle. Sur un grand
     // écran, il se range sous le vinyle.
     const d = definition(regard);
-    const cle = JSON.stringify([e.autour, e.pouce, d, p]);
+    const laFenetre = [d, p, bords()];
+    // Sur un grand écran, ce qu'on pose se range sous le vinyle ; et le classement se lit en colonne sous le bac.
+    const ranger = (objets: readonly Calque[]): Calque[] =>
+      p !== undefined ? rangerSousLeDisque(objets, SUR_LA_PLATINE, p, a.encrier.largeur) : [...objets];
+    const sousLeBac = p !== undefined ? classementSousLeBac(regard) : undefined;
+    const { repondre } = e.autour;
+    const clavierOuvert = repondre.genre === 'saisie' && repondre.clavier ? (repondre.dessus ?? true) : false;
+    // La tablée : elle ne change qu'avec les points, les trouvailles, les têtes, et le clavier qui s'ouvre.
+    const lignes = lignesDeLaPiste(a.textes, e.autour);
+    const cleDeLaTablee = JSON.stringify([lignes, clavierOuvert, sousLeBac !== undefined, ...laFenetre]);
+    if (tablee?.cle !== cleDeLaTablee) {
+      const objets = [
+        ...ranger(tableeDeLaPiste(a, SUR_LA_PLATINE, e.autour, sousLeBac !== undefined)),
+        ...(sousLeBac !== undefined ? dessinerLeClassement(lignes, sousLeBac, regard, a.textes, a.encrier.largeur) : []),
+      ];
+      // Le décor de saison : pendant la piste, le regard glisse sous ce qu'on pose ; rien de posé sur le bois, loin du meuble et de la
+      // kraft, ni de l'étiquette, à la plus grande qu'elle puisse être.
+      const auPlusLarge = repondre.genre === 'saisie' ? { ...e.autour, repondre: { ...repondre, tape: ETIQUETTE_LA_PLUS_LARGE } } : e.autour;
+      const eviter = [...objets, ...ranger(pouceDeLaPiste(a, SUR_LA_PLATINE, auPlusLarge)), ...meubleAutour(a, [], regard), ...kraftAuRepos(a)];
+      const saison = decorDeLaSaison(regard, [...eviter, ...touchesDuCoin(regard)], a.encrier.largeur, false);
+      const arbre = calque('regard-tablee', [...saison.dessous, ...objets, ...saison.dessus]);
+      tablee = monterDans(coucheDeLaTablee, tablee, cleDeLaTablee, arbre, regard, d, new Map());
+    } else tablee.plan.suivreLeCadre();
+    // Ce qu'on touche : l'étiquette où l'on tape (et ce que la piste y a collé), les étiquettes du 4 choix, la phrase d'un état.
+    const trouve = e.autour.etat.piste?.trouve[e.autour.toi];
+    const cle = JSON.stringify([repondre, e.autour.revelee, e.autour.phrase, trouve, e.pouce, ...laFenetre]);
     if (posees?.cle === cle) {
       posees.plan.suivreLeCadre();
       return;
     }
-    // Sur un grand écran, le classement se lit en colonne sous le bac ; ce qu'on touche garde l'éventail des pochettes.
-    const sousLeBac = p !== undefined ? classementSousLeBac(regard) : undefined;
-    const autourDuTelephone = autourDeLaPiste(a, SUR_LA_PLATINE, e.autour, sousLeBac !== undefined);
-    const objets = [
-      ...(p !== undefined ? rangerSousLeDisque(autourDuTelephone, SUR_LA_PLATINE, p, a.encrier.largeur) : autourDuTelephone),
-      ...(sousLeBac !== undefined ? dessinerLeClassement(lignesDeLaPiste(a.textes, e.autour), sousLeBac, regard, a.textes, a.encrier.largeur) : []),
-    ];
-    // Le décor de saison : pendant la piste, le regard glisse sous ce qu'on pose ; rien de posé sur le bois, loin du meuble et de la kraft.
-    const saison = decorDeLaSaison(
-      regard,
-      [...objets, ...meubleAutour(a, [], regard), ...kraftAuRepos(a), ...touchesDuCoin(regard)],
-      a.encrier.largeur,
-      false,
-    );
-    posees = monterDans(autour, posees, cle, calque('regard-autour', [...saison.dessous, ...objets, ...saison.dessus]), regard, d, new Map());
+    const objets = ranger(pouceDeLaPiste(a, SUR_LA_PLATINE, e.autour));
+    posees = monterDans(autour, posees, cle, calque('regard-autour', objets), regard, d, new Map());
     poserLesZones(objets, regard, e);
   }
 
@@ -1317,6 +1384,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       window.removeEventListener('pointerdown', poser, true);
       for (const fin of FINS_DU_DOIGT) window.removeEventListener(fin, lever, true);
       window.removeEventListener('scroll', remettreEnPlace);
+      window.removeEventListener('keydown', taperSansViser, true);
       window.removeEventListener('resize', noterLaFenetre);
       vu?.removeEventListener('resize', suivreLeClavier);
       vu?.removeEventListener('scroll', suivreLeClavier);

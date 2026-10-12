@@ -31,8 +31,9 @@ export function etiquetteDeReponse(
   mot: string | undefined,
   y: number = T.reponse.en[1],
   motQuiBouge?: MotQuiBouge,
+  enfoncee = false,
 ): Calque[] {
-  const { calques, mot: pose } = etiquetteEtSonMot(a, regard, tape, trouve, mot, y, motQuiBouge);
+  const { calques, mot: pose } = etiquetteEtSonMot(a, regard, tape, trouve, mot, y, motQuiBouge, enfoncee);
   if (pose === undefined) return calques;
   const d = dessinerUnePastille(pose);
   return [...calques, d.ombre, d.pastille];
@@ -47,16 +48,20 @@ export function etiquetteEtSonMot(
   mot: string | undefined,
   y: number = T.reponse.en[1],
   motQuiBouge?: MotQuiBouge,
+  enfoncee = false,
 ): { readonly calques: Calque[]; readonly mot: Pastille | undefined } {
   const R = T.reponse;
   const ligne: LigneDePapier =
     tape === '' ? { contenu: a.textes.partie.taReponse, role: 'technique', auPlus: 'mention' } : { contenu: tape, role: 'titrage', auPlus: 'titre' };
   // Taillée à ce qu'on tape, assez large pour ses trois pastilles ; elle s'allonge vers la droite.
-  const etiquette = papier('etiquette-reponse', regard, [R.en[0], y], R.largeur, R.angle, [ligne], a.encrier, {
+  // La réponse part : l'étiquette s'enfonce un instant, à plat, comme une étiquette touchée au 4 choix.
+  const E = T.choix.touchee;
+  const etiquette = papier('etiquette-reponse', regard, [R.en[0], y + (enfoncee ? E.enfonce : 0)], R.largeur, R.angle, [ligne], a.encrier, {
     // Rien de tapé : le curseur attend devant ce qu'on peut taper, pas au milieu de l'étiquette.
     curseur: tape === '' ? 'debut' : true,
     alignement: 'debut',
     auMoins: R.auMoins,
+    ...(enfoncee ? { teinte: E.teinte, plaque: true } : {}),
   });
   const [mx, my] = dansLeRegard(regard, etiquette.milieu);
   const haut = dansLeRegard(regard, [etiquette.milieu[0], etiquette.haut])[1];
