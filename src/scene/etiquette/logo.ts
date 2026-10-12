@@ -1,5 +1,5 @@
 /**
- * L'étiquette de l'accueil, et donc le logo : « Miel d'oreilles » écrit en arc sur le papier miel,
+ * L'étiquette de l'accueil, et donc le logo : « Honear » écrit en arc sur le papier miel,
  * les deux mentions d'un vrai disque de part et d'autre du trou, et une troisième en bas.
  */
 

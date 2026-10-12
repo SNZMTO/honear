@@ -1,59 +1,29 @@
-# Mettre Miel d'oreilles en ligne, sur un VPS, avec Docker
+# Mettre Honear en ligne
 
-Le jeu tourne dans deux conteneurs. **Caddy**, seul à écouter le monde, tient le HTTPS (il prend et renouvelle seul ses
-certificats) ; **le jeu**, une image construite depuis ce dépôt, n'ouvre aucun port et ne se joint que par Caddy.
+Honear tourne sur un VPS OVH (Debian 13), dans un conteneur Docker construit depuis ce dépôt. Le VPS est partagé avec d'autres
+sites : ce qui leur est commun, la machine durcie et le **frontal** (Caddy, seul à écouter le monde, qui tient le HTTPS de tous
+les domaines), vit dans son propre dépôt, **`vps`** (`~/vps` sur le VPS). Ce dépôt-ci ne tient que le jeu.
 
 ```
-téléphone ──HTTPS / WebSocket (wss)──▶ caddy :443 ──▶ jeu :8080 (réseau des conteneurs)
-                                                        └──▶ /var/lib/miel-doreilles (les comptes)
+téléphone ──HTTPS / WebSocket (wss)──▶ frontal (Caddy, dépôt vps) ──réseau « honear »──▶ honear:8080 (ce dépôt)
+                                                                                           └──▶ /var/lib/honear (les comptes)
 ```
 
 | Fichier | Rôle |
 | --- | --- |
 | `Dockerfile` | L'image du jeu : `npm run construire`, puis Node seul (ni npm ni sources), sans droits. Images figées à leur empreinte. |
-| `deploiement/compose.yaml` | Les deux conteneurs : sans capacités, en lecture seule, limités en mémoire et en processus. |
-| `deploiement/Caddyfile` | Le HTTPS, les en-têtes de sécurité, le renvoi de l'ancien domaine. Aucune visite n'est journalisée. |
-| `deploiement/preparer-le-vps.sh` | Une fois (il se relance sans rien casser) : Docker, le durcissement, le pare-feu, les domaines. |
-| `deploiement/mettre-en-ligne.sh` | À chaque version : construit l'image au commit courant et relance les conteneurs. |
+| `deploiement/compose.yaml` | Le conteneur : aucun port ouvert, aucune capacité, lecture seule, mémoire et processus comptés. |
+| `deploiement/mettre-en-ligne.sh` | À chaque version : construit l'image au commit courant, relance le jeu, vérifie qu'il répond. |
 | `deploiement/courrier.sh` | Le courrier des comptes : l'adresse d'envoi et son mot de passe, que tu tapes toi-même. |
-| `deploiement/systeme/` | Le durcissement de la machine, que `preparer-le-vps.sh` installe. |
 
 ## Ce qu'il te faut
 
-- **Un VPS Debian 13** (le plus petit d'OVH suffit largement), commandé avec **ta clé SSH**, sans mot de passe.
-- **Un nom de domaine** qui pointe sur lui, pour le HTTPS : un téléphone ne se branche en WebSocket sécurisé qu'à une adresse
-  qui a un certificat. Ici : **honear.fr**. Le VPS porte aussi **mateosan.fr**, qui accueillera un autre site : en attendant, il
-  montre une page d'attente, et ne mène pas au jeu.
-- **Une adresse e-mail** pour envoyer les liens de connexion des comptes (voir « Les comptes »). Sans elle, le jeu marche ; seuls
-  les comptes sont fermés.
+- **Le VPS préparé** par le dépôt `vps` (`sudo sh preparer.sh` : Docker, durcissement, pare-feu), et son frontal en ligne.
+- **Le domaine honear.fr** qui pointe sur le VPS (zone DNS chez OVH : `A` pour `honear.fr` et `www` vers `IP_DU_VPS`).
+- **Une adresse e-mail** pour envoyer les liens de connexion des comptes (`bonjour@honear.fr`, voir « Les comptes »). Sans elle,
+  le jeu marche ; seuls les comptes sont fermés.
 
-## 1. Le domaine pointe sur le VPS (une fois)
-
-Dans la zone DNS du domaine, chez ton registrar :
-
-| Sous-domaine | Type | Cible |
-| --- | --- | --- |
-| *(vide)* | `A` | l'IPv4 du VPS (`IP_DU_VPS`) |
-| `www` | `A` | la même |
-
-Supprime les enregistrements `A` et `AAAA` que le registrar a posés d'office (sa page de parking) : le VPS n'a pas d'IPv6 publique,
-et une `AAAA` vers ailleurs empêcherait le certificat. Compte quelques minutes, parfois une heure.
-
-## 2. Préparer le VPS (une fois)
-
-Depuis le dépôt cloné sur le VPS :
-
-```
-sudo sh deploiement/preparer-le-vps.sh honear.fr mateosan.fr
-```
-
-Le premier domaine est l'adresse du jeu, le second l'autre domaine du VPS (une page d'attente, rien du jeu). Il installe Docker depuis son dépôt officiel et le règle (journaux
-dans ceux de la machine, aucun conteneur qui gagne des droits) ; il durcit SSH (par clé, en tant que `debian` seulement, trois
-essais), le noyau, les journaux (six mois au plus) ; il coupe LLMNR et mDNS ; il met en route les mises à jour automatiques (Debian
-et Docker, redémarrage à 5 h si un noyau neuf le demande), fail2ban, et le pare-feu (SSH, HTTP, HTTPS). Pour échanger les rôles
-des domaines, on le relance avec les deux noms dans l'autre ordre, puis on remet en ligne.
-
-## 3. Mettre une version en ligne
+## Mettre une version en ligne
 
 ```
 npm test && npm run controle && git commit … && sudo sh deploiement/mettre-en-ligne.sh
@@ -61,20 +31,20 @@ npm test && npm run controle && git commit … && sudo sh deploiement/mettre-en-
 
 Le script refuse un dépôt qui a des changements non commités (ce qui est en ligne est toujours un commit), et attend que personne
 ne joue (`--maintenant` pour passer outre) : les rooms vivent en mémoire, une mise en ligne ferme les parties en cours. Les comptes,
-eux, restent. Il construit `miel-doreilles:<commit>`, pose `compose.yaml` et le `Caddyfile` dans `/srv/miel-doreilles`, relance
-les conteneurs, garde les trois dernières images et vérifie que le site répond.
+eux, restent. La première fois, il crée l'utilisateur `honear` (à qui appartiennent les comptes) et leur dossier. Il construit
+`honear:<commit>`, pose `compose.yaml` dans `/srv/honear`, relance le jeu, garde les trois dernières images et vérifie que le site
+répond par le frontal.
 
-**Revenir en arrière** sans reconstruire : changer `VERSION` dans `/srv/miel-doreilles/.env` pour une des images gardées
-(`sudo docker image ls miel-doreilles`), puis `sudo docker compose --project-directory /srv/miel-doreilles up -d`.
+**Revenir en arrière** sans reconstruire : changer `VERSION` dans `/srv/honear/.env` pour une des images gardées
+(`sudo docker image ls honear`), puis `sudo docker compose --project-directory /srv/honear up -d`.
 
-## 4. Vérifier, surveiller
+## Vérifier, surveiller
 
 - `https://honear.fr/sante` : combien de rooms vivent, combien de téléphones sont branchés, si la musique est là, et si les
   comptes sont ouverts (`"comptes":"ouverts"`) ou fermés (le courrier n'est pas réglé).
-- `sudo docker compose --project-directory /srv/miel-doreilles ps` : l'état des conteneurs (le jeu dit s'il est en bonne santé).
-- `sudo docker compose --project-directory /srv/miel-doreilles logs --tail 100` : ce qu'ils disent (aussi dans
-  `journalctl -t miel-doreilles-jeu-1`).
-- Les conteneurs repartent seuls s'ils tombent, et au démarrage de la machine.
+- `sudo docker compose --project-directory /srv/honear ps` : l'état du jeu (il dit s'il est en bonne santé).
+- `sudo docker compose --project-directory /srv/honear logs --tail 100` : ce qu'il dit (aussi dans `journalctl -t honear-jeu-1`).
+- Il repart seul s'il tombe, et au démarrage de la machine.
 
 ## Pourquoi ça ne traîne pas
 
@@ -98,8 +68,8 @@ les conteneurs, garde les trois dernières images et vérifie que le site répon
   serveur, ni essayer des codes au hasard sans être coupé ; une page venue d'un autre site ne peut pas s'y brancher.
 - Chaque joueur a un jeton secret pour revenir à sa place : connaître l'identifiant d'un autre ne permet pas de la lui prendre.
 - Le jeu tourne dans un conteneur sans droits : aucune capacité, rien à gagner en route, un système de fichiers en lecture seule,
-  le dossier des comptes pour seul endroit où écrire, et aucun port ouvert. Seul Caddy écoute le monde ; le pare-feu ne laisse
-  entrer que SSH et le web, fail2ban écarte qui force SSH, et la machine se met à jour toute seule.
+  le dossier des comptes pour seul endroit où écrire, et aucun port ouvert ; seul le frontal le joint, par son réseau. La machine
+  elle-même (SSH par clé, pare-feu, fail2ban, mises à jour automatiques) est décrite dans le dépôt `vps`.
 - Un compte s'ouvre sans mot de passe, par un lien qui ne sert qu'une fois ; le téléphone garde un secret de session, que le serveur
   ne garde qu'en empreinte.
 
@@ -124,7 +94,7 @@ directement depuis les serveurs de Deezer : aucun son ne passe par le VPS, ni n'
 
 Un compte se crée en tapant son adresse : le serveur y envoie un lien qui fait entrer, une fois, pendant un quart d'heure. Pour
 envoyer ces e-mails, il lui faut le serveur d'envoi (SMTP) d'une boîte e-mail. Le plus simple : une adresse à ton domaine chez OVH
-(`bonjour@miel-doreilles.fr`), créée dans l'espace client (Web Cloud → E-mails ; l'offre MX Plan ou Zimbra Starter). Tout service
+(`bonjour@honear.fr`), créée dans l'espace client (Web Cloud → E-mails ; l'offre MX Plan ou Zimbra Starter). Tout service
 d'envoi qui donne un accès SMTP chiffré sur le port 465 marche aussi.
 
 Règle-les toi-même, dans un vrai terminal (le mot de passe ne s'affiche pas, et ne passe que par le fichier) :
@@ -134,22 +104,22 @@ sudo sh deploiement/courrier.sh
 ```
 
 Il demande l'adresse, son serveur d'envoi (proposé : `ssl0.ovh.net`, celui d'OVH) et son mot de passe, les garde dans
-`/etc/miel-doreilles/courrier.env` (que seul root lit ; Docker le passe au jeu), relance le jeu et envoie un e-mail d'essai.
+`/etc/honear/courrier.env` (que seul root lit ; Docker le passe au jeu), relance le jeu et envoie un e-mail d'essai.
 Le fichier ressemble à ceci :
 
 ```
 COURRIER_HOTE='ssl0.ovh.net'
 COURRIER_PORT='465'
-COURRIER_UTILISATEUR='bonjour@miel-doreilles.fr'
+COURRIER_UTILISATEUR='bonjour@honear.fr'
 COURRIER_MOT_DE_PASSE='le mot de passe de cette adresse'
-COURRIER_DE='Miel d’oreilles <bonjour@miel-doreilles.fr>'
+COURRIER_DE='bonjour@honear.fr'
 ```
 
 (Entre apostrophes droites, une valeur peut porter des espaces et des signes, sauf une apostrophe droite.) Un e-mail d'essai,
 qui dit pourquoi s'il ne part pas (un mot de passe refusé : « 535 ») :
 
 ```
-sudo docker compose --project-directory /srv/miel-doreilles exec jeu node /jeu/serveur.mjs --essai-courrier toi@exemple.fr
+sudo docker compose --project-directory /srv/honear exec jeu node /jeu/serveur.mjs --essai-courrier toi@exemple.fr
 ```
 
 Tant que `COURRIER_HOTE` est vide, les comptes sont fermés : le jeu marche, et l'écran du compte dit qu'aucun e-mail ne part.
@@ -157,7 +127,7 @@ Pour que les liens n'arrivent pas dans les indésirables, vérifie dans la zone 
 ses e-mails : `v=spf1 include:mx.ovh.com ~all`), et active DKIM dans l'espace client si ton offre le propose.
 
 - **Ce qui est gardé** : pour chaque compte, son adresse e-mail, sa pochette, ses parties jouées et gagnées, ses dates de création
-  et de dernière visite. Rien d'autre. Le fichier est `/var/lib/miel-doreilles/comptes.json`, que seul l'utilisateur `miel` (celui
+  et de dernière visite. Rien d'autre. Le fichier est `/var/lib/honear/comptes.json`, que seul l'utilisateur `miel` (celui
   du conteneur) lit ; il ne contient aucun secret (des sessions, seulement l'empreinte).
 - **Ce qui s'efface seul** : un compte où personne ne revient depuis deux ans, prévenu un mois avant par e-mail.
 - **Effacer** : chacun efface son compte lui-même, depuis l'écran du compte ; tout part avec.

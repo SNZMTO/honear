@@ -1,13 +1,14 @@
-# Miel d'oreilles, pour Claude
+# Honear, pour Claude
 
 Le blind test entre potes, à meuble hi-fi low-poly : les téléphones jouent, un serveur Node tient les parties. Il est en ligne sur
-**https://honear.fr**, dans deux conteneurs Docker construits depuis ce dépôt (mateosan.fr, sur le même VPS, accueillera un autre site). On écrit en français, le code aussi (noms, commentaires, textes).
+**https://honear.fr**, dans un conteneur Docker construit depuis ce dépôt. Le VPS est partagé avec d'autres sites : la machine et
+le frontal Caddy vivent dans le dépôt `vps` (`~/vps`), qui a ses propres règles. On écrit en français, le code aussi (noms, commentaires, textes).
 
 ## Où lire
 
 - `LISEZMOI.md` : tout le projet, étape par étape, l'arborescence, ce qui a été tranché, ce qui attend.
 - `NOTES-TECHNIQUES.md` : le serveur, la ligne (WebSocket), Deezer et Spotify, les comptes et le courrier.
-- `HEBERGEMENT.md` : le VPS, Docker, Caddy, le durcissement, le pare-feu, le courrier.
+- `HEBERGEMENT.md` : la mise en ligne du jeu, son conteneur, le courrier. La machine et le frontal : `~/vps/LISEZMOI.md`.
 
 ## Commandes
 
@@ -36,7 +37,7 @@ npm run format         # Prettier
 
 ## Mettre en ligne
 
-Depuis ce dossier de travail, jamais dans `/srv/miel-doreilles` (c'est le script qui le remplit). Ce qui est en ligne est toujours
+Depuis ce dossier de travail, jamais dans `/srv/honear` (c'est le script qui le remplit). Ce qui est en ligne est toujours
 un commit : le script refuse un dépôt qui a des changements.
 
 ```
@@ -45,15 +46,15 @@ npm test && npm run controle && git commit … && sudo sh deploiement/mettre-en-
 
 - **Quand ?** Quand personne ne joue : les parties en cours s'arrêtent, les comptes restent.
 - **Vérifier :** `curl -s https://honear.fr/sante` doit répondre `"musique":true` et `"comptes":"ouverts"`.
-- **Les journaux :** `sudo docker compose --project-directory /srv/miel-doreilles logs --tail 100`.
-- **La machine :** `sudo sh deploiement/preparer-le-vps.sh honear.fr mateosan.fr` (Docker, durcissement, pare-feu, domaines) ; il se
-  relance sans rien casser. Le durcissement est dans `deploiement/systeme/`.
+- **Les journaux :** `sudo docker compose --project-directory /srv/honear logs --tail 100`.
+- **La machine et le frontal :** dans `~/vps` (`sudo sh preparer.sh`, `sudo sh frontal/mettre-en-ligne.sh`). On n'y touche que
+  pour le jeu (son bloc dans le Caddyfile du frontal), en suivant ses règles.
 - **Le même processeur :** les tests et la construction tournent sur la machine du jeu en ligne. Lance-les aussi quand personne ne joue.
 
 ## Ce à quoi on ne touche jamais
 
-- `/etc/miel-doreilles/courrier.env` : le mot de passe de l'e-mail qui envoie les liens des comptes. C'est Mateo qui le règle lui-même (`sudo sh deploiement/courrier.sh`, dans un vrai terminal). Ne demande jamais de mot de passe.
-- `/var/lib/miel-doreilles/comptes.json` : les comptes des joueurs (adresses, sessions, scores). Ni lu à voix haute, ni copié, ni versionné.
+- `/etc/honear/courrier.env` : le mot de passe de l'e-mail qui envoie les liens des comptes. C'est Mateo qui le règle lui-même (`sudo sh deploiement/courrier.sh`, dans un vrai terminal). Ne demande jamais de mot de passe.
+- `/var/lib/honear/comptes.json` : les comptes des joueurs (adresses, sessions, scores). Ni lu à voix haute, ni copié, ni versionné.
 - Aucun secret ne part sur GitHub.
 
 ## Comment Mateo veut qu'on travaille

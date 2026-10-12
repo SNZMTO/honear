@@ -7,7 +7,7 @@
  * le serveur d'envoi d'une boîte e-mail (COURRIER_HOTE, COURRIER_PORT, COURRIER_UTILISATEUR, COURRIER_MOT_DE_PASSE, COURRIER_DE ;
  * COURRIER=journal les écrit dans le journal au lieu de les envoyer, pour essayer).
  *
- *   PORT=8080 ORIGINES=https://miel-doreilles.fr node serveur.mjs
+ *   PORT=8080 ORIGINES=https://honear.fr node serveur.mjs
  */
 
 import { createHash, randomBytes } from 'node:crypto';
@@ -71,9 +71,8 @@ function configuration(): ConfigurationDuSite {
     .map((o) => o.trim())
     .filter((o) => o !== '');
   const courrier = courrierDeLEnvironnement();
-  // L'adresse qui envoie les liens s'écrit souvent avec un nom (« Miel d'oreilles <bonjour@…> ») : on n'en garde que l'adresse.
-  const expediteur = typeof courrier === 'object' && courrier.de !== '' ? (/<([^<>]+)>/.exec(courrier.de)?.[1] ?? courrier.de) : undefined;
-  const contact = process.env['CONTACT'] ?? expediteur;
+  // L'adresse qui envoie les liens, sans le nom qui la précède.
+  const contact = process.env['CONTACT'] ?? (typeof courrier === 'object' && courrier.de !== '' ? adresseEmailDe(courrier.de) : undefined);
   return {
     ...(contact !== undefined ? { contact } : {}),
     port: Number(process.env['PORT'] ?? 8080),
@@ -95,6 +94,15 @@ function configuration(): ConfigurationDuSite {
   };
 }
 
+/** L'adresse e-mail d'un expéditeur, qu'il s'écrive seul ou avec un nom (« Honear <bonjour@…> »). */
+const adresseEmailDe = (de: string): string => /<([^<>]+)>/.exec(de)?.[1] ?? de;
+
+/** L'expéditeur des lettres : le nom du site, que les textes donnent, devant l'adresse qui les envoie ; l'adresse seule sans eux. */
+function expediteur(de: string): string {
+  const nom = typeof TEXTES_DU_COMPTE !== 'undefined' && TEXTES_DU_COMPTE !== undefined ? TEXTES_DU_COMPTE.courrier.signature : undefined;
+  return nom !== undefined ? `${nom} <${adresseEmailDe(de)}>` : de;
+}
+
 /** Le serveur d'envoi, d'après l'environnement : rien s'il n'est pas dit ; « journal » pour écrire les liens au lieu de les envoyer. */
 function courrierDeLEnvironnement(): ConfigurationDuCourrier | 'journal' | undefined {
   const env = process.env;
@@ -107,7 +115,7 @@ function courrierDeLEnvironnement(): ConfigurationDuCourrier | 'journal' | undef
     port: Number(env['COURRIER_PORT'] ?? 465),
     utilisateur,
     motDePasse: env['COURRIER_MOT_DE_PASSE'] ?? '',
-    de: env['COURRIER_DE'] ?? utilisateur,
+    de: expediteur(env['COURRIER_DE'] ?? utilisateur),
     patience: RESEAU.comptes.patience * 1000,
   };
 }
@@ -319,7 +327,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
 async function essayerLeCourrier(c: ConfigurationDuSite, a: string | undefined): Promise<number> {
   const courrier = c.comptes?.courrier;
   if (c.comptes === undefined || courrier === undefined) {
-    console.error('Pas de serveur d’envoi : remplis /etc/miel-doreilles/courrier.env (COURRIER_HOTE, COURRIER_UTILISATEUR…).');
+    console.error('Pas de serveur d’envoi : remplis /etc/honear/courrier.env (COURRIER_HOTE, COURRIER_UTILISATEUR…).');
     return 1;
   }
   if (courrier === 'journal') {
@@ -361,7 +369,7 @@ if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.
   const c = configuration();
   const site = lancerLeSite(c);
   void site.pret.then((port) =>
-    console.log(`Miel d'oreilles écoute sur http://${c.hote}:${port}${c.origines.length > 0 ? `, pour ${c.origines.join(', ')}` : ''}`),
+    console.log(`Honear écoute sur http://${c.hote}:${port}${c.origines.length > 0 ? `, pour ${c.origines.join(', ')}` : ''}`),
   );
   // Arrêté par Docker (une mise en ligne, un redémarrage) : il ferme ses lignes proprement.
   for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => void site.fermer().then(() => process.exit(0)));

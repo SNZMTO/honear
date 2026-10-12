@@ -26,7 +26,7 @@ export interface ConfigurationDuCourrier {
   readonly port: number;
   readonly utilisateur: string;
   readonly motDePasse: string;
-  /** L'expéditeur, tel que le destinataire le lit : « Miel d'oreilles <bonjour@miel-doreilles.fr> », ou l'adresse seule. */
+  /** L'expéditeur, tel que le destinataire le lit : « Honear <bonjour@honear.fr> », ou l'adresse seule. */
   readonly de: string;
   /** Faux seulement pour les tests, contre un faux serveur d'envoi en clair. */
   readonly chiffre?: boolean;
@@ -59,7 +59,7 @@ export function composer(de: string, lettre: Lettre, date: string, marque: strin
   const nom = /^(.*?)\s*<[^<>]+>\s*$/.exec(de)?.[1]?.replace(/^"|"$/g, '').trim();
   const expediteur = nom !== undefined && nom !== '' ? `${enTete(nom)} <${adresseDe(de)}>` : adresseDe(de);
   const domaine = adresseDe(de).split('@')[1] ?? 'localhost';
-  const frontiere = `miel-${marque}`;
+  const frontiere = `honear-${marque}`;
   return [
     `From: ${expediteur}`,
     `To: <${lettre.a}>`,

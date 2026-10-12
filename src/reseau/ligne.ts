@@ -37,7 +37,7 @@ export interface OptionsDeLaLigne {
   readonly serveur: Serveur;
   /** L'heure du serveur, en secondes. */
   readonly maintenant: () => number;
-  /** Les adresses d'où une page peut se brancher (« https://miel-doreilles.fr ») ; aucune : on ne vérifie pas (en local). */
+  /** Les adresses d'où une page peut se brancher (« https://honear.fr ») ; aucune : on ne vérifie pas (en local). */
   readonly origines: readonly string[];
   /** Appelé après chaque action reçue : le serveur a peut-être un rendez-vous plus proche. */
   readonly aChaqueAction: () => void;
