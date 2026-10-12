@@ -852,7 +852,8 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   qui débloque le son s'écoute sur toute la page : l'écran changeait sous le doigt, le doigt levé n'arrivait nulle part, et Safari
   n'avait jamais de geste pour laisser partir le son. Hors d'un champ, la page qui a défilé (Safari la laisse glissée après le
   clavier) est remise en place ; plus de rebond. `?diagnostic` envoie au journal du serveur ce que font le son et la fenêtre
-  (voir HEBERGEMENT.md).
+  (voir HEBERGEMENT.md). Le son saccadait sur iPhone : l'extrait n'est plus remis à sa place qu'au-delà de 0,6 s d'écart, et
+  au plus une fois toutes les 5 s (`TELEPHONE.son`).
 - **Le plein écran au premier toucher** (Android) ne part plus que d'une touche, jamais d'une étiquette où l'on tape : la page qui
   changeait de taille fermait le clavier, et le champ ne tapait plus.
 - **L'ampli et la saisie** : les cadrans comptent les titres de la face et les secondes de l'extrait ; le volume va de 0 à 10. Le
