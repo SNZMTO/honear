@@ -1,13 +1,17 @@
 /**
  * Les comptes, facultatifs : ce qu'un joueur garde d'un téléphone à l'autre, sa pochette et ses scores, sous son adresse e-mail,
- * et rien d'autre. Pas de mot de passe : on entre par un lien envoyé à son adresse, qui ne sert qu'une fois, un quart d'heure ;
- * le téléphone reçoit alors le secret d'une session, qu'il garde pour revenir. Le serveur ne garde de ces secrets que leur
- * empreinte : qui lirait son fichier n'entrerait dans aucun compte. Les liens vivent en mémoire ; les comptes et les sessions,
- * dans un fichier, réécrit en entier quand ils changent (ils sont peu). On limite les envois : par adresse, par téléphone, par jour.
- * Un compte dont personne ne se sert pendant deux ans s'efface tout seul ; un mois avant, une lettre prévient son adresse.
+ * et rien d'autre. On entre par un lien envoyé à son adresse, qui ne sert qu'une fois, un quart d'heure (c'est ainsi qu'un compte
+ * se crée, et qu'on retrouve le sien sans mot de passe) ; ou, si on en a choisi un, avec son mot de passe. Le téléphone reçoit alors
+ * le secret d'une session, qu'il garde pour revenir. Le serveur ne garde de ces secrets que leur empreinte, et du mot de passe
+ * qu'une empreinte lente et salée : qui lirait son fichier n'entrerait dans aucun compte. Les liens et les essais vivent en
+ * mémoire ; les comptes et les sessions, dans un fichier, réécrit en entier quand ils changent (ils sont peu). On limite les envois
+ * (par adresse, par téléphone, par jour) et les essais de mot de passe (par compte, par téléphone). Changer de mot de passe fait
+ * sortir les autres sessions, et une lettre prévient l'adresse du compte. Un compte dont personne ne se sert pendant deux ans
+ * s'efface tout seul ; un mois avant, une lettre prévient son adresse.
  */
 
 import type { CompteVu } from '../regles/messages';
+import { jugerUnMotDePasse } from '../regles/mot-de-passe';
 import { estUnePochette } from '../regles/pochette';
 import { PALETTE } from '../ressources/palette';
 import type { Pochette } from '../ressources/pochettes';
@@ -23,6 +27,9 @@ export interface OptionsDesComptes {
   readonly identifiant: () => string;
   /** L'empreinte d'un secret : ce que le serveur en garde. */
   readonly empreinte: (secret: string) => string;
+  /** L'empreinte d'un mot de passe (lente, salée), et la vérification d'un mot de passe contre l'une d'elles. */
+  readonly hacher: (motDePasse: string) => Promise<string>;
+  readonly verifier: (motDePasse: string, empreinte: string) => Promise<boolean>;
   /** Ce qu'on avait gardé (le contenu du fichier), et de quoi le garder quand ça change. */
   readonly lu: string | undefined;
   readonly garder: (texte: string) => void;
@@ -32,10 +39,18 @@ export interface OptionsDesComptes {
   readonly lettre: (email: string, lien: string) => Lettre;
   /** La lettre qui prévient un compte qui dort qu'il va être effacé ; rien : on efface sans prévenir. */
   readonly avertissement?: (email: string) => Lettre;
+  /** La lettre qui dit à l'adresse d'un compte que son mot de passe vient de changer ; rien : on ne prévient pas. */
+  readonly avisDuMotDePasse?: (email: string) => Lettre;
 }
 
 /** Ce qu'on peut répondre à qui demande un lien. */
 export type EnvoiDuLien = 'envoye' | 'adresse' | 'tropDeLiens' | 'comptesFermes';
+
+/** Ce qu'on peut répondre à qui entre avec un mot de passe : son compte et sa session ; ou faux (sans dire quoi), ou trop d'essais. */
+export type EntreeParMotDePasse = (CompteOuvert & { readonly session: string }) | 'faux' | 'tropDEssais';
+
+/** Ce qu'on peut répondre à qui choisit un mot de passe : gardé ; trop faible ; trop de changements ; ou il n'y a plus de compte. */
+export type ChoixDuMotDePasse = 'garde' | 'faible' | 'tropDEssais' | 'horsCompte';
 
 /** Un compte ouvert sur un téléphone : son identifiant (que le serveur garde pour lui), et ce que le téléphone en voit. */
 export interface CompteOuvert {
@@ -48,6 +63,13 @@ export interface Comptes {
   demanderUnLien(email: string, depuis: string): Promise<EnvoiDuLien>;
   /** Le lien touché : le compte (créé s'il n'existait pas), et le secret d'une session neuve ; rien si le lien ne marche plus. */
   ouvrir(lien: string): (CompteOuvert & { readonly session: string }) | undefined;
+  /**
+   * On entre avec son adresse et son mot de passe, depuis ce téléphone (son adresse sur le réseau) : le compte et une session neuve.
+   * Une adresse sans compte, ou sans mot de passe, répond « faux », dans le même temps : on n'apprend pas qui a un compte.
+   */
+  entrer(email: string, motDePasse: string, depuis: string): Promise<EntreeParMotDePasse>;
+  /** Le compte choisit un mot de passe, ou en change, depuis cette session : ses autres sessions sont oubliées, son adresse prévenue. */
+  choisirUnMotDePasse(id: string, motDePasse: string, session: string): Promise<ChoixDuMotDePasse>;
   /** Un téléphone revient avec sa session : son compte, s'il l'a toujours. */
   reprendre(session: string): CompteOuvert | undefined;
   /** Il sort : sa session est oubliée. */
@@ -65,6 +87,11 @@ export interface Comptes {
   nombre(): number;
   /** Le ménage : efface les comptes qui dorment depuis trop longtemps, et prévient ceux qui vont l'être. */
   entretenir(): Promise<void>;
+  /**
+   * Oublie ce qui ne compte plus : les liens périmés, et les adresses (e-mail, IP) des envois et des essais d'il y a plus d'une
+   * heure (d'un quart d'heure, pour les essais par compte). La ligne n'en garde rien de plus.
+   */
+  oublier(): void;
 }
 
 interface CompteGarde {
@@ -78,6 +105,8 @@ interface CompteGarde {
   readonly vuLe?: number;
   /** Quand on a prévenu son adresse qu'il allait être effacé, s'il dort depuis. */
   readonly prevenuLe?: number;
+  /** L'empreinte de son mot de passe, s'il en a choisi un (voir mots-de-passe.ts) ; jamais le mot de passe. */
+  readonly motDePasse?: string;
 }
 
 interface SessionGardee {
@@ -107,7 +136,7 @@ function relire(texte: string | undefined): { comptes: CompteGarde[]; sessions: 
   const objet = typeof lu === 'object' && lu !== null ? (lu as Record<string, unknown>) : {};
   const comptes = (Array.isArray(objet['comptes']) ? (objet['comptes'] as unknown[]) : []).flatMap((x): CompteGarde[] => {
     const c = typeof x === 'object' && x !== null ? (x as Record<string, unknown>) : {};
-    const { id, email, creeLe, pochette, parties, victoires, vuLe, prevenuLe } = c;
+    const { id, email, creeLe, pochette, parties, victoires, vuLe, prevenuLe, motDePasse } = c;
     if (typeof id !== 'string' || typeof email !== 'string' || typeof creeLe !== 'number') return [];
     return [
       {
@@ -119,6 +148,7 @@ function relire(texte: string | undefined): { comptes: CompteGarde[]; sessions: 
         victoires: typeof victoires === 'number' ? victoires : 0,
         ...(typeof vuLe === 'number' ? { vuLe } : {}),
         ...(typeof prevenuLe === 'number' ? { prevenuLe } : {}),
+        ...(typeof motDePasse === 'string' && motDePasse !== '' ? { motDePasse } : {}),
       },
     ];
   });
@@ -147,6 +177,13 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
   const envois = { parEmail: new Map<string, number[]>(), parTelephone: new Map<string, number[]>(), jour: -1, duJour: 0 };
   /** Qui joue sous quel compte, par place de room (« CODE/identifiant du joueur »). */
   const places = new Map<string, string>();
+  /** Les heures des derniers essais de mot de passe, par adresse et par téléphone ; celles des changements, par compte. */
+  const essais = { parEmail: new Map<string, number[]>(), parTelephone: new Map<string, number[]>(), changements: new Map<string, number[]>() };
+  /**
+   * L'empreinte d'un mot de passe que personne n'a : on vérifie contre elle quand l'adresse n'a pas de compte, ou pas de mot de passe,
+   * pour répondre dans le même temps.
+   */
+  let leurre: Promise<string> | undefined;
 
   function enregistrer(): void {
     const t = o.monde();
@@ -159,10 +196,31 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
     ...(c.pochette !== undefined ? { pochette: c.pochette } : {}),
     parties: c.parties,
     victoires: c.victoires,
+    motDePasse: c.motDePasse !== undefined,
   });
 
-  /** Les heures de la dernière heure, dans une de ces listes. */
-  const recents = (dans: Map<string, number[]>, cle: string, t: number): number[] => (dans.get(cle) ?? []).filter((h) => h > t - UNE_HEURE);
+  /** Les heures de la dernière heure (ou de cette fenêtre, en secondes), dans une de ces listes. */
+  const recents = (dans: Map<string, number[]>, cle: string, t: number, fenetre = UNE_HEURE): number[] =>
+    (dans.get(cle) ?? []).filter((h) => h > t - fenetre);
+
+  /** Note un envoi, un essai, à cette heure. */
+  function noter(dans: Map<string, number[]>, cle: string, t: number, fenetre = UNE_HEURE): void {
+    dans.set(cle, [...recents(dans, cle, t, fenetre), t]);
+  }
+
+  /** Oublie, dans une de ces listes, ceux dont plus rien ne compte. */
+  function elaguer(dans: Map<string, number[]>, t: number, fenetre = UNE_HEURE): void {
+    for (const [cle, heures] of dans) if (!heures.some((h) => h > t - fenetre)) dans.delete(cle);
+  }
+
+  /** Une session neuve pour ce compte, vu à cette heure : son secret, que le téléphone gardera. */
+  function ouvrirUneSession(compte: CompteGarde, t: number): CompteOuvert & { readonly session: string } {
+    comptes.set(compte.id, compte);
+    const session = o.secret();
+    sessions.set(o.empreinte(session), { empreinte: o.empreinte(session), compte: compte.id, jusqua: t + C.session });
+    enregistrer();
+    return { id: compte.id, compte: vu(compte), session };
+  }
 
   return {
     async demanderUnLien(tape, depuis) {
@@ -185,8 +243,8 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
         envois.duJour >= C.parJour
       )
         return 'tropDeLiens';
-      envois.parEmail.set(email, [...parEmail, t]);
-      envois.parTelephone.set(depuis, [...parTelephone, t]);
+      noter(envois.parEmail, email, t);
+      noter(envois.parTelephone, depuis, t);
       envois.duJour++;
       for (const [e, l] of liens) if (l.jusqua <= t) liens.delete(e);
       const lien = o.secret();
@@ -208,13 +266,48 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
       if (envoye === undefined || envoye.jusqua <= t) return undefined;
       const deja = [...comptes.values()].find((c) => c.email === envoye.email);
       // On y entre : il est vu aujourd'hui, et ne dort plus.
-      const compte: CompteGarde =
-        deja !== undefined ? revu(deja, t) : { id: o.identifiant(), email: envoye.email, creeLe: t, parties: 0, victoires: 0, vuLe: t };
-      comptes.set(compte.id, compte);
-      const session = o.secret();
-      sessions.set(o.empreinte(session), { empreinte: o.empreinte(session), compte: compte.id, jusqua: t + C.session });
+      return ouvrirUneSession(
+        deja !== undefined ? revu(deja, t) : { id: o.identifiant(), email: envoye.email, creeLe: t, parties: 0, victoires: 0, vuLe: t },
+        t,
+      );
+    },
+    async entrer(tape, motDePasse, depuis) {
+      const M = C.motDePasse;
+      const t = o.monde();
+      const email = adresseEmail(tape) ?? '';
+      // L'essai compte avant qu'on le vérifie : cent essais envoyés d'un coup ne passent pas entre les mailles.
+      if (recents(essais.parEmail, email, t, M.fenetre).length >= M.essais || recents(essais.parTelephone, depuis, t).length >= M.parTelephone)
+        return 'tropDEssais';
+      noter(essais.parEmail, email, t, M.fenetre);
+      noter(essais.parTelephone, depuis, t);
+      const compte = [...comptes.values()].find((c) => c.email === email);
+      if (leurre === undefined) leurre = o.hacher(o.secret());
+      const juste = await o.verifier(motDePasse, compte?.motDePasse ?? (await leurre));
+      // Pendant qu'on vérifiait, le compte a pu être effacé, ou changer de mot de passe.
+      const encore = compte !== undefined ? comptes.get(compte.id) : undefined;
+      if (!juste || encore?.motDePasse === undefined || encore.motDePasse !== compte?.motDePasse) return 'faux';
+      essais.parEmail.delete(email);
+      const apres = o.monde();
+      return ouvrirUneSession(revu(encore, apres), apres);
+    },
+    async choisirUnMotDePasse(id, motDePasse, session) {
+      const c = comptes.get(id);
+      if (c === undefined) return 'horsCompte';
+      if (jugerUnMotDePasse(motDePasse, c.email) !== 'bon') return 'faible';
+      const t = o.monde();
+      if (recents(essais.changements, id, t).length >= C.motDePasse.changements) return 'tropDEssais';
+      noter(essais.changements, id, t);
+      const empreinte = await o.hacher(motDePasse);
+      const encore = comptes.get(id);
+      if (encore === undefined) return 'horsCompte';
+      comptes.set(id, { ...encore, motDePasse: empreinte });
+      // Qui avait ouvert ce compte ailleurs en sort : seule la session d'où l'on a changé le mot de passe reste.
+      const gardee = o.empreinte(session);
+      for (const [e, s] of sessions) if (s.compte === id && e !== gardee) sessions.delete(e);
       enregistrer();
-      return { id: compte.id, compte: vu(compte), session };
+      // L'adresse du compte est prévenue : si ce n'était pas elle, elle entre par un lien, et le change à son tour.
+      if (o.poster !== undefined && o.avisDuMotDePasse !== undefined) o.poster(o.avisDuMotDePasse(encore.email)).catch(() => undefined);
+      return 'garde';
     },
     reprendre(session) {
       const e = o.empreinte(session);
@@ -270,6 +363,15 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
     vu: (id) => {
       const c = comptes.get(id);
       return c !== undefined ? vu(c) : undefined;
+    },
+    oublier() {
+      const t = o.monde();
+      for (const [e, l] of liens) if (l.jusqua <= t) liens.delete(e);
+      elaguer(envois.parEmail, t);
+      elaguer(envois.parTelephone, t);
+      elaguer(essais.parEmail, t, C.motDePasse.fenetre);
+      elaguer(essais.parTelephone, t);
+      elaguer(essais.changements, t);
     },
     nombre: () => comptes.size,
     async entretenir() {
@@ -334,6 +436,28 @@ export function lettreDuLien(textes: Textes['compte']['courrier'], site: string)
       ].join(''),
     };
   };
+}
+
+/**
+ * La lettre qui dit à l'adresse d'un compte que son mot de passe vient d'être choisi, ou changé : si ce n'était pas elle, elle entre
+ * par un lien envoyé à son adresse, et en choisit un autre ; les autres téléphones sortent du compte.
+ * @param site l'adresse publique du site : « https://honear.fr ».
+ */
+export function lettreDuMotDePasse(textes: Textes['compte']['courrier'], site: string): (email: string) => Lettre {
+  const T = textes;
+  const P = PALETTE;
+  return (email) => ({
+    a: email,
+    sujet: T.motDePasseSujet,
+    texte: [T.bonjour, '', T.motDePasse, '', T.motDePassePasToi, site, '', `— ${T.signature}`, ''].join('\n'),
+    html: [
+      '<!doctype html><html><head><meta charset="utf-8"></head>',
+      `<body style="margin:0;padding:24px;background:${P.creme};color:${P.expresso};font-family:Georgia,serif;font-size:17px;line-height:1.5">`,
+      `<p>${enHtml(T.bonjour)}</p><p>${enHtml(T.motDePasse)}</p><p>${enHtml(T.motDePassePasToi)}</p>`,
+      `<p><a href="${enHtml(site)}" style="color:${P.expresso}">${enHtml(site.replace(/^https?:\/\//, ''))}</a></p>`,
+      `<p>— ${enHtml(T.signature)}</p></body></html>`,
+    ].join(''),
+  });
 }
 
 /**

@@ -10,12 +10,14 @@ import { estUnThemeDuBac, type Action, type CompteVu, type Nouvelle, type Playli
 import { MODES, type CleDeMode } from '../../regles/modes';
 import { numeroDeLaPiste, partieA, type EvenementDePartie, type Face, type SonDeLaRoom } from '../../regles/partie';
 import type { ActionDePiste } from '../../regles/piste';
+import { jugerUnMotDePasse } from '../../regles/mot-de-passe';
 import { autreAlbum, nomTape, pochetteAuHasard, type ListesAuHasard } from '../../regles/pochette';
 import type { ChoixDeLAvatar } from '../../ressources/avatar';
 import { TELEPHONE } from '../../ressources/ecran';
 import type { Pochette } from '../../ressources/pochettes';
-import { PARTIE, REGLAGES } from '../../ressources/reglages';
+import { MOT_DE_PASSE, PARTIE, REGLAGES } from '../../ressources/reglages';
 import { TABLEE } from '../../ressources/tablee';
+import type { RefusDuCompte } from '../../scene/telephone/compte';
 import type { CranDuBac } from '../../scene/telephone/ecrans';
 import { pochetteAvecLOption } from '../../scene/telephone/pochette';
 import { sonVoulu } from './son';
@@ -56,12 +58,19 @@ export type Preparation =
   | { readonly ecran: 'bac'; readonly pochette: Pochette; readonly cran: CranDuBac; readonly bac: BacEnCours }
   | {
       readonly ecran: 'compte';
-      /** Où l'on en est : l'adresse à taper, le lien parti, le lien arrivé (la page ouverte par lui), la question avant d'effacer. */
-      readonly etape: 'adresse' | 'envoye' | 'lien' | 'effacer';
+      /**
+       * Où l'on en est : l'adresse à taper, le lien parti, le lien arrivé (la page ouverte par lui), la question avant d'effacer ;
+       * le mot de passe à taper pour entrer, celui qu'on choisit (dans son compte).
+       */
+      readonly etape: 'adresse' | 'envoye' | 'lien' | 'effacer' | 'motDePasse' | 'nouveauMotDePasse';
       readonly email: string;
       /** Le secret du lien qui a ouvert la page : on entre quand on touche « Entrer », pas avant. */
       readonly lien?: string;
       readonly enAttente: boolean;
+      /** Le mot de passe qu'on tape : il ne vit qu'ici, le temps de l'étape, et ne part qu'au serveur. */
+      readonly motDePasse?: string;
+      /** Vrai quand le mot de passe qu'on a choisi vient d'être gardé : l'écran du compte le dit. */
+      readonly garde?: boolean;
     }
   /** À la finale, les titres joués, qu'on revoit avec leurs pochettes. */
   | { readonly ecran: 'titres' }
@@ -89,6 +98,19 @@ export interface BacEnCours {
   readonly enAttente: string | undefined;
   readonly choisie: PlaylistTrouvee | undefined;
 }
+
+/** Ce que l'écran du compte peut s'être vu refuser : il le dit, et l'on peut réessayer. */
+const REFUS_DU_COMPTE: readonly RaisonDeRefus[] = [
+  'adresse',
+  'tropDeLiens',
+  'lienPerime',
+  'comptesFermes',
+  'motDePasseFaux',
+  'tropDEssais',
+  'motDePasseFaible',
+] satisfies readonly RefusDuCompte[];
+export const estUnRefusDuCompte = (raison: RaisonDeRefus | undefined): raison is RefusDuCompte =>
+  raison !== undefined && REFUS_DU_COMPTE.includes(raison);
 
 export const BAC_VIDE: BacEnCours = {
   theme: undefined,
@@ -246,6 +268,12 @@ export type ToucherDuCompte =
   | 'compte'
   | 'taperLAdresse'
   | 'envoyerLeLien'
+  | 'avecUnMotDePasse'
+  | 'taperLeMotDePasse'
+  | 'entrerAvecLeMotDePasse'
+  | 'motDePasseOublie'
+  | 'nouveauMotDePasse'
+  | 'garderLeMotDePasse'
   | 'autreAdresse'
   | 'entrerParLeLien'
   | 'sortirDuCompte'
@@ -384,9 +412,11 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
     }
     case 'refus': {
       const p = m.preparation;
-      // Ce que l'écran du compte s'est vu refuser : il le dit, et l'on peut réessayer.
-      if (n.raison === 'adresse' || n.raison === 'tropDeLiens' || n.raison === 'lienPerime' || n.raison === 'comptesFermes')
-        return { ...m, refus: n.raison, preparation: p.ecran === 'compte' ? { ...p, enAttente: false } : p };
+      // Ce que l'écran du compte s'est vu refuser : il le dit, et l'on peut réessayer. Un mot de passe faux s'efface.
+      if (estUnRefusDuCompte(n.raison)) {
+        const efface = n.raison === 'motDePasseFaux' ? { motDePasse: '' } : {};
+        return { ...m, refus: n.raison, preparation: p.ecran === 'compte' ? { ...p, ...efface, enAttente: false } : p };
+      }
       if (n.raison === 'spotify' || n.raison === 'introuvable')
         return p.ecran === 'bac'
           ? { ...m, preparation: { ...p, bac: { ...p.bac, enAttente: undefined, importee: undefined, choisie: undefined, refus: n.raison } } }
@@ -417,8 +447,10 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
       return p.ecran === 'compte' ? { ...m, refus: undefined, preparation: { ...p, etape: 'envoye', email: n.email, enAttente: false } } : m;
     }
     case 'compte': {
-      // Dans son compte : sa pochette revient avec lui, d'un téléphone à l'autre. Le lien a servi : l'écran montre le compte.
+      // Dans son compte : sa pochette revient avec lui, d'un téléphone à l'autre. Le lien a servi, ou le mot de passe : l'écran
+      // montre le compte ; s'il venait d'en choisir un, il dit qu'il est gardé.
       const p = m.preparation;
+      const garde = p.ecran === 'compte' && p.etape === 'nouveauMotDePasse' && p.enAttente;
       return {
         ...m,
         compte: n.compte,
@@ -429,7 +461,7 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
         preparation:
           p.ecran !== 'compte' || (p.etape === 'lien' && !p.enAttente && n.session === undefined)
             ? p
-            : { ecran: 'compte', etape: 'adresse', email: n.compte.email, enAttente: false },
+            : { ecran: 'compte', etape: 'adresse', email: n.compte.email, enAttente: false, ...(garde ? { garde: true } : {}) },
       };
     }
     case 'horsCompte': {
@@ -438,7 +470,7 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
         ...m,
         compte: undefined,
         session: undefined,
-        preparation: p.ecran === 'compte' && p.etape !== 'lien' ? { ...p, etape: 'adresse', enAttente: false } : p,
+        preparation: p.ecran === 'compte' && p.etape !== 'lien' ? { ecran: 'compte', etape: 'adresse', email: p.email, enAttente: false } : p,
       };
     }
   }
@@ -679,6 +711,12 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
     case 'compte':
     case 'taperLAdresse':
     case 'envoyerLeLien':
+    case 'avecUnMotDePasse':
+    case 'taperLeMotDePasse':
+    case 'entrerAvecLeMotDePasse':
+    case 'motDePasseOublie':
+    case 'nouveauMotDePasse':
+    case 'garderLeMotDePasse':
     case 'autreAdresse':
     case 'entrerParLeLien':
     case 'sortirDuCompte':
@@ -706,15 +744,41 @@ function toucherLeCompte(m: Memoire, genre: ToucherDuCompte): Suite {
     memoire: { ...m, refus: undefined, preparation: { ...prep, ...change } },
     actions,
   });
+  /** Le mot de passe qu'on a tapé s'oublie quand on quitte son étape. */
+  const { motDePasse: _tape, garde: _garde, ...sansMotDePasse } = prep;
+  const motDePasse = prep.motDePasse ?? '';
   switch (genre) {
     case 'taperLAdresse':
+    case 'taperLeMotDePasse':
       // C'est le clavier du téléphone qui tape : le champ posé sur l'étiquette s'en charge.
       return rien;
-    case 'envoyerLeLien': {
+    case 'envoyerLeLien':
+    case 'motDePasseOublie': {
+      // Le lien part à l'adresse tapée : de l'étape de l'adresse, ou de celle du mot de passe, qu'on a oublié.
       const email = prep.email.trim();
-      if (email === '' || prep.enAttente) return rien;
-      return ici({ enAttente: true }, [{ genre: 'demanderUnLien', email }]);
+      if (email === '' || prep.enAttente || m.compte !== undefined) return rien;
+      return {
+        memoire: { ...m, refus: undefined, preparation: { ...sansMotDePasse, enAttente: true } },
+        actions: [{ genre: 'demanderUnLien', email }],
+      };
     }
+    case 'avecUnMotDePasse':
+      // Il faut l'adresse d'abord : sans elle, l'écran la réclame.
+      if (prep.etape !== 'adresse' || prep.enAttente || m.compte !== undefined) return rien;
+      if (prep.email.trim() === '') return { memoire: { ...m, refus: 'adresse' }, actions: [] };
+      return ici({ etape: 'motDePasse', motDePasse: '' });
+    case 'entrerAvecLeMotDePasse':
+      if (prep.etape !== 'motDePasse' || prep.enAttente || motDePasse === '') return rien;
+      return ici({ enAttente: true }, [{ genre: 'entrerAvecUnMotDePasse', email: prep.email.trim(), motDePasse }]);
+    case 'nouveauMotDePasse':
+      return m.compte === undefined
+        ? rien
+        : { memoire: { ...m, refus: undefined, preparation: { ...sansMotDePasse, etape: 'nouveauMotDePasse' } }, actions: [] };
+    case 'garderLeMotDePasse':
+      if (prep.etape !== 'nouveauMotDePasse' || prep.enAttente || m.compte === undefined) return rien;
+      // Trop faible, il ne part pas : l'écran dit pourquoi (le serveur le refuserait aussi).
+      if (jugerUnMotDePasse(motDePasse, m.compte.email) !== 'bon') return { memoire: { ...m, refus: 'motDePasseFaible' }, actions: [] };
+      return ici({ enAttente: true }, [{ genre: 'choisirUnMotDePasse', motDePasse }]);
     case 'autreAdresse': {
       const { lien: _servi, ...sansLien } = prep;
       return { memoire: { ...m, refus: undefined, preparation: { ...sansLien, etape: 'adresse', enAttente: false } }, actions: [] };
@@ -730,7 +794,18 @@ function toucherLeCompte(m: Memoire, genre: ToucherDuCompte): Suite {
     case 'garderLeCompte':
       return ici({ etape: 'adresse' });
     case 'retour':
-      return { memoire: { ...m, refus: undefined, preparation: { ecran: 'accueil' } }, actions: [] };
+      // De l'étape d'un mot de passe, on revient à l'adresse (ou au compte ouvert) ; d'ailleurs, à l'accueil.
+      return {
+        memoire: {
+          ...m,
+          refus: undefined,
+          preparation:
+            prep.etape === 'motDePasse' || prep.etape === 'nouveauMotDePasse'
+              ? { ...sansMotDePasse, etape: 'adresse', enAttente: false }
+              : { ecran: 'accueil' },
+        },
+        actions: [],
+      };
   }
 }
 
@@ -781,8 +856,11 @@ export function clavierOuvert(m: Memoire, ouvert: boolean, dessus?: number): Mem
   return { ...m, pouce: { ...pouce, clavier: ouvert, ...(ouvert && dessus !== undefined ? { dessusDuClavier: dessus } : {}) } };
 }
 
-/** Les champs où tape le clavier du téléphone : la réponse, le code d'une room, une recherche, un lien, une adresse, un nom d'artiste. */
-export const CHAMPS_DE_SAISIE = ['reponse', 'code', 'recherche', 'lien', 'email', 'nom'] as const;
+/**
+ * Les champs où tape le clavier du téléphone : la réponse, le code d'une room, une recherche, un lien, une adresse, un nom d'artiste,
+ * un mot de passe.
+ */
+export const CHAMPS_DE_SAISIE = ['reponse', 'code', 'recherche', 'lien', 'email', 'nom', 'motDePasse'] as const;
 export type ChampDeSaisie = (typeof CHAMPS_DE_SAISIE)[number];
 
 /**
@@ -800,7 +878,8 @@ function champDeLEcran(m: Memoire): ChampDeSaisie {
   if (prep.ecran === 'pochette') return 'nom';
   if (prep.ecran === 'bac') return prep.cran === 'laMienne' ? 'lien' : 'recherche';
   if (m.room === undefined && prep.ecran === 'saisie') return 'code';
-  if (m.room === undefined && prep.ecran === 'compte') return 'email';
+  if (m.room === undefined && prep.ecran === 'compte')
+    return prep.etape === 'motDePasse' || prep.etape === 'nouveauMotDePasse' ? 'motDePasse' : 'email';
   return 'reponse';
 }
 
@@ -828,6 +907,10 @@ export function saisir(m: Memoire, texte: string, champ: ChampDeSaisie = champDe
       if (m.room !== undefined || prep.ecran !== 'compte') return m;
       // Une adresse s'écrit sans espace ; on la garde telle qu'on la tape, le serveur dira si c'en est une.
       return { ...m, refus: undefined, preparation: { ...prep, email: [...texte.replace(/\s+/g, '')].slice(0, ADRESSE_AU_PLUS).join('') } };
+    case 'motDePasse':
+      // Un mot de passe, tel qu'on le tape, espaces compris.
+      if (m.room !== undefined || prep.ecran !== 'compte' || (prep.etape !== 'motDePasse' && prep.etape !== 'nouveauMotDePasse')) return m;
+      return { ...m, refus: undefined, preparation: { ...prep, motDePasse: [...texte].slice(0, MOT_DE_PASSE.auPlus).join('') } };
     case 'recherche':
     case 'lien': {
       // Dans le bac : avant la room, ou dedans, quand l'hôte change de playlist.
@@ -861,6 +944,9 @@ export function valider(m: Memoire, heure: number, p: Preparatifs, champ: ChampD
       return rien;
     case 'email':
       return m.room === undefined && prep.ecran === 'compte' ? toucher(m, { genre: 'envoyerLeLien' }, heure, p) : rien;
+    case 'motDePasse':
+      if (m.room !== undefined || prep.ecran !== 'compte') return rien;
+      return toucher(m, { genre: prep.etape === 'nouveauMotDePasse' ? 'garderLeMotDePasse' : 'entrerAvecLeMotDePasse' }, heure, p);
     case 'code':
       return m.room === undefined ? toucher(m, { genre: 'entrer' }, heure, p) : rien;
     case 'recherche':

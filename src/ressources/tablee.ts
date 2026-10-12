@@ -131,10 +131,19 @@ export const TABLEE = {
       /** Le lien parti : un papier plus large, qui laisse à l'adresse toute une ligne. */
       envoye: { en: [195, 552], largeur: 336 },
       adresse: { en: [195, 630], largeur: 300, angle: -1 },
-      /** La hauteur de la touche de l'étape (envoyer le lien, entrer…) ; des deux touches du compte ouvert, ou de la question avant d'effacer. */
+      /** La hauteur de la touche de l'étape (entrer par le lien…) ; des deux touches de la question avant d'effacer. */
       action: 734,
       deux: [650, 728],
       retour: 806,
+      /**
+       * Les étapes à deux touches au-dessus de « Retour » (l'adresse et le lien, ou le mot de passe ; le mot de passe qu'on choisit) :
+       * le papier, l'étiquette où l'on tape, puis la touche de l'étape et l'autre, tout remonté d'un cran.
+       */
+      serre: { papier: [195, 516], etiquette: [195, 594], touches: [668, 737] },
+      /** Le compte ouvert : son papier, et ses trois touches (le mot de passe, sortir, effacer). */
+      dedans: { papier: [195, 520], touches: [598, 667, 736] },
+      /** Le mot de passe qu'on choisit : un papier plus haut (ce qu'on attend de lui), l'étiquette, une seule touche. */
+      nouveau: { papier: [195, 530], etiquette: [195, 618], action: 708 },
     },
     /** La saisie du code : le papier, ses quatre cases, la touche qui entre, et « Retour » au bout, qui ramène à l'accueil. */
     saisie: { en: [195, 566], largeur: 260, angle: -1.5, cases: 4, entrer: 734, retour: 806, message: [195, 646] },

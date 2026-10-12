@@ -101,7 +101,7 @@ test('à l’accueil, « Ma pochette » la rouvre ; « Retour » la laisse ; « 
   assert.equal(gardee.memoire.pochette?.artiste, 'Baron Mateo');
   assert.deepEqual(gardee.memoire.preparation, { ecran: 'accueil' });
   assert.deepEqual(gardee.actions, [], 'sans room ni compte, rien ne part');
-  const sousUnCompte: Memoire = { ...ouverte, compte: { email: 'a@b.fr', parties: 0, victoires: 0 } };
+  const sousUnCompte: Memoire = { ...ouverte, compte: { email: 'a@b.fr', parties: 0, victoires: 0, motDePasse: false } };
   assert.deepEqual(suite(sousUnCompte, [{ genre: 'cEstMoi' }]).actions, [{ genre: 'changerDePochette', pochette: POCHETTE }]);
 });
 

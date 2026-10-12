@@ -9,7 +9,7 @@
 
 import { COULEURS_DES_THEMES, type CleDeTheme } from '../ressources/bac';
 import type { Pochette } from '../ressources/pochettes';
-import { REGLAGES } from '../ressources/reglages';
+import { MOT_DE_PASSE, REGLAGES } from '../ressources/reglages';
 import { MODES, type CleDeMode, type Proposition } from './modes';
 import { departageDeLaPiste, jugerUneReponse, ROOM_VIDE, suivre, type EvenementDePartie } from './partie';
 import type { ActionDePiste, Reponse } from './piste';
@@ -65,6 +65,10 @@ export type Action =
   | { readonly genre: 'demanderUnLien'; readonly email: string }
   /** Il a touché ce lien, sur ce téléphone : il entre, avec le secret que le lien portait. */
   | { readonly genre: 'ouvrirLeCompte'; readonly lien: string }
+  /** Il entre avec son adresse et le mot de passe qu'il a choisi. */
+  | { readonly genre: 'entrerAvecUnMotDePasse'; readonly email: string; readonly motDePasse: string }
+  /** Dans son compte, il choisit un mot de passe, ou en change : ses autres téléphones en sortent. */
+  | { readonly genre: 'choisirUnMotDePasse'; readonly motDePasse: string }
   /** Un téléphone qui est déjà entré revient dans le compte, avec le secret de sa session. */
   | { readonly genre: 'reprendreLeCompte'; readonly session: string }
   /** Il sort de son compte, sur ce téléphone ; il efface son compte, et tout ce qu'il gardait. */
@@ -97,13 +101,15 @@ export const CE_QUE_LE_TELEPHONE_COMPTE = [
 ] as const;
 export type CeQueLeTelephoneCompte = (typeof CE_QUE_LE_TELEPHONE_COMPTE)[number];
 
-/** Ce qu'un compte garde, tel que son téléphone le voit : son adresse, sa pochette, ses scores. */
+/** Ce qu'un compte garde, tel que son téléphone le voit : son adresse, sa pochette, ses scores, s'il a un mot de passe. */
 export interface CompteVu {
   readonly email: string;
   readonly pochette?: Pochette;
   /** Les faces jouées jusqu'au bout, et celles qu'il a finies premier. */
   readonly parties: number;
   readonly victoires: number;
+  /** Vrai s'il a choisi un mot de passe (le téléphone n'en voit jamais rien d'autre). */
+  readonly motDePasse: boolean;
 }
 
 /** Une playlist que la source connaît : son lien (celui qu'on donne pour créer la room), son titre, combien de titres elle a, et combien on peut en jouer. */
@@ -134,10 +140,22 @@ export type Brancher = (recevoir: (nouvelle: Nouvelle) => void, enLigne?: (oui: 
  * Ce qu'un téléphone peut se voir refuser, chacun avec sa phrase dans les textes : un code que personne n'a, une room pleine, une
  * playlist trop courte, une playlist Spotify qui ne se laisse pas lire (privée), un lien qui ne mène à aucune playlist ; et pour
  * les comptes, une adresse qui n'en est pas une, trop de liens demandés, un lien de connexion périmé (ou déjà servi), un site qui
- * n'envoie pas d'e-mails (ses comptes sont fermés).
+ * n'envoie pas d'e-mails (ses comptes sont fermés), une adresse ou un mot de passe faux (sans dire lequel), trop d'essais, un mot
+ * de passe trop faible.
  */
 export type RaisonDeRefus =
-  'codeInconnu' | 'complet' | 'tropCourt' | 'spotify' | 'introuvable' | 'adresse' | 'tropDeLiens' | 'lienPerime' | 'comptesFermes';
+  | 'codeInconnu'
+  | 'complet'
+  | 'tropCourt'
+  | 'spotify'
+  | 'introuvable'
+  | 'adresse'
+  | 'tropDeLiens'
+  | 'lienPerime'
+  | 'comptesFermes'
+  | 'motDePasseFaux'
+  | 'tropDEssais'
+  | 'motDePasseFaible';
 
 /** Ce que le serveur envoie, toujours daté de son horloge, en secondes. */
 export type Nouvelle =
@@ -222,9 +240,19 @@ export function publier(journal: readonly EvenementDePartie[]): EvenementDeParti
 /**
  * Ce que peut porter ce qui vient du réseau, au plus : un code de room, un jeton, une saisie, un lien de playlist (en caractères), le
  * rang d'une étiquette touchée, une recherche, une adresse e-mail (la plus longue que permettent les règles du courrier), un paquet de
- * lignes du diagnostic.
+ * lignes du diagnostic, un mot de passe.
  */
-const BORNES = { code: 8, jeton: 64, saisie: 160, playlist: 300, rang: 15, recherche: 100, email: 254, diagnostic: 3200 } as const;
+const BORNES = {
+  code: 8,
+  jeton: 64,
+  saisie: 160,
+  playlist: 300,
+  rang: 15,
+  recherche: 100,
+  email: 254,
+  diagnostic: 3200,
+  motDePasse: MOT_DE_PASSE.auPlus,
+} as const;
 
 /** Un secret de compte (celui d'un lien, celui d'une session) : des lettres, des chiffres, des tirets, en base 64 pour les adresses. */
 const SECRET = /^[A-Za-z0-9_-]{20,64}$/;
@@ -294,6 +322,16 @@ export function lireUneAction(x: unknown): Action | undefined {
       return estUnTexte(x['email'], BORNES.email) && x['email'].trim() !== '' ? { genre: 'demanderUnLien', email: x['email'] } : undefined;
     case 'ouvrirLeCompte':
       return typeof x['lien'] === 'string' && SECRET.test(x['lien']) ? { genre: 'ouvrirLeCompte', lien: x['lien'] } : undefined;
+    case 'entrerAvecUnMotDePasse': {
+      const { email, motDePasse } = x;
+      return estUnTexte(email, BORNES.email) && email.trim() !== '' && estUnTexte(motDePasse, BORNES.motDePasse) && motDePasse !== ''
+        ? { genre: 'entrerAvecUnMotDePasse', email, motDePasse }
+        : undefined;
+    }
+    case 'choisirUnMotDePasse':
+      return estUnTexte(x['motDePasse'], BORNES.motDePasse) && x['motDePasse'] !== ''
+        ? { genre: 'choisirUnMotDePasse', motDePasse: x['motDePasse'] }
+        : undefined;
     case 'reprendreLeCompte':
       return typeof x['session'] === 'string' && SECRET.test(x['session']) ? { genre: 'reprendreLeCompte', session: x['session'] } : undefined;
     case 'pret':

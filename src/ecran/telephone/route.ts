@@ -5,6 +5,7 @@
  */
 
 import { MODES, type ModeDeJeu } from '../../regles/modes';
+import { jugerUnMotDePasse } from '../../regles/mot-de-passe';
 import { numeroDeLaPiste, partieA, partieAvant, type EtatDeLaPartie, type EvenementDePartie, type SonDeLaRoom } from '../../regles/partie';
 import { jouer, type Reponse } from '../../regles/piste';
 import type { ChoixDeLAvatar } from '../../ressources/avatar';
@@ -17,7 +18,7 @@ import { instantsDeLaPiste } from '../../scene/piste/instants';
 import type { BacOuvert, QuiRegardeLeSalon } from '../../scene/telephone/ecrans';
 import type { CompteOuvertAuTelephone } from '../../scene/telephone/compte';
 import type { AutourDeLaPiste } from '../../scene/telephone/piste';
-import { tapeA, type Memoire, type Preparatifs, type RoomConnue } from './memoire';
+import { estUnRefusDuCompte, tapeA, type Memoire, type Preparatifs, type RoomConnue } from './memoire';
 
 export type EcranDuTelephone =
   /** L'accueil ; sa touche « Mon compte » quand le serveur tient des comptes. */
@@ -100,8 +101,9 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
     case 'titres':
       return { genre: 'accueil', compte: p.comptes === true };
     case 'compte': {
-      const refus =
-        m.refus === 'adresse' || m.refus === 'tropDeLiens' || m.refus === 'lienPerime' || m.refus === 'comptesFermes' ? m.refus : undefined;
+      const refus = estUnRefusDuCompte(m.refus) ? m.refus : undefined;
+      // Du mot de passe qu'on tape, l'écran ne voit que sa longueur, et ce qu'il vaut quand on le choisit.
+      const motDePasse = prep.motDePasse;
       return {
         genre: 'compte',
         compte: {
@@ -111,6 +113,9 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
           ...(m.compte !== undefined ? { compte: m.compte } : {}),
           ...(refus !== undefined ? { refus } : {}),
           enAttente: prep.enAttente,
+          ...(motDePasse !== undefined ? { motDePasse: [...motDePasse].length } : {}),
+          ...(prep.etape === 'nouveauMotDePasse' ? { jugement: jugerUnMotDePasse(motDePasse ?? '', m.compte?.email) } : {}),
+          ...(prep.garde === true ? { garde: true } : {}),
         },
       };
     }

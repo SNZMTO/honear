@@ -568,6 +568,7 @@ function parties(l: Lecture): HTMLElement[] {
       compte(l, 'telephone.pleinEcran', A.pleinEcran),
       compte(l, 'telephone.sonBloque', A.sonBloque),
       compte(l, 'robots', A.robots),
+      compte(l, 'pages.sansSuivi', A.sansSuivi),
     ),
   );
 
@@ -610,6 +611,11 @@ function parties(l: Lecture): HTMLElement[] {
       compte(l, 'comptes.lienPerime', Co['perimes'] ?? ''),
       compte(l, 'comptes.sortie', Co['sorties'] ?? ''),
       compte(l, 'comptes.efface', Co['effaces'] ?? ''),
+      compte(l, 'comptes.motDePasse.entree', Co['motDePasseEntrees'] ?? ''),
+      compte(l, 'comptes.motDePasse.faux', Co['motDePasseFaux'] ?? ''),
+      compte(l, 'comptes.motDePasse.tropDEssais', Co['motDePasseBloques'] ?? ''),
+      compte(l, 'comptes.motDePasse.choisi', Co['motDePasseChoisis'] ?? ''),
+      compte(l, 'comptes.motDePasse.faible', Co['motDePasseFaibles'] ?? ''),
     ),
   );
 

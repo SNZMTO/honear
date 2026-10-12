@@ -57,6 +57,22 @@ export const PARTIE = {
 } as const;
 
 /**
+ * Le mot de passe d'un compte, s'il en choisit un (il peut toujours entrer par un lien envoyé à son adresse). La CNIL demande, pour
+ * un mot de passe que protège une limite des essais, qu'il vaille au moins 50 bits (sa recommandation de 2022 sur les mots de passe) :
+ * sa longueur fois ce que vaut chacun de ses signes, d'après les sortes qu'il mêle (minuscules, majuscules, chiffres, autres signes,
+ * chacune son alphabet). Huit signes de trois sortes suffisent aussi, comme elle le donne en exemple. Huit signes au moins, 128 au plus
+ * (le serveur n'en lit pas davantage) ; et pas l'adresse e-mail dedans, dès que ce qui précède son arobase a tant de signes.
+ */
+export const MOT_DE_PASSE = {
+  auMoins: 8,
+  auPlus: 128,
+  bits: 50,
+  sortes: 3,
+  alphabets: { minuscules: 26, majuscules: 26, chiffres: 10, signes: 33 },
+  adresse: 4,
+} as const;
+
+/**
  * Le jugement d'une réponse tapée : on tolère une faute de frappe toutes les `lettresParFaute` lettres, et au-delà, jusqu'à
  * une part `presque` de la longueur de la réponse, c'est « Presque. » ; une saisie qui couvre au moins `morceau` de la réponse
  * attendue, sans la couvrir toute, aussi. Les petits mots qu'on oublie au début d'un titre ne comptent pas.

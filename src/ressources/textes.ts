@@ -248,7 +248,37 @@ export interface Textes {
     readonly effacerVraiment: string;
     readonly garder: string;
     readonly retour: string;
-    readonly refus: { readonly adresse: string; readonly tropDeLiens: string; readonly lienPerime: string; readonly comptesFermes: string };
+    /** « J'ai un mot de passe », sous l'adresse : on entre avec lui plutôt que par un lien. */
+    readonly avecUnMotDePasse: string;
+    /**
+     * Le mot de passe : l'étiquette où on le tape (pour entrer, ou le nouveau), le papier de l'étape, « Mot de passe oublié » (qui
+     * envoie le lien), la touche du compte ouvert qui mène à le choisir, et ce que le compte en dit (sans, ou avec) ; le garder ;
+     * ce qu'on attend de lui, et ce que vaut celui qu'on tape ; ce qu'on dit une fois gardé.
+     */
+    readonly motDePasse: {
+      readonly etiquette: string;
+      readonly nouveau: string;
+      readonly pour: string;
+      readonly oublie: string;
+      readonly touche: string;
+      readonly sans: string;
+      readonly avec: string;
+      readonly garder: string;
+      readonly choisis: string;
+      readonly regle: string;
+      readonly jugement: { readonly court: string; readonly simple: string; readonly adresse: string; readonly bon: string };
+      readonly garde: string;
+      readonly autres: string;
+    };
+    readonly refus: {
+      readonly adresse: string;
+      readonly tropDeLiens: string;
+      readonly lienPerime: string;
+      readonly comptesFermes: string;
+      readonly motDePasseFaux: string;
+      readonly tropDEssais: string;
+      readonly motDePasseFaible: string;
+    };
     readonly courrier: {
       readonly sujet: string;
       readonly bonjour: string;
@@ -264,6 +294,10 @@ export interface Textes {
       readonly dortSujet: string;
       readonly dort: string;
       readonly dortGarder: string;
+      /** La lettre qui dit à l'adresse d'un compte que son mot de passe vient d'être choisi ; et que faire, si ce n'était pas elle. */
+      readonly motDePasseSujet: string;
+      readonly motDePasse: string;
+      readonly motDePassePasToi: string;
     };
   };
 
@@ -366,6 +400,8 @@ export interface TextesDesStatistiques {
     readonly pleinEcran: string;
     readonly sonBloque: string;
     readonly robots: string;
+    /** Les pages ouvertes par un navigateur qui demande à ne pas être suivi : comptées, sans visiteur ni appareil. */
+    readonly sansSuivi: string;
     readonly noms: Noms;
   };
   readonly premiersPas: Noms & { readonly titre: string };

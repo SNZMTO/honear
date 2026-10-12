@@ -83,5 +83,20 @@ export const RESEAU = {
     parTelephone: 10,
     parJour: 300,
     patience: 15,
+    /** Toutes les tant de secondes, on oublie les liens périmés, et les adresses (e-mail, IP) dont les essais ne comptent plus. */
+    oubli: 60,
+    /**
+     * Les mots de passe. Cinq essais par compte et par quart d'heure, vingt par heure depuis un même téléphone : au-delà, on attend
+     * (c'est la limite des essais que la CNIL demande). Un compte en change cinq fois par heure au plus. On n'en garde qu'une
+     * empreinte scrypt, aux réglages que l'OWASP conseille (2^15, 8, 3 : 32 Mio de mémoire), un sel de 16 octets, 64 octets
+     * d'empreinte ; on n'en vérifie pas une qui demanderait plus de 64 Mio, ou plus de 16 passes.
+     */
+    motDePasse: {
+      essais: 5,
+      fenetre: 900,
+      parTelephone: 20,
+      changements: 5,
+      scrypt: { cout: 32768, blocs: 8, parallele: 3, sel: 16, longueur: 64, memoire: 67108864, paralleleAuPlus: 16 },
+    },
   },
 } as const;

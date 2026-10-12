@@ -64,10 +64,24 @@ const sourceDuLien = (lien: string): 'deezer' | 'spotify' | 'autre' =>
 type Demande = Extract<Action, { readonly genre: 'chercher' | 'importer' }>;
 
 /** Ce qu'un téléphone fait de son compte. */
-type DuCompte = Extract<Action, { readonly genre: 'demanderUnLien' | 'ouvrirLeCompte' | 'reprendreLeCompte' | 'sortirDuCompte' | 'effacerLeCompte' }>;
+type DuCompte = Extract<
+  Action,
+  {
+    readonly genre:
+      | 'demanderUnLien'
+      | 'ouvrirLeCompte'
+      | 'entrerAvecUnMotDePasse'
+      | 'choisirUnMotDePasse'
+      | 'reprendreLeCompte'
+      | 'sortirDuCompte'
+      | 'effacerLeCompte';
+  }
+>;
 const DU_COMPTE: ReadonlySet<Action['genre']> = new Set([
   'demanderUnLien',
   'ouvrirLeCompte',
+  'entrerAvecUnMotDePasse',
+  'choisirUnMotDePasse',
   'reprendreLeCompte',
   'sortirDuCompte',
   'effacerLeCompte',
@@ -94,6 +108,20 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
   const vivants = new Set<WebSocket>();
   const repondu = new WeakSet<WebSocket>();
   let connexions = 0;
+  /**
+   * Les téléphones branchés, avec le compte où ils sont : un compte effacé, ou dont le mot de passe change, fait sortir ceux qui y
+   * étaient ailleurs (sauf, pour le mot de passe, la session d'où il a changé).
+   */
+  const dansLesComptes = new Set<{
+    readonly compte: () => { readonly id: string; readonly session: string } | undefined;
+    readonly sortir: () => void;
+  }>();
+  const faireSortir = (id: string, sauf?: string): void => {
+    for (const autre of dansLesComptes) {
+      const c = autre.compte();
+      if (c?.id === id && c.session !== sauf) autre.sortir();
+    }
+  };
 
   function brancher(socket: WebSocket, adresse: string): void {
     vivants.add(socket);
@@ -120,6 +148,13 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
     const attacher = (): void => {
       if (compte !== undefined && place !== undefined) o.comptes?.attacher(place.code, place.toi, compte.id);
     };
+    /** Ce téléphone n'est plus dans un compte : il en sort, l'a effacé, sa session a expiré, ou on l'a fait sortir d'ailleurs. */
+    const horsCompte = (): void => {
+      compte = undefined;
+      ecrire({ genre: 'horsCompte', heure: o.maintenant() });
+    };
+    const ici = { compte: () => compte, sortir: horsCompte };
+    dansLesComptes.add(ici);
     const connexion = o.serveur.connecter((nouvelle: Nouvelle) => {
       if (nouvelle.genre === 'refus' && nouvelle.raison === 'codeInconnu' && ++fautes.codesInconnus > RESEAU.tolerance.codesInconnus) {
         socket.close(HORS_DES_REGLES);
@@ -193,11 +228,9 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       } catch {
         // Deezer ne répond pas : la playlist est introuvable, pour cette fois.
       }
+      // D'une playlist collée, on ne compte que ce qu'elle a donné, pas son nom : c'est souvent celle de quelqu'un.
       if (typeof lue === 'string') o.statistiques?.compter(lue === 'spotify' ? 'bac.import.prive' : 'bac.import.introuvable');
-      else {
-        o.statistiques?.compter('bac.import.ok');
-        o.statistiques?.playlistsNommees([lue]);
-      }
+      else o.statistiques?.compter('bac.import.ok');
       // L'hôte a collé un autre lien entre-temps : c'est à celui-là qu'on répondra, le téléphone n'attend plus que lui.
       if (ensuite?.genre === 'importer') return;
       ecrire(
@@ -211,10 +244,6 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
     async function compter(action: DuCompte): Promise<void> {
       const comptes = o.comptes;
       const heure = (): number => o.maintenant();
-      const horsCompte = (): void => {
-        compte = undefined;
-        ecrire({ genre: 'horsCompte', heure: heure() });
-      };
       switch (action.genre) {
         case 'demanderUnLien': {
           o.statistiques?.compter('comptes.lienDemande');
@@ -239,6 +268,35 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
           ecrire({ genre: 'compte', heure: heure(), compte: ouvert.compte, session: ouvert.session });
           return;
         }
+        case 'entrerAvecUnMotDePasse': {
+          const entree = comptes !== undefined ? await comptes.entrer(action.email, action.motDePasse, adresse) : 'comptesFermes';
+          if (typeof entree === 'string') {
+            o.statistiques?.compter(`comptes.motDePasse.${entree}`);
+            ecrire({ genre: 'refus', heure: heure(), raison: entree === 'faux' ? 'motDePasseFaux' : entree });
+            return;
+          }
+          o.statistiques?.compter('comptes.motDePasse.entree');
+          compte = { id: entree.id, session: entree.session };
+          attacher();
+          ecrire({ genre: 'compte', heure: heure(), compte: entree.compte, session: entree.session });
+          return;
+        }
+        case 'choisirUnMotDePasse': {
+          const dedans = compte;
+          if (dedans === undefined || comptes === undefined) return horsCompte();
+          const choix = await comptes.choisirUnMotDePasse(dedans.id, action.motDePasse, dedans.session);
+          if (choix === 'horsCompte') return horsCompte();
+          if (choix !== 'garde') {
+            o.statistiques?.compter(`comptes.motDePasse.${choix}`);
+            ecrire({ genre: 'refus', heure: heure(), raison: choix === 'faible' ? 'motDePasseFaible' : 'tropDEssais' });
+            return;
+          }
+          o.statistiques?.compter('comptes.motDePasse.choisi');
+          faireSortir(dedans.id, dedans.session);
+          const vu = comptes.vu(dedans.id);
+          if (vu !== undefined) ecrire({ genre: 'compte', heure: heure(), compte: vu });
+          return;
+        }
         case 'reprendreLeCompte': {
           const repris = comptes?.reprendre(action.session);
           if (repris === undefined) return horsCompte();
@@ -252,10 +310,15 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
           if (compte !== undefined) comptes?.sortir(compte.session);
           o.statistiques?.compter('comptes.sortie');
           return horsCompte();
-        case 'effacerLeCompte':
-          if (compte !== undefined) comptes?.effacer(compte.id);
+        case 'effacerLeCompte': {
+          const efface = compte;
+          if (efface !== undefined) comptes?.effacer(efface.id);
           o.statistiques?.compter('comptes.efface');
-          return horsCompte();
+          horsCompte();
+          // Les autres téléphones qui y étaient en sortent aussi : il n'y a plus de compte.
+          if (efface !== undefined) faireSortir(efface.id);
+          return;
+        }
       }
     }
 
@@ -299,6 +362,7 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
     });
     socket.on('close', () => {
       coupee = true;
+      dansLesComptes.delete(ici);
       finDeLaLigne?.();
       vivants.delete(socket);
       const restants = (parAdresse.get(adresse) ?? 1) - 1;

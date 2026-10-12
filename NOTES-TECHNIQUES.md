@@ -188,7 +188,7 @@ ouvre le site sur un port de la machine et y branche de vrais WebSockets.
 
 ## Les comptes
 
-Facultatifs, sans mot de passe (`reseau/comptes.ts`). Le serveur envoie à l'adresse tapée un lien `https://site/#connexion=SECRET` :
+Facultatifs, avec ou sans mot de passe (`reseau/comptes.ts`). Le serveur envoie à l'adresse tapée un lien `https://site/#connexion=SECRET` :
 le secret est dans l'ancre, qui ne passe dans aucun journal ; la page l'efface de son adresse et attend qu'on touche « Entrer ». Un
 lien sert une fois, un quart d'heure ; il ouvre (ou crée) le compte de cette adresse, et donne au téléphone le secret d'une session
 de six mois, qu'il garde (`localStorage`) et redonne en se branchant. Les liens vivent en mémoire ; les comptes et les sessions (leur
@@ -196,6 +196,15 @@ empreinte SHA-256, jamais le secret) dans un fichier JSON réécrit d'un coup à
 téléphone, son compte et sa place dans la room ; à la fin d'une face, `quandUneFaceFinit` (le serveur du jeu) fait compter une partie
 à chacun, une victoire au premier. Le courrier (`reseau/courrier.ts`) parle SMTP, chiffré d'emblée sur le port 465, avec `AUTH PLAIN`,
 un message en texte et en HTML, en base 64. Les envois sont limités par adresse, par téléphone et par jour (`RESEAU.comptes`).
+
+Le mot de passe, facultatif, se choisit dans le compte (`choisirUnMotDePasse`) ; on entre ensuite avec son adresse et lui
+(`entrerAvecUnMotDePasse`), sans que la réponse dise si l'adresse a un compte (un leurre vérifié dans le même temps). Ce qu'il vaut
+(`regles/mot-de-passe.ts`, le même au téléphone et au serveur) : huit signes au moins, 50 bits ou trois sortes de signes, pas
+l'adresse dedans. Le serveur n'en garde qu'une empreinte scrypt (`reseau/mots-de-passe.ts` : « scrypt$coût$blocs$parallèle$sel$
+empreinte », calculée hors du fil du jeu), compte les essais avant de vérifier (par compte, par téléphone), et le changement fait
+sortir les autres sessions (la ligne prévient leurs téléphones) et prévient l'adresse. Au téléphone, le mot de passe ne vit que
+dans la mémoire de l'étape ; l'écran n'en dessine que des points, et le champ est un vrai `type=password` (le trousseau du
+navigateur le reconnaît).
 
 ## Les statistiques
 
