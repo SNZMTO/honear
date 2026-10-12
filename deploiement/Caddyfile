@@ -4,7 +4,6 @@
 #
 # DOMAINE est l'adresse du jeu ; ANCIEN_DOMAINE renvoie vers elle (deploiement/compose.yaml les lui donne, depuis
 # /etc/miel-doreilles/site.env).
-
 {
 	# Les journaux de Caddy ne disent que ses erreurs : aucune visite n'y est écrite (voir la page « Confidentialité »).
 	log {
