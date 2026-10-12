@@ -1,0 +1,16 @@
+# Le relais devant le jeu, sur le VPS : HTTPS (le certificat Let's Encrypt se prend et se renouvelle tout seul), la page compressée,
+# et les WebSockets qui passent tels quels. Le serveur du jeu écoute en local, sur le port 8080.
+# Remplace miel-doreilles.fr par ton domaine (c'est ce que fait installer.sh).
+
+miel-doreilles.fr {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8080
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+}
+
+www.miel-doreilles.fr {
+	redir https://miel-doreilles.fr{uri} permanent
+}

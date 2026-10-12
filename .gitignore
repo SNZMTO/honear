@@ -1,0 +1,8 @@
+node_modules/
+sortie/
+dist/
+*.tar.gz
+*.zip
+comptes.json*
+.env
+*.env

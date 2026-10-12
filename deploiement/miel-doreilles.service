@@ -1,0 +1,53 @@
+# Le serveur du jeu, tenu par systemd : il démarre avec la machine, repart s'il tombe, et ne peut rien faire d'autre que servir le jeu.
+# Remplace miel-doreilles.fr par ton domaine dans ORIGINES (c'est ce que fait installer.sh).
+
+[Unit]
+Description=Miel d'oreilles, le serveur du jeu
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=miel
+Group=miel
+WorkingDirectory=/opt/miel-doreilles
+Environment=NODE_ENV=production
+Environment=PORT=8080
+Environment=HOTE=127.0.0.1
+Environment=ORIGINES=https://miel-doreilles.fr
+# Le serveur d'envoi des liens de connexion des comptes, et son mot de passe : un fichier que seul root écrit (voir HEBERGEMENT.md).
+EnvironmentFile=-/etc/miel-doreilles/courrier.env
+# Les comptes se gardent dans /var/lib/miel-doreilles, le seul dossier où le service écrit, et que lui seul lit.
+StateDirectory=miel-doreilles
+StateDirectoryMode=0700
+UMask=0077
+ExecStart=/usr/bin/node /opt/miel-doreilles/serveur.mjs
+Restart=always
+RestartSec=2
+# Une mise en ligne arrête le serveur : il prévient les téléphones, qui se rebrancheront.
+KillSignal=SIGTERM
+TimeoutStopSec=5
+
+# Le serveur lit son dossier, n'écrit que dans celui des comptes, et ne gagne aucun droit.
+NoNewPrivileges=true
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/opt/miel-doreilles
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
