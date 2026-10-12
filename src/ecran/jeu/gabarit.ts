@@ -1,11 +1,13 @@
 /**
  * La page du jeu, en ligne : un document qui tient tout entier dans le téléphone. Le cadre du téléphone prend la hauteur de l'écran
- * (sur un téléphone, tout l'écran) ; sous lui, le noir du vinyle. Le script est posé à la fin, avec ses polices et ses textes. Sans
+ * (sur un téléphone, tout l'écran) ; sous lui, le noir du vinyle. Sur un ordinateur, le script l'élargit au meuble entier, au milieu.
+ * En bas, les liens des pages légales : à l'accueil et au compte sur un téléphone (le script le dit), toujours sur un ordinateur. Le script est posé à la fin, avec ses polices et ses textes. Sans
  * script, la page dit ce qui lui manque, dans la voix du site.
  */
 
 import { couleur } from '../../lowpoly/tons';
 import { CADRAGES } from '../../ressources/cadrages';
+import { PAGES_LEGALES } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
 import { enXml } from '../../scene/rendu/balisage';
 
@@ -19,12 +21,16 @@ const STYLE = `
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--fond);color:var(--encre);font:16px/${INTERLIGNE} system-ui,sans-serif;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
+body.grand{align-items:center}
 .telephone{position:relative;width:min(100vw,calc(100svh * ${largeur} / ${hauteur}));aspect-ratio:${largeur}/${hauteur};max-height:100svh;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .telephone .attente,.telephone .manque{margin:0;padding:24px 18px;color:var(--doux);max-width:32ch}
 .telephone .zone{background:transparent;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .telephone .zone:focus-visible,.telephone .champ:focus-visible{outline:2px solid var(--miel);outline-offset:2px;border-radius:4px}
 .telephone .champ{background:transparent;border:0;padding:0 12px;margin:0;color:transparent;caret-color:transparent;font:16px/1 system-ui,sans-serif;outline:none;-webkit-user-select:text;user-select:text}
 .telephone .champ::selection{background:transparent}
+.legal{position:fixed;left:0;right:0;bottom:max(4px,env(safe-area-inset-bottom));display:none;justify-content:center;gap:14px;font-size:12px;line-height:1;pointer-events:none}
+.legal a{pointer-events:auto;color:var(--doux);text-decoration:underline;padding:6px 2px}
+body.pied .legal,body.grand .legal{display:flex}
 `;
 
 /** Une page en HTML entier : le serveur la sert telle quelle, à l'adresse du site et à celle de chaque room. */
@@ -34,13 +40,14 @@ export function pageDuJeu(textes: Textes, script: string): string {
 <html lang="${textes.langue}">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual">
 <meta name="theme-color" content="${couleur('vinyle', 1)}">
 <title>${enXml(textes.logo.nom)}</title>
 <style>${STYLE}</style>
 </head>
 <body>
 <main class="telephone" data-telephone role="application" aria-label="${enXml(textes.logo.nom)}"><p class="attente">${enXml(N.enAttendant)}</p></main>
+<nav class="legal"><a href="${PAGES_LEGALES.confidentialite}">${enXml(textes.legal.liens.confidentialite)}</a><a href="${PAGES_LEGALES.mentions}">${enXml(textes.legal.liens.mentions)}</a></nav>
 <noscript><p class="manque">${enXml(N.sansScript.titre)} ${enXml(N.sansScript.conseil)}</p></noscript>
 <script>${script}</script>
 </body>

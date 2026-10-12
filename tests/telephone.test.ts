@@ -231,10 +231,11 @@ test('ce qu’on touche sur un écran est une touche qu’il montre, et chaque z
     });
   const maPochette = `maPochette:${TEXTES.pochette.maPochette}`;
   assert.deepEqual(touchers(vueDeLAccueil(A).objets, accueil), [`poser:${TEXTES.touches.poserUnDisque}`, `code:${TEXTES.touches.jAiUnCode}`]);
+  // Les deux grandes touches d'abord, puis les petits onglets dessous : sa pochette, son compte.
   assert.deepEqual(touchers(vueDeLAccueil(A, false, true).objets, accueil), [
-    maPochette,
     `poser:${TEXTES.touches.poserUnDisque}`,
     `code:${TEXTES.touches.jAiUnCode}`,
+    maPochette,
   ]);
   // Dans la room, sa propre pochette se touche, sur la tablée (et pas celle des autres) ; au salon, un cran le dit aussi.
   assert.deepEqual(touchers(vueDuSalon(A, salon.etat, salon.code, 'hote').objets, salon), [

@@ -808,6 +808,25 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Une touche s'enfonce** de sa course en 60 ms et l'écran d'après attend qu'on l'y ait vue ; elle est repeinte, d'un bloc, parce
   que son puits la découpe. Le téléphone vibre un rien, là où il sait.
 
+## Ce qui a été tranché en octobre 2026
+
+- **Le vrai clavier du téléphone** : pendant qu'on tape sa réponse, le client lit ce que le navigateur montre (`visualViewport`),
+  remet le haut du téléphone en haut de l'écran si la page a glissé, et pose l'étiquette juste au-dessus du vrai clavier, quelle que
+  soit sa hauteur (`dessusDuClavier`, `TABLEE.telephone.clavier.auPlusHaut`). Sur un ordinateur, rien ne bouge.
+- **La vraie pochette est au milieu du disque** retourné, ronde, percée de l'axe (`pochetteSurLeVerso`) ; plus rien ne sort de sous la kraft.
+- **Sur un ordinateur, le meuble entier** : une fenêtre bien plus large que haute élargit le regard au bac, à la platine et à l'ampli,
+  sans changer d'échelle (`scene/telephone/grand.ts`) ; chaque écran garde sa place, la piste ne glisse plus.
+- **D'un écran à l'autre, un fondu** de 0,22 s (`TELEPHONE.fondu`) ; la piste apparaît sur le noir. Rien en version sobre.
+- **Le bac** : le thème touché ne soulève plus une pochette dans le bac ; sa pochette se pose devant, son disque à moitié sorti
+  (`scene/telephone/choisie.ts`), et le regard monte assez pour qu'on lise tous les onglets.
+- **« Fais ta pochette » se réduit** à la pochette en grand, son nom, « Au hasard » et « C'est moi ». L'accueil : deux grandes touches,
+  et deux petits onglets dessous, « Ma pochette » et « Mon compte ».
+- **Le RGPD** : `/confidentialite` et `/mentions-legales`, fabriquées par `npm run construire` (`ecran/jeu/legal.ts`), servies sans
+  script ; le serveur y écrit l'adresse du site et celle où écrire (`CONTACT`, sinon celle qui envoie les liens). Leurs liens sont en
+  bas de l'accueil et du compte. Un compte où personne ne revient depuis deux ans s'efface, prévenu un mois avant (`entretenir`).
+- **Le VPS** : `deploiement/systeme/` tient le durcissement proposé (SSH, noyau, journaux six mois, LLMNR, redémarrage de sécurité
+  à 5 h). Il n'est pas encore appliqué : c'est à faire à la main, voir le compte rendu de ce tour.
+
 ## Ce qui attend les étapes suivantes
 
 - **Les comptes, la suite** : les clés d'accès (passkeys), pour entrer sans e-mail sur un téléphone déjà connu.

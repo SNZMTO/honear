@@ -15,33 +15,42 @@ import { dessinerLAmpli } from '../ampli';
 import { aiguillesA } from '../ampli/danse';
 import { dessinerLeBac } from '../bac';
 import type { Calque } from '../calque';
-import { surLeBois } from '../meuble';
+import { surLeBois, type Regard } from '../meuble';
 import { remplir } from '../phrases';
 import { dessinerLaVraiePochette } from '../pochette/dos';
 import { dessinerUnDisqueDeRecompense } from '../recompense';
+import { empriseDe } from '../rendu/emprise';
 import { dessinerLaTablee, eventail, placesEnEventail, type JoueurPose } from '../tablee';
 import { largeurDeLaTouche } from '../touche';
 import { kraftDuSalon } from './kraft';
 import { ampliDuSalon, bacDesPlaylistsPretes, platineArretee } from './meuble';
+import { estUnTheme, pochetteChoisie } from './choisie';
 import { DENSITE, interprete, papier, phrase, regardSur, SUR_LA_PLATINE, touche, toucheAuBord, type Ecritoire, type VueDuTelephone } from './pieces';
 
 const T = TABLEE.telephone;
 
 /**
- * L'accueil : la platine à l'arrêt, le logo sur le disque ; refaire sa pochette, poser un disque (créer une room), entrer un code,
- * ou ouvrir son compte.
+ * L'accueil : la platine à l'arrêt, le logo sur le disque ; deux grandes touches, poser un disque (créer une room) ou entrer un
+ * code ; dessous, deux petits onglets : refaire sa pochette, à gauche, et son compte, à droite.
  */
 export function vueDeLAccueil(a: Ecritoire, avecLeCompte = false, maPochette = false): VueDuTelephone {
   const r = SUR_LA_PLATINE;
+  const O = T.accueil.onglets;
+  /** Un onglet, petit, taillé à son libellé, posé par son bord gauche ou par son bord droit. */
+  const onglet = (nom: `touche-${string}`, libelle: string, bord: 'gauche' | 'droite'): Calque => {
+    const largeur = largeurDeLaTouche({ genre: 'cran', libelle, ajustee: true }, a.encrier.largeur);
+    const x = bord === 'gauche' ? O.gauche + largeur / 2 : O.droite - largeur / 2;
+    return touche(nom, 'cran', libelle, r, [x, O.y], a.encrier, 'repos', true);
+  };
   return {
     regard: r,
     objets: [
       platineArretee(a),
-      ...(maPochette ? [toucheAuBord('touche-ma-pochette', 'secondaire', a.textes.pochette.maPochette, r, T.accueil.pochette, a.encrier)] : []),
       toucheAuBord('touche-poser', 'principale', a.textes.touches.poserUnDisque, r, T.accueil.poser, a.encrier),
       toucheAuBord('touche-code', 'secondaire', a.textes.touches.jAiUnCode, r, T.accueil.code, a.encrier),
+      ...(maPochette ? [onglet('touche-ma-pochette', a.textes.pochette.maPochette, 'gauche')] : []),
       // Le compte n'est que dans le jeu en ligne : le prototype et les planches n'en ont pas.
-      ...(avecLeCompte ? [toucheAuBord('touche-compte', 'secondaire', a.textes.compte.touche, r, T.accueil.compte, a.encrier)] : []),
+      ...(avecLeCompte ? [onglet('touche-compte', a.textes.compte.touche, 'droite')] : []),
     ],
   };
 }
@@ -87,9 +96,12 @@ export interface BacOuvert {
 export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
   const P = a.textes.playlists;
   const B = T.bac;
-  const sortie = bac.cran === 'pretes' && bac.theme !== undefined ? { theme: bac.theme, leve: B.leve } : undefined;
-  const meuble = dessinerLeBac(bacDesPlaylistsPretes(a.textes, sortie), DENSITE, a.encrier.largeur);
-  const r = regardSur(meuble, a.encrier);
+  // Le bac reste rangé : le thème touché se montre devant lui, sa pochette sur le bois et son disque qui en sort.
+  const meuble = dessinerLeBac(bacDesPlaylistsPretes(a.textes), DENSITE, a.encrier.largeur);
+  // Le regard monte sur le bac s'il le faut, assez pour qu'on lise l'onglet de chaque intercalaire.
+  const surLeBac = regardSur(meuble, a.encrier);
+  const haut = empriseDe([meuble], a.encrier.largeur)?.y ?? surLeBac.origine[1];
+  const r: Regard = { ...surLeBac, origine: [surLeBac.origine[0], Math.min(surLeBac.origine[1], haut - B.auDessus)] };
   // Les trois crans, chacun taillé à son libellé, côte à côte depuis la colonne, un écart entre eux : aucun ne mord sur l'autre.
   const largeurs = CRANS_DU_BAC.map((c) => largeurDeLaTouche({ genre: 'cran', libelle: P[c], ajustee: true }, a.encrier.largeur));
   const crans = CRANS_DU_BAC.map((c, rang) => {
@@ -162,12 +174,15 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
       ]);
   }
   if (bac.cran === 'pretes') {
+    const theme = bac.theme !== undefined && estUnTheme(bac.theme) ? bac.theme : undefined;
+    if (theme !== undefined) objets.push(...pochetteChoisie(r, theme));
+    const ici = theme !== undefined ? B.aCoteDeLaPochette : B.saisie;
     if (bac.etat === 'fouille' || bac.etat === 'rien')
-      ecrire('etiquette-message', B.saisie.en, B.saisie.largeur, [
+      ecrire('etiquette-message', ici.en, ici.largeur, [
         { contenu: bac.etat === 'fouille' ? P.fouille : P.rien, role: 'titrage', auPlus: 'intertitre' },
       ]);
     else if (bac.choisie !== undefined && choisie !== undefined)
-      ecrire('etiquette-choisie', B.saisie.en, B.saisie.largeur, [
+      ecrire('etiquette-choisie', ici.en, ici.largeur, [
         { contenu: bac.choisie.titre, role: 'titrage', auPlus: 'intertitre' },
         { contenu: choisie, role: 'technique', auPlus: 'mention' },
       ]);
