@@ -19,7 +19,7 @@ const INTERLIGNE = 1.45;
 const STYLE = `
 :root{color-scheme:dark;--fond:${couleur('vinyle', 1)};--encre:${couleur('creme')};--doux:${couleur('creme', 1)};--miel:${couleur('miel')};--expresso:${couleur('expresso')};--laque:${couleur('laque')}}
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%;overscroll-behavior:none}
 body{margin:0;background:var(--fond);color:var(--encre);font:16px/${INTERLIGNE} system-ui,sans-serif;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
 body.grand{align-items:center}
 .telephone{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}

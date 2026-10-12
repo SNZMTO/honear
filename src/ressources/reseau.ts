@@ -12,6 +12,8 @@ export const RESEAU = {
   debit: { rafale: 40, parSeconde: 20 },
   /** Ce qu'on passe à un téléphone avant de le couper : tant de messages qui ne sont pas des actions, tant de codes inconnus. */
   tolerance: { malFormes: 5, codesInconnus: 10 },
+  /** Combien de paquets de diagnostic une connexion peut écrire au journal du serveur, au plus. */
+  diagnostic: { auPlus: 600 },
   /** Combien de téléphones une même adresse peut brancher à la fois. */
   parAdresse: 30,
   /** La minuterie du serveur ne dort jamais plus longtemps : de quoi voir passer l'expiration des rooms. */

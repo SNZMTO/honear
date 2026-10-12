@@ -86,12 +86,16 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
   const parAdresse = new Map<string, number>();
   const vivants = new Set<WebSocket>();
   const repondu = new WeakSet<WebSocket>();
+  let connexions = 0;
 
   function brancher(socket: WebSocket, adresse: string): void {
     vivants.add(socket);
     repondu.add(socket);
     parAdresse.set(adresse, (parAdresse.get(adresse) ?? 0) + 1);
     const peutEnvoyer = unSeau(o.maintenant);
+    /** Le numéro de cette connexion, pour lire son diagnostic dans le journal, et combien de paquets elle en a déjà envoyé. */
+    const numero = ++connexions;
+    let diagnostics = 0;
     const fautes = { malFormes: 0, codesInconnus: 0 };
     const ecrire = (nouvelle: Nouvelle): void => {
       if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(nouvelle));
@@ -242,6 +246,13 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       }
       // L'heure n'attend pas : sa réponse doit partir aussitôt, pour que l'horloge du téléphone se règle juste.
       if (action.genre === 'quelleHeure') return transmettre(action);
+      // Le diagnostic d'une page qui l'a demandé : dans le journal du serveur, une ligne par ligne, sous le numéro de cette connexion.
+      if (action.genre === 'diagnostic') {
+        if (++diagnostics > RESEAU.diagnostic.auPlus) return;
+        for (const ligne of action.texte.split('\n'))
+          if (ligne !== '') console.log(`Diagnostic ${numero} : ${ligne.replace(/[\u0000-\u001f\u007f]/g, ' ')}`);
+        return;
+      }
       if (estDuCompte(action)) return void compter(action).catch(() => undefined);
       // Qui joue sous un compte y garde la pochette avec laquelle il arrive, et celle qu'il refait.
       if (compte !== undefined && (action.genre === 'creer' || action.genre === 'rejoindre' || action.genre === 'changerDePochette'))
