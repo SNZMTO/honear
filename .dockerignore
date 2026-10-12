@@ -1,0 +1,14 @@
+# Ce qui n'entre pas dans la construction de l'image : ce qui se refait, ce qui ne sert qu'ici, et ce qui ne doit jamais en sortir.
+.git
+node_modules
+dist
+sortie
+tests
+deploiement
+.claude
+*.md
+*.env
+.env*
+comptes.json*
+*.tar.gz
+*.zip

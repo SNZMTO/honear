@@ -21,8 +21,7 @@ Ce dossier contient ce que les sept premières étapes demandent, prototype comp
    `NOTES-TECHNIQUES.md` ; et **le prototype** : une partie cliquable de bout en bout, au téléphone de l'hôte, contre le serveur simulé
    et cinq potes, en saisie libre ou en 4 choix (`sortie/prototype.html`).
 
-Pour le mettre en ligne d'un coup : `MISE-EN-PLACE.md` (une page, dans l'ordre), avec `miel-doreilles-vps.tar.gz` (le site construit
-et ses scripts) ; les détails dans `HEBERGEMENT.md`.
+Pour le mettre en ligne : `HEBERGEMENT.md` (Docker sur un VPS Debian, trois scripts dans `deploiement/`).
 Pour continuer à travailler avec Claude Code (sur le VPS ou ailleurs) : `CLAUDE.md`, ses règles, ses commandes, et la mise en ligne
 depuis un clone du dépôt.
 
@@ -44,6 +43,7 @@ npm run animations  # étape 7 : écrit sortie/etape7.html (la page à publier ;
 npm run prototype   # étape 7 : écrit sortie/prototype.html (la page à publier ; son script fait tourner le serveur, les potes et le téléphone) et sortie/prototype-local.html
 npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist/serveur.mjs (le serveur, à lancer avec Node 22 ou plus récent)
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
+docker build -t miel-doreilles .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
 npm run controle    # passe les contrôles du rendu sur les 196 images, et dit ce qu'ils ont mesuré
 npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 433 tests
 npm run format      # Prettier
@@ -824,8 +824,10 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Le RGPD** : `/confidentialite` et `/mentions-legales`, fabriquées par `npm run construire` (`ecran/jeu/legal.ts`), servies sans
   script ; le serveur y écrit l'adresse du site et celle où écrire (`CONTACT`, sinon celle qui envoie les liens). Leurs liens sont en
   bas de l'accueil et du compte. Un compte où personne ne revient depuis deux ans s'efface, prévenu un mois avant (`entretenir`).
-- **Le VPS** : `deploiement/systeme/` tient le durcissement proposé (SSH, noyau, journaux six mois, LLMNR, redémarrage de sécurité
-  à 5 h). Il n'est pas encore appliqué : c'est à faire à la main, voir le compte rendu de ce tour.
+- **Docker** : le jeu et Caddy dans deux conteneurs sans droits (`Dockerfile`, `deploiement/compose.yaml`) ; trois scripts,
+  préparer le VPS, mettre en ligne, régler le courrier, à la place de l'installateur et du service systemd. Le durcissement de la
+  machine est dans `deploiement/systeme/` (SSH, noyau, journaux six mois, LLMNR, mises à jour et redémarrage à 5 h).
+- **honear.fr** est l'adresse du jeu ; mateosan.fr y renvoie (302 : il accueillera un autre site).
 
 ## Ce qui attend les étapes suivantes
 

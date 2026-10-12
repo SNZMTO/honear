@@ -1,0 +1,8 @@
+{
+  "log-driver": "journald",
+  "log-opts": { "tag": "{{.Name}}" },
+  "no-new-privileges": true,
+  "icc": false,
+  "live-restore": true,
+  "userland-proxy": false
+}

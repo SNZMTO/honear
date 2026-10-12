@@ -3,7 +3,7 @@
  * branche les téléphones par WebSocket au serveur du jeu, et fait avancer celui-ci à ses rendez-vous (l'extrait qui part,
  * la révélation). Il écoute en local : c'est le relais devant lui (Caddy) qui parle HTTPS au monde. Il va chercher la musique chez
  * Deezer, et les titres d'une playlist sur sa page Spotify (DEEZER et SPOTIFY : d'autres adresses, celles de faux, pour essayer le site).
- * Il garde les comptes dans un fichier (COMPTES, sinon dans le dossier que systemd lui donne), et envoie leurs liens de connexion par
+ * Il garde les comptes dans un fichier (COMPTES, sinon à côté de lui), et envoie leurs liens de connexion par
  * le serveur d'envoi d'une boîte e-mail (COURRIER_HOTE, COURRIER_PORT, COURRIER_UTILISATEUR, COURRIER_MOT_DE_PASSE, COURRIER_DE ;
  * COURRIER=journal les écrit dans le journal au lieu de les envoyer, pour essayer).
  *
@@ -83,7 +83,7 @@ function configuration(): ConfigurationDuSite {
     ...(typeof TEXTES_DU_COMPTE !== 'undefined' && TEXTES_DU_COMPTE !== undefined
       ? {
           comptes: {
-            fichier: process.env['COMPTES'] ?? join(process.env['STATE_DIRECTORY'] ?? ici, 'comptes.json'),
+            fichier: process.env['COMPTES'] ?? join(ici, 'comptes.json'),
             site: process.env['SITE'] ?? origines[0] ?? 'http://localhost:8080',
             courrier,
             textes: TEXTES_DU_COMPTE,
@@ -158,7 +158,9 @@ function pagesLegales(c: ConfigurationDuSite): Record<string, string> {
   for (const chemin of Object.values(PAGES_LEGALES)) {
     const fichier = join(dirname(c.page), `${chemin.slice(1)}.html`);
     if (!existsSync(fichier)) continue;
-    pages[chemin] = readFileSync(fichier, 'utf8').replace(/\{site\}/g, enHtml(site)).replace(/\{contact\}/g, enHtml(contact));
+    pages[chemin] = readFileSync(fichier, 'utf8')
+      .replace(/\{site\}/g, enHtml(site))
+      .replace(/\{contact\}/g, enHtml(contact));
   }
   return pages;
 }
@@ -348,7 +350,7 @@ async function essayerLeCourrier(c: ConfigurationDuSite, a: string | undefined):
 
 // Lancé tel quel (node serveur.mjs), il démarre ; importé (par les tests), il attend qu'on le lance.
 // « node serveur.mjs --essai-courrier toi@exemple.fr [courrier.env] » envoie un e-mail d'essai, et s'arrête.
-// Un troisième mot, s'il y en a un, est le fichier des réglages du courrier (celui du service), lu comme systemd le lit.
+// Un troisième mot, s'il y en a un, est un fichier de réglages du courrier, lu comme Docker lit le sien ; sans lui, l'environnement.
 if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1] && process.argv[2] === '--essai-courrier') {
   const reglages = process.argv[4];
   if (reglages !== undefined) process.loadEnvFile(reglages);
@@ -359,7 +361,7 @@ if (process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.
   void site.pret.then((port) =>
     console.log(`Miel d'oreilles écoute sur http://${c.hote}:${port}${c.origines.length > 0 ? `, pour ${c.origines.join(', ')}` : ''}`),
   );
-  // Arrêté par systemd (une mise en ligne, un redémarrage) : il ferme ses lignes proprement.
+  // Arrêté par Docker (une mise en ligne, un redémarrage) : il ferme ses lignes proprement.
   for (const signal of ['SIGTERM', 'SIGINT'] as const) process.on(signal, () => void site.fermer().then(() => process.exit(0)));
 }
 
