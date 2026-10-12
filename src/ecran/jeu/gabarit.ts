@@ -25,11 +25,8 @@ body.grand{align-items:center}
 .telephone{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .telephone .attente,.telephone .manque{margin:0;padding:24px 18px;color:var(--doux);max-width:32ch}
 .telephone .zone{background:transparent;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.telephone .zone:focus-visible,.telephone .champ:focus-visible{outline:2px solid var(--miel);outline-offset:2px;border-radius:4px}
-.telephone .zone.pouls::after{content:"";position:absolute;inset:18%;border-radius:10px;background:var(--encre);opacity:0;pointer-events:none;animation:pouls ${TELEPHONE.pouls.duree}s ease-in-out infinite}
-@keyframes pouls{50%{opacity:${TELEPHONE.pouls.eclat}}}
-@media (prefers-reduced-motion:reduce){.telephone .zone.pouls::after{animation:none}}
-.telephone .champ{background:transparent;border:0;padding:0 12px;margin:0;color:transparent;caret-color:transparent;font:16px/1 system-ui,sans-serif;outline:none;-webkit-user-select:text;user-select:text}
+.telephone .zone:focus-visible{outline:2px solid var(--miel);outline-offset:2px;border-radius:4px}
+.telephone .champ{background:transparent;border:0;padding:0 12px;margin:0;color:transparent;caret-color:transparent;font:16px/1 system-ui,sans-serif;outline:none!important;-webkit-user-select:text;user-select:text}
 .telephone .champ::selection{background:transparent}
 .legal{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));display:none;align-items:center;gap:8px;padding:3px 8px;background:var(--miel);border:2px solid var(--laque);border-radius:9px;font:600 10px/1 system-ui,sans-serif;z-index:1}
 .legal a,.legal button{color:var(--expresso);text-decoration:none;padding:5px 1px;background:none;border:0;font:inherit;cursor:pointer}

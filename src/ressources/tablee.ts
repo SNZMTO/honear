@@ -49,15 +49,31 @@ export const TABLEE = {
       /** Ce dont une pochette sur deux descend, pour que l'éventail ait un peu de relief. */
       decalage: 3,
     },
-    /** Le tableau des scores, en jeu : les points de chacun, sous sa pochette dans l'éventail, de ce corps, tant de px sous elle. */
-    scores: { corps: 12, sous: 14 },
+    /**
+     * Le classement : une feuille crème, une ligne par joueur (son rang, sa pochette en petit, son nom, ce que la piste lui vaut, ses
+     * points). Sa marge, l'écart entre ce qu'une ligne porte, la pochette en part de la hauteur d'une ligne, l'angle de la feuille.
+     * Pendant la piste, sous la platine, à gauche de la kraft, en deux colonnes au-delà de six ; au hit-parade, sur toute la largeur.
+     * Sur un grand écran, en colonne sous le bac, à cet écart de sa caisse : sa ligne la plus haute, la marge du bas, et combien de
+     * lignes il faut y voir au moins pour l'y poser.
+     */
+    classement: {
+      marge: 8,
+      ecart: 6,
+      /** Ce que la pastille d'une marque déborde de son texte, et le rayon de ses coins. */
+      pastille: 3,
+      pochette: 0.8,
+      angle: -0.6,
+      piste: { gauche: 12, haut: 482, largeur: 240, hauteur: 116, parColonne: 6, ligne: 22 },
+      hitParade: { gauche: 22, haut: 486, largeur: 346, hauteur: 264, parColonne: 12, ligne: 30 },
+      grand: { sousLeBac: 40, ligne: 36, parColonne: 12, bas: 24, auMoins: 4 },
+    },
     /** La pastille qui claque sur une pochette de l'éventail quand son joueur trouve : petite, dans son coin bas-droit. */
     trouve: { rayon: 12, coin: [0.36, 0.34], angle: -10 },
     /** La pastille du hit-parade ou des points sur une pochette plus grande : dans son coin bas-droit (en part du côté). */
     pastille: { coin: [0.4, 0.36], angle: -12 },
     /** L'étiquette vierge de la saisie libre, et les pastilles « Artiste », « Titre » et « Feat » qui se collent sur son bord haut. */
     reponse: {
-      en: [136, 642],
+      en: [136, 668],
       largeur: 236,
       /** Taillée à ce qu'on tape, jamais plus étroite que ses trois pastilles côte à côte. */
       auMoins: 184,
@@ -78,7 +94,7 @@ export const TABLEE = {
      */
     choix: {
       x: [74, 194],
-      y: [636, 636, 734, 734],
+      y: [660, 660, 758, 758],
       largeur: 112,
       angles: [-1.5, 1, -1, 1.5],
       /** L'étiquette qu'on a touchée : enfoncée de tant de px, à plat, dans ce papier plus sombre. */
@@ -88,7 +104,7 @@ export const TABLEE = {
      * Un papier qui dit ce qui se passe, sur la colonne, au-dessus de la zone du pouce ; à gauche de la vraie pochette, une fois révélée.
      * Taillé à sa phrase, il garde son bord gauche.
      */
-    message: { en: [132, 610], largeur: 228, angle: -1.5, aCoteDeLaVraie: { en: [128, 640], largeur: 220 } },
+    message: { en: [132, 636], largeur: 228, angle: -1.5, aCoteDeLaVraie: { en: [128, 660], largeur: 220 } },
     /** Un mot sur une pastille (« Presque. », « Rayé. ») collée à cheval sur le bord droit de l'étiquette vierge. */
     mot: { decalage: [22, -2], angle: -8 },
     /**
@@ -96,8 +112,11 @@ export const TABLEE = {
      * contrepoids du bras), ou du cadre. Son centre, dans le regard du téléphone, et son rayon.
      */
     volume: { en: [364, 54], rayon: 15 },
-    /** La touche pour quitter la partie, en miroir du volume : au coin haut gauche du cadre, son bord gauche et son milieu. */
-    quitter: { en: [10, 54] },
+    /**
+     * La touche pour quitter la partie, en miroir du volume : au coin haut gauche du cadre, son bord gauche et son milieu. Chez l'hôte,
+     * celle qui change de playlist la suit, à cet écart.
+     */
+    quitter: { en: [10, 54], ecart: 8 },
     /**
      * L'accueil : le titre du jeu, en grand, sous la platine ; deux grandes touches au milieu, créer une room ou en rejoindre une
      * avec son code (leur hauteur) ; dessous, deux petits onglets, sa pochette à gauche et son compte à droite, entre ces deux bords.
@@ -172,6 +191,8 @@ export const TABLEE = {
       /** Quand on la refait (à l'accueil, dans la room) : la touche qui la laisse comme elle était, à côté du hasard. */
       laisser: [296, 690],
       cEstMoi: [195, 784],
+      /** Le papier qui réclame le nom, quand on a touché « C'est moi » sans l'avoir écrit : sous l'étiquette. */
+      sansNom: { en: [195, 556], largeur: 300 },
     },
     /** La révélation : la vraie pochette, sortie de sous la kraft, posée de travers à côté d'elle. */
     vraiePochette: { en: [292, 704], angle: 8, taille: 104 },

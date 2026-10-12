@@ -11,6 +11,7 @@
 import type { NomDeCalque } from '../../lexique';
 import { couleur } from '../../lowpoly/tons';
 import type { Action, Brancher, Connexion, PlaylistTrouvee } from '../../regles/messages';
+import { partieA } from '../../regles/partie';
 import { avancementDeLExtrait, type Reponse } from '../../regles/piste';
 import { TELEPHONE } from '../../ressources/ecran';
 import { AMPLEURS, TOUCHES } from '../../ressources/mouvement';
@@ -37,15 +38,16 @@ import type { PoseDeLaPiste } from '../../scene/piste/pose';
 import type { PisteEnScene } from '../../scene/piste/etat';
 import { regardDeLaPiste } from '../../scene/piste/regard';
 import { decorDeLaPiste } from '../../scene/telephone/meuble';
-import { meubleAutour, rangerSousLeDisque, regardPourLaFenetre } from '../../scene/telephone/grand';
+import { dessinerLeClassement, lignesDuClassement } from '../../scene/classement';
+import { classementSousLeBac, meubleAutour, rangerSousLeDisque, regardPourLaFenetre } from '../../scene/telephone/grand';
 import { echellesDeLAmpli } from '../../scene/telephone/meuble';
-import { toucheQuitter } from '../../scene/telephone/quitter';
+import { toucheDeLHote, toucheQuitter } from '../../scene/telephone/quitter';
 import { angleDuVolume, boutonDuVolume, cranDuVolume, INDEX_DU_VOLUME, type PlaceDuVolume } from '../../scene/telephone/volume';
 import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
-import { autourDeLaPiste, pochetteSurLeVerso } from '../../scene/telephone/piste';
+import { autourDeLaPiste, lignesDeLaPiste, pochetteSurLeVerso } from '../../scene/telephone/piste';
 import { vueDeLaPochette } from '../../scene/telephone/pochette';
 import { imagesDesTitres, vueDesTitres } from '../../scene/telephone/titres';
-import { calquesDeLaTouche, estPrincipale } from '../../scene/touche';
+import { calquesDeLaTouche } from '../../scene/touche';
 import { lancerLaBoucle } from '../boucle';
 import { factureVoulue } from '../facture';
 import type { Horloge } from '../horloge';
@@ -166,7 +168,7 @@ function vueDe(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>, a: Ecr
     case 'saisie':
       return vueDeLaSaisie(a, e.tape, e.refus);
     case 'pochette':
-      return vueDeLaPochette(a, e.pochette, e.choisi, e.retouche);
+      return vueDeLaPochette(a, e.pochette, e.choisi, e.retouche, e.sansNom);
     case 'bac':
       return vueDuBac(a, e.bac);
     case 'reglages':
@@ -644,8 +646,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       }
       const zone = document.createElement('button');
       zone.type = 'button';
-      // La touche principale respire : on voit d'un coup d'œil ce qui fait avancer l'écran.
-      zone.className = estPrincipale(c) ? 'zone pouls' : 'zone';
+      zone.className = 'zone';
       zone.dataset['zone'] = String(choses.length);
       zone.setAttribute('aria-label', chose.libelle);
       zone.style.cssText = place;
@@ -798,7 +799,13 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     // touche se range sous le vinyle.
     const regard = dansLaFenetre(vue.regard, p);
     const rangees = p !== undefined ? rangerSousLeDisque(vue.objets, vue.regard, p, a.encrier.largeur) : vue.objets;
-    const objets = p !== undefined ? [...meubleAutour(a, vue.objets, regard), ...rangees] : rangees;
+    // Au salon, sur un grand écran, le classement dit déjà qui est là, sous le bac.
+    const sousLeBac = p !== undefined && e.genre === 'salon' ? classementSousLeBac(regard) : undefined;
+    const classement =
+      sousLeBac !== undefined && e.genre === 'salon'
+        ? dessinerLeClassement(lignesDuClassement(e.etat, a.textes, 'rien'), sousLeBac, regard, a.textes, a.encrier.largeur)
+        : [];
+    const objets = p !== undefined ? [...meubleAutour(a, vue.objets, regard), ...rangees, ...classement] : rangees;
     regardMonte = regard;
     poserLesImages(replacer(e.genre === 'titres' ? imagesDesTitres(e.joues) : [], vue.regard, regard), regard);
     const touches = new Map(vue.objets.filter((objet) => objet.nom.startsWith('touche-')).map((objet) => [objet.nom, objet] as const));
@@ -870,8 +877,13 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       posees.plan.suivreLeCadre();
       return;
     }
-    const autourDuTelephone = autourDeLaPiste(a, SUR_LA_PLATINE, e.autour);
-    const objets = p !== undefined ? rangerSousLeDisque(autourDuTelephone, SUR_LA_PLATINE, p, a.encrier.largeur) : autourDuTelephone;
+    // Sur un grand écran, le classement se lit en colonne sous le bac ; ce qu'on touche garde l'éventail des pochettes.
+    const sousLeBac = p !== undefined ? classementSousLeBac(regard) : undefined;
+    const autourDuTelephone = autourDeLaPiste(a, SUR_LA_PLATINE, e.autour, sousLeBac !== undefined);
+    const objets = [
+      ...(p !== undefined ? rangerSousLeDisque(autourDuTelephone, SUR_LA_PLATINE, p, a.encrier.largeur) : autourDuTelephone),
+      ...(sousLeBac !== undefined ? dessinerLeClassement(lignesDeLaPiste(a.textes, e.autour), sousLeBac, regard, a.textes, a.encrier.largeur) : []),
+    ];
     posees = monterDans(autour, posees, cle, calque('regard-autour', objets), regard, d, new Map());
     poserLesZones(objets, regard, e);
   }
@@ -906,6 +918,26 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     if (o.confirmer?.(a.textes.partie.quitterVraiment) === false) return;
     agir({ genre: 'quitter' });
   });
+  // Celle de l'hôte, à côté : « Autre playlist », qui ouvre le bac ; dans le bac, « Retour ».
+  const zoneDeLHote = document.createElement('button');
+  zoneDeLHote.type = 'button';
+  zoneDeLHote.className = 'zone';
+  zoneDeLHote.dataset['volume'] = '';
+  zoneDeLHote.hidden = true;
+  zones.append(zoneDeLHote);
+  zoneDeLHote.addEventListener('click', () => {
+    hautParleur.cliquer('touche');
+    agir({ genre: memoire.preparation.ecran === 'bac' ? 'fermerLeBac' : 'autrePlaylist' });
+  });
+  /** Pose la zone d'une touche du coin sur ce qu'on en a dessiné, assez haute pour un pouce ; la cache s'il n'y a rien. */
+  function poserLaZoneDuCoin(zone: HTMLElement, touche: Calque | undefined, r: Regard): void {
+    const e = touche !== undefined ? empriseDe([touche], a.encrier.largeur) : undefined;
+    zone.hidden = e === undefined;
+    if (e === undefined) return;
+    const h = Math.max(TELEPHONE.zoneAuMoins, e.hauteur);
+    const y = e.y + e.hauteur / 2 - h / 2 - r.origine[1];
+    zone.style.cssText = `position:absolute;left:${part(e.x - r.origine[0], r.largeur)};top:${part(y, r.hauteur)};width:${part(e.largeur, r.largeur)};height:${part(h, r.hauteur)};`;
+  }
   function poserLeVolume(): void {
     const r = regardMonte;
     // Sur l'ampli s'il est en vue ; sinon sur le coin de la platine, s'il l'est ; sinon dans le coin du cadre.
@@ -926,7 +958,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
         : 'coin';
     const d = definition(r);
     const enRoom = memoire.room !== undefined;
-    const cle = JSON.stringify([ou, r, d, enRoom]);
+    const hote = memoire.room !== undefined && partieA(memoire.room.journal, Infinity).hote === memoire.room.toi;
+    const bacOuvert = memoire.preparation.ecran === 'bac';
+    const cle = JSON.stringify([ou, r, d, enRoom, hote, bacOuvert]);
     zoneDuVolume.setAttribute('aria-valuenow', String(Math.round(volume * POUR_CENT)));
     if (volumeMonte?.cle === cle) {
       volumeMonte.plan.suivreLeCadre();
@@ -934,19 +968,16 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       return;
     }
     const quitter = enRoom ? toucheQuitter(a, r) : undefined;
+    const deLHote = enRoom && hote ? toucheDeLHote(a, r, bacOuvert) : undefined;
     // Là où la page ne règle pas le volume (l'iPhone), pas de bouton : ce sont ceux du téléphone.
     const reglable = hautParleur.volumeReglable;
     zoneDuVolume.hidden = !reglable;
-    const objets = [...(reglable ? boutonDuVolume(a, r, volume, ou) : []), ...(quitter !== undefined ? [quitter] : [])];
+    const objets = [...(reglable ? boutonDuVolume(a, r, volume, ou) : []), ...[quitter, deLHote].filter((c) => c !== undefined)];
     volumeMonte = monterDans(coucheDuVolume, volumeMonte, cle, calque('regard-volume', objets), r, d, new Map());
     tournerLeVolume(volumeMonte.montage);
-    zoneQuitter.hidden = quitter === undefined;
-    const q = quitter !== undefined ? empriseDe([quitter], a.encrier.largeur) : undefined;
-    if (q !== undefined) {
-      const h = Math.max(TELEPHONE.zoneAuMoins, q.hauteur);
-      const y = q.y + q.hauteur / 2 - h / 2 - r.origine[1];
-      zoneQuitter.style.cssText = `position:absolute;left:${part(q.x - r.origine[0], r.largeur)};top:${part(y, r.hauteur)};width:${part(q.largeur, r.largeur)};height:${part(h, r.hauteur)};`;
-    }
+    poserLaZoneDuCoin(zoneQuitter, quitter, r);
+    poserLaZoneDuCoin(zoneDeLHote, deLHote, r);
+    zoneDeLHote.setAttribute('aria-label', bacOuvert ? a.textes.partie.retour : a.textes.partie.autrePlaylist);
     const bouton = objets.find((c) => c.nom === 'bouton-volume');
     const e = bouton !== undefined ? empriseDe([bouton], a.encrier.largeur) : undefined;
     if (e === undefined) return;
