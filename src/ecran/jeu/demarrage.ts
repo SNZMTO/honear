@@ -83,7 +83,10 @@ function codeDeLAdresse(): string | undefined {
  * @returns la proportion de ce qu'on voit sans rien de caché, et ce que cachent les bords, en part de la largeur : à lire à chaque image.
  */
 const CENTIEMES = 100;
-function suivreLaFenetre(cadre: HTMLElement): { readonly proportion: () => number; readonly bords: () => { readonly sur: number; readonly sous: number } } {
+function suivreLaFenetre(cadre: HTMLElement): {
+  readonly proportion: () => number;
+  readonly bords: () => { readonly sur: number; readonly sous: number };
+} {
   let proportion = PROPORTION_DU_TELEPHONE;
   let bords = { sur: 0, sous: 0 };
   const sonde = document.querySelector<HTMLElement>('.bords');

@@ -36,8 +36,7 @@ function nomDuMode(textes: Textes, cle: string): string {
  */
 export function manetteDuMode(textes: Textes, cran: number): EtatDInterrupteur {
   const { directions } = PLATINE.commandes.interrupteur.manette;
-  if (MODES_PAR_CRAN.length !== DIRECTIONS.length)
-    throw new Error(`La manette a quatre positions, pour ${MODES_PAR_CRAN.length} modes.`);
+  if (MODES_PAR_CRAN.length !== DIRECTIONS.length) throw new Error(`La manette a quatre positions, pour ${MODES_PAR_CRAN.length} modes.`);
   const [haut = '', gauche = '', droite = '', bas = ''] = DIRECTIONS.map((position) => {
     const mode = MODES_PAR_CRAN[directions.indexOf(position)];
     return mode !== undefined ? nomDuMode(textes, mode.cle) : '';
