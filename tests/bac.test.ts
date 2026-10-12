@@ -61,9 +61,9 @@ test('chaque état du bac se dessine, avec les signes que les polices du site on
 test('un titre venu d’ailleurs, avec des signes que les polices n’ont pas, se dessine quand même dans la page du jeu', () => {
   const indulgent = encrier(CARACTERES, lireUnePolice, TEXTES.langue, true);
   const etrange = { titre: 'Été ☀️ 2026 · 夏の歌 · Ωmega', total: 30 };
-  assert.throws(() => vueDuBac(A, { cran: 'pretes', theme: 'annees80', choisie: etrange }));
-  const vue = vueDuBac({ ...A, encrier: indulgent }, { cran: 'pretes', theme: 'annees80', choisie: etrange });
-  assert.ok(vue.objets.some((o) => o.nom === 'etiquette-choisie'));
+  assert.throws(() => vueDuBac(A, { cran: 'pretes', theme: 'annees80', proposees: [etrange] }));
+  const vue = vueDuBac({ ...A, encrier: indulgent }, { cran: 'pretes', theme: 'annees80', proposees: [etrange] });
+  assert.ok(vue.objets.some((o) => o.nom === 'etiquette-playlist-1'));
   assert.equal(indulgent.ecrivable('Ωmega'), `${indulgent.ecrivable('Ω')}mega`);
 });
 
@@ -85,11 +85,21 @@ const auBac = (cran: 'pretes' | 'chercher' | 'laMienne'): Memoire => ({
 const bacDe = (m: Memoire) => (m.preparation.ecran === 'bac' ? m.preparation.bac : undefined);
 const SOIREE = { lien: 'deezer:4242', titre: 'Soirée 2000', total: 24 };
 
-test('dans le bac, un thème cherche ses playlists et prend la première ; une recherche montre ce qu’elle trouve, et l’on en touche une', () => {
+test('dans le bac, un thème cherche ses playlists et les montre en disques : on en touche une, ou « Au hasard » ; une recherche aussi', () => {
   let s = toucher(auBac('pretes'), { genre: 'theme', cle: 'annees80', recherche: 'Années 80' }, 0, PREPARATIFS);
   assert.deepEqual(s.actions, [{ genre: 'chercher', recherche: 'Années 80' }]);
-  let m = recevoir(s.memoire, { genre: 'playlists', heure: 1, recherche: 'Années 80', playlists: [SOIREE] });
-  assert.deepEqual(bacDe(m)?.choisie, SOIREE);
+  const AUTRE = { ...SOIREE, lien: 'deezer:7', titre: 'Années 80, la totale' };
+  let m = recevoir(s.memoire, { genre: 'playlists', heure: 1, recherche: 'Années 80', playlists: [SOIREE, AUTRE] });
+  assert.equal(bacDe(m)?.choisie, undefined, 'rien n’est choisi d’office');
+  assert.deepEqual(
+    toucher(m, { genre: 'resultat', rang: 1 }, 2, PREPARATIFS).memoire.preparation.ecran === 'bac'
+      ? bacDe(toucher(m, { genre: 'resultat', rang: 1 }, 2, PREPARATIFS).memoire)?.choisie
+      : undefined,
+    AUTRE,
+  );
+  // « Au hasard » en prend une, jamais celle qu'on avait déjà.
+  const auHasard = toucher(toucher(m, { genre: 'resultat', rang: 0 }, 2, PREPARATIFS).memoire, { genre: 'playlistAuHasard' }, 3, PREPARATIFS).memoire;
+  assert.deepEqual(bacDe(auHasard)?.choisie, AUTRE);
   // Une réponse à une autre recherche, ou qui arrive quand on a changé de cran, ne change rien.
   assert.equal(recevoir(s.memoire, { genre: 'playlists', heure: 1, recherche: 'Rock', playlists: [SOIREE] }), s.memoire);
 

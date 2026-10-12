@@ -204,6 +204,8 @@ export type Toucher =
   | { readonly genre: 'basculerLeSon' }
   /** Aux « Prêtes à jouer », un thème touché : on cherche ses playlists, et la première sort du bac. */
   | { readonly genre: 'theme'; readonly cle: string; readonly recherche: string }
+  /** Aux « Prêtes à jouer » : une des playlists du genre, tirée au sort. */
+  | { readonly genre: 'playlistAuHasard' }
   /** Un résultat de la recherche, touché : c'est lui qu'on prendra. */
   | { readonly genre: 'resultat'; readonly rang: number }
   /** Les étiquettes où l'on tape, dans le bac : celle de la recherche, celle du lien. */
@@ -291,6 +293,8 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
       return {
         ...m,
         room: { code: n.code, toi: n.toi, jeton: n.jeton, journal: n.journal, seance: n.seance, extrait: n.extrait },
+        // Dans une room, l'ampli est allumé d'office : le son part au premier toucher, sans rien à allumer.
+        ampliAllumeA: m.ampliAllumeA ?? -Infinity,
         refus: undefined,
         horsLigne: false,
         reprise: undefined,
@@ -309,9 +313,8 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
       const p = m.preparation;
       // La réponse à ce qu'on a cherché, si l'on cherche encore (on a pu passer à « La mienne » entre-temps).
       if (p.ecran !== 'bac' || p.cran === 'laMienne' || p.bac.enAttente !== n.recherche) return m;
-      // Aux « Prêtes à jouer », c'est la première playlist du thème qu'on prend ; à la recherche, on choisira parmi elles.
-      const premiere = p.cran === 'pretes' ? n.playlists[0] : undefined;
-      return { ...m, preparation: { ...p, bac: { ...p.bac, enAttente: undefined, resultats: n.playlists, touche: undefined, choisie: premiere } } };
+      // On choisira parmi elles : aux « Prêtes à jouer », en touchant un disque ou « Au hasard » ; à la recherche, une pochette.
+      return { ...m, preparation: { ...p, bac: { ...p.bac, enAttente: undefined, resultats: n.playlists, touche: undefined, choisie: undefined } } };
     }
     case 'importee': {
       const p = m.preparation;
@@ -516,6 +519,16 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       const trouvee = prep.bac.resultats?.[t.rang];
       return trouvee === undefined ? rien : seul({ ...m, preparation: { ...prep, bac: { ...prep.bac, touche: t.rang, choisie: trouvee } } });
     }
+    case 'playlistAuHasard': {
+      if (prep.ecran !== 'bac') return rien;
+      const proposees = prep.bac.resultats ?? [];
+      if (proposees.length === 0) return rien;
+      // Le hasard est une graine : celle du téléphone, et l'heure du toucher. Jamais la même deux fois de suite, s'il y a le choix.
+      const avant = prep.bac.touche;
+      const autres = proposees.map((_, rang) => rang).filter((rang) => rang !== avant || proposees.length === 1);
+      const rang = autres[Math.floor(hasard(p.graine + Math.floor(heure * MS_PAR_SECONDE)).suivant() * autres.length)] ?? 0;
+      return seul({ ...m, preparation: { ...prep, bac: { ...prep.bac, touche: rang, choisie: proposees[rang] } } });
+    }
     case 'taperLaRecherche':
     case 'collerLeLien':
       // C'est le clavier du téléphone qui tape : le champ posé sur l'étiquette s'en charge.
@@ -664,6 +677,9 @@ export function aLaNouvelle(avant: Memoire, apres: Memoire): readonly Action[] {
     ? [{ genre: 'pret' }]
     : [];
 }
+
+/** Les millisecondes d'une seconde : la graine d'un tirage change à chaque milliseconde. */
+const MS_PAR_SECONDE = 1000;
 
 /** Ce qu'une réponse tapée peut compter de caractères ; une adresse e-mail, au plus. */
 export const SAISIE_AU_PLUS = 120;

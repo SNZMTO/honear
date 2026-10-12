@@ -13,9 +13,12 @@ export const BAC = {
 
   /**
    * La caisse : quatre parois de lattes, leur épaisseur, leur hauteur ; le fond, un peu au-dessus du bois.
-   * Sur la paroi avant, les joints entre ses trois lattes, à ces hauteurs, et sa poignée : une fente aux bouts ronds.
+   * Sur la paroi avant, les joints entre ses trois lattes, à ces hauteurs, et sa poignée : une fente aux bouts ronds. Elle est
+   * peinte en crème, pour se détacher du noyer de la table ; ses joints et sa fente restent sombres.
    */
   caisse: {
+    teinte: 'creme',
+    teinteDesJoints: 'noyerSombre',
     largeur: 352,
     profondeur: 236,
     paroi: 9,
@@ -80,9 +83,6 @@ export const PLAYLISTS_PAR_THEME: Readonly<Record<CleDeTheme, number>> = {
   generiques: 2,
   hitsDuMoment: 1,
 };
-
-/** Les couleurs des vignettes des playlists, tour à tour : jamais celle de l'intercalaire qui les précède. */
-export const COULEURS_DES_PLAYLISTS = ['orangeBrule', 'bleuPetrole', 'vieuxRose', 'olive', 'rougeTomate', 'bleuFane', 'lilasFume', 'creme'] as const;
 
 /** La playlist que le bac donne en attendant Deezer : la source d'essai du serveur la connaît sous ce nom. */
 export const PLAYLIST_D_ESSAI = 'essai';
