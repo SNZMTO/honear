@@ -198,6 +198,8 @@ export interface Preparatifs extends ReglagesDeLaPlatine {
 /** Ce qu'on peut toucher sur le téléphone. Chaque touche, chaque étiquette à toucher en est un. */
 export type Toucher =
   | { readonly genre: 'poser' | 'code' | 'taperLeCode' | 'entrer' | 'auHasard' | 'autreAlbum' | 'cEstMoi' | 'choisir' | 'ouvrir' }
+  /** À la saisie du code : revenir à l'accueil sans entrer. */
+  | { readonly genre: 'laisserLeCode' }
   /** Sa pochette, quand on veut : la rouvrir, y taper son nom d'artiste, la laisser comme elle était. */
   | { readonly genre: 'maPochette' | 'taperLeNom' | 'laisserLaPochette' }
   /** À la finale : revoir les titres joués, et revenir. */
@@ -462,6 +464,8 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
           tirages: 0,
         },
       });
+    case 'laisserLeCode':
+      return prep.ecran === 'saisie' ? seul({ ...m, refus: undefined, preparation: { ecran: 'accueil' } }) : rien;
     case 'ouvrirLeChoix':
       return prep.ecran === 'pochette' ? seul({ ...m, preparation: { ...prep, choisi: t.choix } }) : rien;
     case 'porter':

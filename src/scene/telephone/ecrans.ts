@@ -344,7 +344,10 @@ export function vueDeLAmpli(a: Ecritoire, allume: boolean): VueDuTelephone {
   return { regard: regardSur(ampli, a.encrier), objets: [ampli] };
 }
 
-/** La saisie du code d'une room : le papier où il s'écrit, lettre après lettre ; ce que le serveur a refusé ; la touche qui entre. */
+/**
+ * La saisie du code d'une room : le papier où il s'écrit, lettre après lettre ; ce que le serveur a refusé ; la touche qui entre, et
+ * « Retour », qui ramène à l'accueil.
+ */
 export function vueDeLaSaisie(a: Ecritoire, tape: string, refus?: 'codeInconnu' | 'complet'): VueDuTelephone {
   const r = SUR_LA_PLATINE;
   const S = T.saisie;
@@ -368,6 +371,7 @@ export function vueDeLaSaisie(a: Ecritoire, tape: string, refus?: 'codeInconnu' 
   ];
   if (refus !== undefined) objets.push(...phrase(a.textes.etats[refus], r, a.encrier, S.message));
   objets.push(toucheAuMilieu('touche-rejoindre', 'principale', a.textes.partie.rejoindre, r, S.entrer, a.encrier));
+  objets.push(toucheAuMilieu('touche-laisser-code', 'secondaire', a.textes.partie.retour, r, S.retour, a.encrier));
   return { regard: r, objets };
 }
 

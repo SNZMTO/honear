@@ -117,8 +117,8 @@ export const TABLEE = {
       deux: [650, 728],
       retour: 806,
     },
-    /** La saisie du code : le papier, ses quatre cases, la touche qui entre (par son bord gauche). */
-    saisie: { en: [195, 610], largeur: 260, angle: -1.5, cases: 4, entrer: 784, message: [195, 690] },
+    /** La saisie du code : le papier, ses quatre cases, la touche qui entre, et « Retour » au bout, qui ramène à l'accueil. */
+    saisie: { en: [195, 566], largeur: 260, angle: -1.5, cases: 4, entrer: 734, retour: 806, message: [195, 646] },
     /**
      * Le salon : l'éventail des pochettes, le lien à copier, l'ampli à allumer, et la touche de l'hôte, en colonne ; les touches
      * par leur bord gauche. Le QR code est sur la kraft.
@@ -153,7 +153,7 @@ export const TABLEE = {
         auHasard: 730,
       },
       /** Le regard sur le bac descend sous le haut de ses intercalaires, de cette marge : on lit tous les thèmes. */
-      auDessus: 10,
+      auDessus: 30,
       leve: 28,
       source: { en: [195, 424], largeur: 300 },
     },
