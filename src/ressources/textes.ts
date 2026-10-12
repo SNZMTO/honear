@@ -23,6 +23,19 @@ export interface Textes {
   /** L'accueil : ce qu'est le jeu, écrit en grand sous la platine. */
   readonly accueil: { readonly titre: string };
 
+  /**
+   * Le petit tutoriel, en diapositives, à la première visite : chacune un titre et un texte ; les touches pour avancer, revenir,
+   * passer et finir ; le lien qui le rouvre, en bas de l'accueil.
+   */
+  readonly tuto: {
+    readonly diapos: readonly { readonly titre: string; readonly texte: string }[];
+    readonly suivant: string;
+    readonly precedent: string;
+    readonly passer: string;
+    readonly commencer: string;
+    readonly lien: string;
+  };
+
   readonly logo: {
     readonly nom: string;
     /** Les petites mentions d'une étiquette de disque. */

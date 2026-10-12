@@ -829,7 +829,12 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   l'ampli le règle (sa moitié gauche baisse, la droite monte), sur l'ampli même sur un grand écran, en petit sur le coin de la
   platine au téléphone (`scene/telephone/volume.ts`). Là où l'élément audio ne se règle pas (l'iPhone), le son passe par le moteur
   audio du navigateur : les extraits de Deezer le permettent.
-- **La lumière de la lampe est un fondu** : des ellipses de bois clair à peine opaques, empilées, au lieu de trois paliers.
+- **La lumière de la lampe** : cinq paliers doux, des ellipses de bois clair un peu transparentes, dans l'esprit facetté du reste.
+- **Les couleurs** : un crème plus chaud ; la caisse du bac en vert sapin, comme la platine et l'ampli, sa fente sur le premier rang.
+- **Ce qui bouge** : un bouton rond tourne d'un cran à l'autre (`TELEPHONE.tourne`) ; la touche principale de chaque écran respire
+  (`TELEPHONE.pouls`) ; rien de cela en version sobre.
+- **Le tutoriel** : cinq diapositives à la première visite sur un appareil, et « Comment on joue ? » en bas de l'accueil pour les
+  revoir (`brancherLeTuto`, `textes.tuto`).
 - **Le RGPD** : `/confidentialite` et `/mentions-legales`, fabriquées par `npm run construire` (`ecran/jeu/legal.ts`), servies sans
   script ; le serveur y écrit l'adresse du site et celle où écrire (`CONTACT`, sinon celle qui envoie les liens). Leurs liens sont en
   bas de l'accueil et du compte. Un compte où personne ne revient depuis deux ans s'efface, prévenu un mois avant (`entretenir`).

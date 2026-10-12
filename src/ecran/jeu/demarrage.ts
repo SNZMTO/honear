@@ -26,7 +26,7 @@ import { brancherEnLigne } from '../telephone/websocket';
 import { creerLeVibreur } from '../vibreur';
 
 /** Les noms sous lesquels le navigateur garde la room de cet onglet, la pochette de cet appareil, et la session de son compte. */
-const GARDE = { room: 'honear.room', pochette: 'honear.pochette', session: 'honear.session' } as const;
+const GARDE = { room: 'honear.room', pochette: 'honear.pochette', session: 'honear.session', tuto: 'honear.tuto' } as const;
 
 /** Un secret de compte, tel que le serveur les donne (voir `regles/messages.ts`). */
 const SECRET = /^[A-Za-z0-9_-]{20,64}$/;
@@ -87,6 +87,65 @@ function suivreLaFenetre(cadre: HTMLElement): () => number {
   mesurer();
   window.addEventListener('resize', mesurer);
   return () => proportion;
+}
+
+/**
+ * Le petit tutoriel, en diapositives : il s'ouvre à la première visite sur cet appareil, et quand on touche « Comment on joue ? »
+ * en bas de l'accueil. « Passer », la dernière diapositive ou Échap le ferment ; l'appareil se souvient qu'on l'a vu.
+ */
+function brancherLeTuto(textes: Textes): void {
+  const T = textes.tuto;
+  const tuto = document.querySelector<HTMLElement>('.tuto');
+  const titre = tuto?.querySelector('h2');
+  const texte = tuto?.querySelector('p');
+  const points = tuto?.querySelector('.points');
+  const [passer, precedent, suivant] = ['.passer', '.precedent', '.suivant'].map((s) => tuto?.querySelector<HTMLButtonElement>(s));
+  if (!tuto || !titre || !texte || !points || !passer || !precedent || !suivant) return;
+  passer.textContent = T.passer;
+  precedent.textContent = T.precedent;
+  let rang = 0;
+  const montrer = (): void => {
+    const diapo = T.diapos[rang];
+    if (diapo === undefined) return;
+    titre.textContent = diapo.titre;
+    texte.textContent = diapo.texte;
+    // Un point par diapositive, celui où l'on est en miel.
+    while (points.firstChild !== null) points.firstChild.remove();
+    for (const [r] of T.diapos.entries()) {
+      const point = document.createElement('span');
+      if (r === rang) point.className = 'ici';
+      points.append(point);
+    }
+    precedent.hidden = rang === 0;
+    suivant.textContent = rang === T.diapos.length - 1 ? T.commencer : T.suivant;
+  };
+  const ouvrir = (): void => {
+    rang = 0;
+    montrer();
+    tuto.hidden = false;
+    suivant.focus();
+  };
+  const fermer = (): void => {
+    tuto.hidden = true;
+    ecrire(surLAppareil, GARDE.tuto, true);
+  };
+  suivant.addEventListener('click', () => {
+    if (rang >= T.diapos.length - 1) fermer();
+    else {
+      rang++;
+      montrer();
+    }
+  });
+  precedent.addEventListener('click', () => {
+    rang = Math.max(0, rang - 1);
+    montrer();
+  });
+  passer.addEventListener('click', fermer);
+  tuto.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') fermer();
+  });
+  document.querySelector('[data-tuto]')?.addEventListener('click', ouvrir);
+  if (lire(surLAppareil, GARDE.tuto) !== true) ouvrir();
 }
 
 /** Un nombre que personne d'autre n'a tiré : la graine des pochettes de ce téléphone. */
@@ -177,4 +236,5 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     // Les liens des pages légales, en bas : à l'accueil et au compte, là où rien d'autre ne se touche en bas de l'écran.
     enChangeant: (genre) => document.body.classList.toggle('pied', genre === 'accueil' || genre === 'compte'),
   });
+  brancherLeTuto(textes);
 }
