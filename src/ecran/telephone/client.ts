@@ -20,7 +20,7 @@ import { NOM_AU_PLUS } from '../../regles/pochette';
 import type { CleDeVibration } from '../../ressources/vibrations';
 import { calque, soulever, type Calque } from '../../scene/calque';
 import { dessinerLeMeuble, type Regard } from '../../scene/meuble';
-import { opacite, regler, type Reglage } from '../../scene/reglage';
+import { opacite, regler, rotation, type Reglage } from '../../scene/reglage';
 import { empriseDe } from '../../scene/rendu/emprise';
 import {
   vueDeLAccueil,
@@ -199,6 +199,24 @@ const CLAVIERS: Readonly<Record<SorteDeChamp, { readonly touche: string; readonl
 
 /** Les millisecondes d'une seconde : les animations de la page comptent en millisecondes, nos tables en secondes. */
 const MS_PAR_SECONDE = 1000;
+
+/** L'index d'un bouton rond (« bouton-pistes/index/trait/tourne ») : c'est lui qui tourne. */
+const INDEX_D_UN_BOUTON = /^bouton-[^/]+\/index\/trait\/tourne$/;
+
+/** Les index des boutons ronds d'un arbre, et l'angle où chacun est dessiné. */
+function indexDesBoutons(arbre: Calque): { readonly nom: NomDeCalque; readonly angle: number }[] {
+  const trouves: { readonly nom: NomDeCalque; readonly angle: number }[] = [];
+  const parcourir = (c: Calque): void => {
+    if (INDEX_D_UN_BOUTON.test(c.nom)) {
+      const tourne = (c.transformations ?? []).find((t) => t.genre === 'tourner');
+      if (tourne !== undefined && tourne.genre === 'tourner') trouves.push({ nom: c.nom, angle: tourne.de });
+      return;
+    }
+    for (const d of c.contenu) if (d.genre === 'calque') parcourir(d);
+  };
+  parcourir(arbre);
+  return trouves;
+}
 
 /** Une part d'une longueur, en pourcentage, pour poser une zone dans le cadre quelle que soit sa taille. */
 const part = (longueur: number, totale: number): string => `${(longueur / totale) * 100}%`;
@@ -450,9 +468,10 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   ): Montee {
     const plan = poserUnPlan(dans, regard);
     plan.suivreLeCadre();
+    const boutons = indexDesBoutons(arbre);
     const montage = monter(arbre, {
       etendue: regard,
-      reglables: new Set(),
+      reglables: new Set(boutons.map((b) => b.nom)),
       remplacables: new Set(touches.keys()),
       definition: d,
       mesurer: a.encrier.largeur,
@@ -460,11 +479,47 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     });
     plan.element.append(montage.element);
     montage.regarder(regard.origine);
+    faireTourner(montage, boutons);
     if (fondre && fondreSur(dans, plan.element, avant)) return { cle, plan, montage, touches };
     if (dans === scene) finirLeFondu();
     avant?.montage.demonter();
     vider(dans).append(plan.element);
     return { cle, plan, montage, touches };
+  }
+
+  /**
+   * Les boutons ronds qui tournent : l'angle que chacun montre, et ceux qui vont, en ce moment, de leur angle d'avant vers leur
+   * nouveau cran. Un bouton redessiné sur un autre cran ne saute pas : il y tourne, en ralentissant (rien en version sobre).
+   */
+  const anglesMontres = new Map<NomDeCalque, number>();
+  let tournants: { readonly montage: Montage; readonly nom: NomDeCalque; readonly de: number; readonly a: number; readonly depuis: number }[] = [];
+  function faireTourner(montage: Montage, boutons: readonly { readonly nom: NomDeCalque; readonly angle: number }[]): void {
+    for (const { nom, angle } of boutons) {
+      const avant = anglesMontres.get(nom);
+      tournants = tournants.filter((t) => t.nom !== nom);
+      if (avant === undefined || avant === angle || o.options.sobre) {
+        anglesMontres.set(nom, angle);
+        continue;
+      }
+      montage.regler([rotation(nom, 0, avant)]);
+      tournants.push({ montage, nom, de: avant, a: angle, depuis: o.horloge.maintenant() });
+    }
+  }
+  function tournerLesBoutons(): void {
+    if (tournants.length === 0) return;
+    const maintenant = o.horloge.maintenant();
+    tournants = tournants.filter((t) => {
+      const x = Math.min(1, (maintenant - t.depuis) / TELEPHONE.tourne);
+      const angle = t.de + (t.a - t.de) * (1 - (1 - x) ** 3);
+      try {
+        t.montage.regler([rotation(t.nom, 0, angle)]);
+      } catch {
+        // Un montage démonté entre-temps : le bouton n'est plus à l'écran.
+        return false;
+      }
+      anglesMontres.set(t.nom, angle);
+      return x < 1;
+    });
   }
 
   /** Le fondu d'un écran à l'autre en cours, et ce qui reste à faire quand il finit : un autre écran qui arrive le termine net. */
@@ -868,6 +923,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     if (e.genre === 'piste') montrerLaPiste(e, t);
     else montrerUnEcran(e);
     poserLeVolume();
+    tournerLesBoutons();
     if (e.genre !== genre) {
       genre = e.genre;
       o.enChangeant?.(genre);

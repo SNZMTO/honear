@@ -13,12 +13,13 @@ export const BAC = {
 
   /**
    * La caisse : quatre parois de lattes, leur épaisseur, leur hauteur ; le fond, un peu au-dessus du bois.
-   * Sur la paroi avant, les joints entre ses trois lattes, à ces hauteurs, et sa poignée : une fente aux bouts ronds. Elle est
-   * peinte en crème, pour se détacher du noyer de la table ; ses joints et sa fente restent sombres.
+   * Sur la paroi avant, les joints entre ses trois lattes, à ces hauteurs, et sa poignée : une fente aux bouts ronds, qui laisse voir
+   * ce qui se tient au premier rang. Elle est peinte en vert sapin, comme la platine et l'ampli, pour se détacher du noyer de la
+   * table ; ses joints, plus sombres.
    */
   caisse: {
-    teinte: 'creme',
-    teinteDesJoints: 'noyerSombre',
+    teinte: 'laque',
+    teinteDesJoints: 'vinyle',
     largeur: 352,
     profondeur: 236,
     paroi: 9,
