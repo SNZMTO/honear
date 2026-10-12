@@ -96,6 +96,10 @@ function unSilence(): Blob {
   return new Blob([octets], { type: 'audio/wav' });
 }
 
+/** Vrai sur un iPhone, un iPad ou un iPod (un iPad récent se dit Mac, mais il est tactile). */
+const estUnAppareilApple = (): boolean =>
+  /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
 /** Un volume d'essai, et l'écart qu'on tolère en le relisant : l'iPhone ne laisse pas régler le volume d'un élément audio. */
 const VOLUME_D_ESSAI = 0.5;
 const A_PEU_PRES = 0.01;
@@ -123,8 +127,11 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
   audio.preload = 'auto';
   audio.hidden = true;
   audio.setAttribute('playsinline', '');
+  // L'iPhone et l'iPad : le son ne se règle qu'avec les boutons de l'appareil. La page n'y touche pas, et n'y ouvre pas le moteur
+  // audio des petits bruits, qui pourrait prendre la main sur le son de l'extrait.
+  const surIOS = estUnAppareilApple();
   audio.volume = VOLUME_D_ESSAI;
-  const volumeReglable = Math.abs(audio.volume - VOLUME_D_ESSAI) < A_PEU_PRES;
+  const volumeReglable = !surIOS && Math.abs(audio.volume - VOLUME_D_ESSAI) < A_PEU_PRES;
   audio.volume = 1;
   // La page joue de la musique : elle s'entend, même l'iPhone en silencieux.
   const seance = seanceAudio();
@@ -133,7 +140,7 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
   let moteur: AudioContext | undefined;
   try {
     const Moteur = MoteurAudio();
-    moteur = Moteur !== undefined ? new Moteur() : undefined;
+    moteur = Moteur !== undefined && !surIOS ? new Moteur() : undefined;
   } catch {
     moteur = undefined;
   }
