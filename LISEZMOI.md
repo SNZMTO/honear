@@ -834,7 +834,7 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Les modes** : « First one » (`premier.ts`, le premier qui trouve l'artiste et le titre gagne 3 points, la piste s'arrête :
   `finitAuPremier`) et « 1re note » (`premiere-note.ts`, une seconde de son : `son`, `DEROULE.premiereNote`). Le sélecteur a sept
   crans numérotés ; le nom du mode choisi s'écrit dessous.
-- **Les playlists** : jouées dans un ordre tiré au hasard à l'ouverture de la room (`serveur/ordre.ts`). « Mes playlists » (le cran
+- **Les playlists** : jouées dans un ordre tiré au hasard à l'ouverture de la room (`serveur/ordre.ts`). « Mes playlists » (une pochette personnalisée en kraft, au premier rang du bac, et le cran
   « La mienne ») garde sur l'appareil les trois dernières importées. L'intercalaire du genre choisi sort du bac ; le fond de la
   caisse est vert.
 - **L'ampli et la saisie** : les cadrans comptent les titres de la face et les secondes de l'extrait ; le volume va de 0 à 10. Le

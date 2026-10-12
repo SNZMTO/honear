@@ -125,7 +125,9 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
   // Le bac reste rangé : le thème touché se montre devant lui, sa pochette sur le bois et son disque qui en sort.
   const auRepos = dessinerLeBac(bacDesPlaylistsPretes(a.textes), DENSITE, a.encrier.largeur);
   // L'intercalaire du thème touché sort du bac ; le regard, lui, reste celui du bac au repos.
-  const meuble = bac.theme !== undefined ? dessinerLeBac(bacDesPlaylistsPretes(a.textes, undefined, bac.theme), DENSITE, a.encrier.largeur) : auRepos;
+  // « Mes playlists » ouvertes : c'est la pochette personnalisée qui sort.
+  const sorti = bac.cran === 'laMienne' ? 'mesPlaylists' : bac.theme;
+  const meuble = sorti !== undefined ? dessinerLeBac(bacDesPlaylistsPretes(a.textes, undefined, sorti), DENSITE, a.encrier.largeur) : auRepos;
   // Le regard monte sur le bac s'il le faut, assez pour qu'on lise l'onglet de chaque intercalaire.
   const surLeBac = regardSur(auRepos, a.encrier);
   const haut = empriseDe([auRepos], a.encrier.largeur)?.y ?? surLeBac.origine[1];

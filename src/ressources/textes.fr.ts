@@ -100,6 +100,7 @@ export const TEXTES: Textes = {
 
   bac: {
     themes: {
+      mesPlaylists: 'Mes playlists',
       annees80: 'Années 80',
       annees2000: 'Années 2000',
       rapFrancais: 'Rap français',
