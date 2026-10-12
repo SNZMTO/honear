@@ -9,6 +9,7 @@ import type { Vec2 } from '../../lowpoly/vecteurs';
 import type { Reponse } from '../../regles/piste';
 import { DENSITES, type Densite } from '../../ressources/densites';
 import { PASTILLES } from '../../ressources/pastilles';
+import type { NomDeTeinte } from '../../ressources/palette';
 import { TABLEE } from '../../ressources/tablee';
 import type { Textes } from '../../ressources/textes';
 import type { Calque } from '../calque';
@@ -94,6 +95,9 @@ export function papier(
     readonly role?: 'decor' | 'mobile';
     readonly auMoins?: number;
     readonly ancre?: 'debut' | 'milieu';
+    readonly teinte?: NomDeTeinte;
+    /** Un papier enfoncé, plaqué sur la table : sans ombre. */
+    readonly plaque?: boolean;
   } = {},
 ): { readonly calques: Calque[]; readonly haut: number; readonly milieu: Vec2; readonly largeur: number } {
   const p = dessinerUnPapier(
@@ -108,10 +112,11 @@ export function papier(
       ...(options.role !== undefined ? { role: options.role } : {}),
       ...(options.auMoins !== undefined ? { auMoins: options.auMoins } : {}),
       ...(options.ancre !== undefined ? { ancre: options.ancre } : {}),
+      ...(options.teinte !== undefined ? { teinte: options.teinte } : {}),
     },
     encrier.largeur,
   );
-  return { calques: [p.ombre, p.papier], haut: p.haut, milieu: p.milieu, largeur: p.largeur };
+  return { calques: options.plaque === true ? [p.papier] : [p.ombre, p.papier], haut: p.haut, milieu: p.milieu, largeur: p.largeur };
 }
 
 /** Une phrase qui dit ce qui se passe, sur un papier au-dessus de la zone du pouce : il garde son bord gauche, sur la colonne. */

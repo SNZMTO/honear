@@ -8,6 +8,7 @@ import type { Densite } from '../ressources/densites';
 import { AMPLEURS } from '../ressources/mouvement';
 import { MONTAGE } from '../ressources/ecran';
 import type { Textes } from '../ressources/textes';
+import { reglerLesAiguilles } from '../scene/ampli';
 import { CALQUES_DU_VERSO } from '../scene/disque';
 import type { GenreDeVerso } from '../scene/disque/verso';
 import type { Calque } from '../scene/calque';
@@ -38,7 +39,12 @@ export interface PisteADessiner {
    * La fenêtre, quand elle n'a pas la proportion du téléphone : le regard qu'elle montre pour chaque regard du téléphone (élargi, et
    * d'autant moins glissant qu'elle est large), et le reste du meuble, au repos. Sans elle, le regard du téléphone.
    */
-  readonly fenetre?: { readonly regardPour: (telephone: Regard) => Regard; readonly meuble: readonly Calque[] };
+  readonly fenetre?: {
+    readonly regardPour: (telephone: Regard) => Regard;
+    readonly meuble: readonly Calque[];
+    /** Où en sont les aiguilles de l'ampli (s'il est dans le meuble), de 0 à 1, à cet instant de la piste : la gauche, la droite. */
+    readonly aiguilles?: (scene: PisteEnScene, t: number) => readonly [number, number];
+  };
 }
 
 /** Tout ce que le regard parcourt pendant une piste, dans la fenêtre : du regard sur la platine à celui qui s'est arrêté sur le disque. */
@@ -60,6 +66,10 @@ export interface PisteMontee {
   readonly reglages: (pose: PoseDeLaPiste) => Reglage[];
 }
 
+/** Les aiguilles de l'ampli à régler, si le meuble de la fenêtre porte l'ampli. */
+const aiguillesDuMeuble = (piste: PisteADessiner): NonNullable<PisteADessiner['fenetre']>['aiguilles'] =>
+  piste.fenetre?.meuble.some((c) => c.nom === 'ampli') === true ? piste.fenetre.aiguilles : undefined;
+
 /**
  * Dessine le meuble et la piste sur toute l'étendue que le regard parcourra, et les monte : ce qui ne bougera pas est figé,
  * le reste attend ses réglages. La réponse n'y est pas : elle est posée au verso du disque le moment venu.
@@ -78,9 +88,11 @@ export function monterLaPiste(piste: PisteADessiner, facture: Facture, verso: Ge
     ],
   });
   const reglages = regleurDeLaPiste(arbre, densite, ombresFigees);
+  // Les aiguilles de l'ampli, s'il est là, bougent avec la piste.
+  const aiguilles = aiguillesDuMeuble(piste) !== undefined ? reglerLesAiguilles([0, 0]).map((reglage) => reglage.calque) : [];
   const montage = monter(arbre, {
     etendue,
-    reglables: new Set(reglages(POSE_AVANT_LA_PISTE).map((reglage) => reglage.calque)),
+    reglables: new Set([...reglages(POSE_AVANT_LA_PISTE).map((reglage) => reglage.calque), ...aiguilles]),
     remplacables: new Set(Object.values(CALQUES_DU_VERSO)),
     definition,
     mesurer: encrier.largeur,
@@ -215,7 +227,8 @@ export function ouvrirLEcranDeLaPiste(
         // Il se retourne déjà : la scène vient d'être remontée, ou les pièces ont changé de place d'un coup.
         presse: pose.disque.retourne > 0,
       });
-      montee.montage.regler(montee.reglages(pose));
+      const aiguilles = aiguillesDuMeuble(o);
+      montee.montage.regler([...montee.reglages(pose), ...(aiguilles !== undefined ? reglerLesAiguilles(aiguilles(scene, t)) : [])]);
       montee.montage.regarder(regard(pose).origine);
       return pose;
     },

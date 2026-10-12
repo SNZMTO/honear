@@ -38,7 +38,8 @@ export const TEXTES: Textes = {
       },
       {
         titre: 'Le hit-parade',
-        texte: 'Après chaque piste, le classement ; à la fin, la finale et ses disques. Le son part à 30 % : règle-le au bouton de l’ampli.',
+        texte:
+          'Après chaque piste, le classement ; à la fin, la finale et ses disques. Le son part à 30 % : règle-le en tournant le bouton de l’ampli (sur iPhone, avec les boutons du téléphone). Pour partir, « Quitter », en haut à gauche.',
       },
     ],
     suivant: 'Suivant',
@@ -92,7 +93,7 @@ export const TEXTES: Textes = {
     monter: 'Monter le son',
     allume: 'Allume l’ampli',
     sigle: 'VU',
-    canaux: ['Gauche', 'Droite'],
+    canaux: ['Pistes', 'Extrait'],
     graduations: { positif: '+{n}', negatif: '–{n}' },
   },
 
@@ -203,6 +204,8 @@ export const TEXTES: Textes = {
   },
 
   partie: {
+    quitter: 'Quitter',
+    quitterVraiment: 'Quitter la partie ? Tu pourras la rejoindre avec son code.',
     code: 'Le code',
     autourDuMeuble: '{nombre} joueurs',
     saisie: 'Le code de la partie',

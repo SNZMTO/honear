@@ -189,13 +189,17 @@ export function dessinerLAmpli(etat: EtatDeLAmpli, densite: Densite): Calque {
   ]);
 }
 
+/** Ce que le mouvement règle des seules aiguilles de l'ampli, et de leurs ombres : de 0 (au repos) à 1 (en butée), la gauche puis la droite. */
+export const reglerLesAiguilles = (aiguilles: readonly [number, number]): Reglage[] =>
+  CANAUX.flatMap((canal, rang) => reglerUnVumetre(PLACE, canal, aiguilles[rang] ?? 0));
+
 /**
  * Ce que le mouvement règle sur l'ampli déjà dessiné : ses aiguilles et leurs ombres, l'index du volume, le voyant.
  * La bascule de l'interrupteur, comme celle de la platine, est redessinée quand elle change de position.
  */
 export function reglerLAmpli(pose: PoseDeLAmpli): Reglage[] {
   return [
-    ...CANAUX.flatMap((canal, rang) => reglerUnVumetre(PLACE, canal, pose.aiguilles[rang] ?? 0)),
+    ...reglerLesAiguilles([pose.aiguilles[0] ?? 0, pose.aiguilles[1] ?? 0]),
     rotation('bouton-volume/index/trait/tourne', 0, CRANS_DU_VOLUME[cranDuVolume(pose.volume)] ?? 0),
     visibilite('voyant/eteint', !pose.allume),
     visibilite('voyant/allume', pose.allume),

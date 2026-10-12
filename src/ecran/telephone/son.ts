@@ -4,12 +4,14 @@
  * qui joue le son pour tous. Le haut-parleur, lui, le joue : il précharge l'extrait pendant le décompte, le démarre à l'heure dite
  * (en route, pour qui arrive en retard), le remet à sa place s'il dérive, et le laisse se taire quand l'écran de la piste s'en va.
  * Un navigateur ne laisse partir un son que dans le geste d'une main : on joue un instant de silence au premier toucher, et le
- * même élément audio peut ensuite jouer tous les extraits (c'est ce que veut l'iPhone).
+ * même élément audio peut ensuite jouer tous les extraits (c'est ce que veut l'iPhone). L'extrait passe par l'élément seul, ce que
+ * l'iPhone joue le plus sûrement, même en silencieux ; mais il n'en laisse pas régler le volume : ce sont alors les boutons du
+ * téléphone. Le haut-parleur fait aussi le petit bruit des touches et des crans, par le moteur audio du navigateur.
  */
 
 import { partieA } from '../../regles/partie';
 import { jouer } from '../../regles/piste';
-import { TELEPHONE } from '../../ressources/ecran';
+import { BRUITS, TELEPHONE, type NomDeBruit } from '../../ressources/ecran';
 import { instantsDeLaPiste } from '../../scene/piste/instants';
 import type { Memoire } from './memoire';
 
@@ -55,6 +57,10 @@ export interface HautParleur {
   pret(adresse: string): boolean;
   /** Vrai si le navigateur a refusé de jouer : il attend un toucher. */
   readonly bloque: boolean;
+  /** Faux là où la page ne peut pas régler le volume (l'iPhone) : ce sont les boutons du téléphone qui le règlent. */
+  readonly volumeReglable: boolean;
+  /** Le petit bruit d'une touche qu'on enfonce, ou d'un bouton qui passe un cran : au volume du téléphone, s'il a déjà le droit de sonner. */
+  cliquer(bruit: NomDeBruit): void;
   fermer(): void;
 }
 
@@ -89,18 +95,23 @@ function unSilence(): Blob {
 const VOLUME_D_ESSAI = 0.5;
 const A_PEU_PRES = 0.01;
 
+/** Ce que l'oreille entend du volume du bouton : elle entend en puissances ; à 30 %, le son est encore doux, et il monte peu à peu. */
+export const gainDuVolume = (volume: number): number => volume ** TELEPHONE.volume.courbe;
+
 /** La séance audio de la page, là où le navigateur la donne (Safari, depuis l'iOS 16.4). */
 interface SeanceAudio {
   type: string;
 }
 const seanceAudio = (): SeanceAudio | undefined => (navigator as Navigator & { readonly audioSession?: SeanceAudio }).audioSession;
 
+/** Le moteur audio du navigateur, sous son nom d'aujourd'hui ou sous celui des vieux Safari : il fait les petits bruits. */
+const MoteurAudio = (): typeof AudioContext | undefined =>
+  typeof AudioContext === 'function' ? AudioContext : (window as Window & { readonly webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
 /**
  * Le haut-parleur du téléphone : un seul élément audio, posé dans le cadre, qui joue tous les extraits.
- * @param volume le volume de ce téléphone, de 0 à 1, lu à chaque image. Là où l'élément audio ne se règle pas (l'iPhone), le son
- * passe par le moteur audio du navigateur, qui, lui, se règle (les extraits de Deezer le permettent) ; mais l'iPhone tait ce moteur
- * en mode silencieux, sauf si la page dit qu'elle joue de la musique (`audioSession`). Un iPhone qui ne sait pas le dire garde
- * l'élément seul : il joue toujours, au volume du téléphone.
+ * @param volume le volume de ce téléphone, de 0 à 1, lu à chaque image ; là où l'élément ne se règle pas (l'iPhone), il joue au
+ * volume du téléphone.
  */
 export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number): HautParleur {
   const audio = document.createElement('audio');
@@ -113,23 +124,14 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
   // La page joue de la musique : elle s'entend, même l'iPhone en silencieux.
   const seance = seanceAudio();
   if (seance !== undefined) seance.type = 'playback';
-  const parLeMoteur = !volumeReglable && seance !== undefined;
-  // Pour passer par le moteur audio, l'élément doit charger ses extraits en demandant la permission de leur serveur.
-  if (parLeMoteur) audio.crossOrigin = 'anonymous';
-  /** Le gain du moteur audio, une fois branché dans un geste ; sans lui, c'est le volume de l'élément qu'on règle. */
-  let gain: GainNode | undefined;
+  /** Le moteur des petits bruits : né endormi, le premier toucher le réveille. */
   let moteur: AudioContext | undefined;
-  const brancherLeMoteur = (): void => {
-    if (!parLeMoteur || moteur !== undefined || typeof AudioContext !== 'function') return;
-    try {
-      moteur = new AudioContext();
-      gain = moteur.createGain();
-      moteur.createMediaElementSource(audio).connect(gain).connect(moteur.destination);
-    } catch {
-      // Le navigateur ne sait pas : le son garde le volume de l'appareil.
-      gain = undefined;
-    }
-  };
+  try {
+    const Moteur = MoteurAudio();
+    moteur = Moteur !== undefined ? new Moteur() : undefined;
+  } catch {
+    moteur = undefined;
+  }
   cadre.append(audio);
   let silence: string | undefined;
   /** L'extrait qu'on a mis dans l'élément, pour la piste de ce lancer ; il n'a pas pu se charger ; on le fait jouer muet un instant pour qu'il charge. */
@@ -210,9 +212,9 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
     get bloque() {
       return bloque;
     },
+    volumeReglable,
     debloquer() {
-      brancherLeMoteur();
-      if (moteur !== undefined && moteur.state === 'suspended') void moteur.resume();
+      if (moteur !== undefined && moteur.state !== 'running') void moteur.resume().catch(() => undefined);
       if (debloque && !bloque) return;
       bloque = false;
       if (adresse === undefined) {
@@ -239,9 +241,7 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
       // C'est l'heure : s'il chargeait en sourdine, il s'entend désormais.
       amorce = false;
       audio.muted = false;
-      const fort = volume() * volumeA(voulu, heure);
-      if (gain !== undefined) gain.gain.value = fort;
-      else audio.volume = fort;
+      if (volumeReglable) audio.volume = gainDuVolume(volume()) * volumeA(voulu, heure);
       if (audio.paused) {
         if (demande || bloque || rate) return;
         audio.currentTime = position;
@@ -252,6 +252,21 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
     },
     pret(a) {
       return bloque || (adresse === a && (rate || audio.readyState >= audio.HAVE_FUTURE_DATA));
+    },
+    cliquer(nom) {
+      if (moteur === undefined || moteur.state !== 'running') return;
+      const b = BRUITS[nom];
+      const t = moteur.currentTime;
+      const note = moteur.createOscillator();
+      const enveloppe = moteur.createGain();
+      note.type = 'triangle';
+      note.frequency.setValueAtTime(b.de, t);
+      note.frequency.exponentialRampToValueAtTime(b.a, t + b.duree);
+      enveloppe.gain.setValueAtTime(b.fort * gainDuVolume(Math.max(volume(), TELEPHONE.volume.bruitsAuMoins)), t);
+      enveloppe.gain.exponentialRampToValueAtTime(BRUITS.silence, t + b.duree);
+      note.connect(enveloppe).connect(moteur.destination);
+      note.start(t);
+      note.stop(t + b.duree);
     },
     fermer() {
       audio.pause();

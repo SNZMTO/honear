@@ -1,29 +1,28 @@
 /**
- * La page du jeu, en ligne : un document qui tient tout entier dans le téléphone. Le cadre du téléphone prend la hauteur de l'écran
- * (sur un téléphone, tout l'écran) ; sous lui, le noir du vinyle. Sur un ordinateur, le script l'élargit au meuble entier, au milieu.
+ * La page du jeu, en ligne : un document qui tient tout entier dans le téléphone. Le cadre du téléphone prend la fenêtre entière,
+ * bord à bord ; le regard en prend la proportion, jusqu'au meuble entier sur un ordinateur. Posé sur l'écran d'accueil d'un
+ * téléphone, le jeu s'ouvre en plein écran, comme une application (son manifeste et son icône, le serveur les sert).
  * En bas, les liens des pages légales : à l'accueil et au compte sur un téléphone (le script le dit), toujours sur un ordinateur. Le script est posé à la fin, avec ses polices et ses textes. Sans
  * script, la page dit ce qui lui manque, dans la voix du site.
  */
 
 import { couleur } from '../../lowpoly/tons';
-import { CADRAGES } from '../../ressources/cadrages';
 import { TELEPHONE } from '../../ressources/ecran';
-import { PAGES_LEGALES } from '../../ressources/reglages';
+import { APPLICATION, PAGES_LEGALES } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
 import { enXml } from '../../scene/rendu/balisage';
 
-const { largeur, hauteur } = CADRAGES.telephone;
 /** L'interligne des quelques phrases que la page écrit elle-même, en part du corps. */
 const INTERLIGNE = 1.45;
 
 /** La feuille de la page : le cadre du téléphone, ses zones à toucher (rien de dessiné), le champ où tape le clavier (rien de visible). */
 const STYLE = `
-:root{color-scheme:dark;--fond:${couleur('vinyle', 1)};--encre:${couleur('creme')};--doux:${couleur('creme', 1)};--miel:${couleur('miel')};--expresso:${couleur('expresso')}}
+:root{color-scheme:dark;--fond:${couleur('vinyle', 1)};--encre:${couleur('creme')};--doux:${couleur('creme', 1)};--miel:${couleur('miel')};--expresso:${couleur('expresso')};--laque:${couleur('laque')}}
 *{box-sizing:border-box}
 html,body{height:100%}
 body{margin:0;background:var(--fond);color:var(--encre);font:16px/${INTERLIGNE} system-ui,sans-serif;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
 body.grand{align-items:center}
-.telephone{position:relative;width:min(100vw,calc(100svh * ${largeur} / ${hauteur}));aspect-ratio:${largeur}/${hauteur};max-height:100svh;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.telephone{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .telephone .attente,.telephone .manque{margin:0;padding:24px 18px;color:var(--doux);max-width:32ch}
 .telephone .zone{background:transparent;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .telephone .zone:focus-visible,.telephone .champ:focus-visible{outline:2px solid var(--miel);outline-offset:2px;border-radius:4px}
@@ -32,10 +31,10 @@ body.grand{align-items:center}
 @media (prefers-reduced-motion:reduce){.telephone .zone.pouls::after{animation:none}}
 .telephone .champ{background:transparent;border:0;padding:0 12px;margin:0;color:transparent;caret-color:transparent;font:16px/1 system-ui,sans-serif;outline:none;-webkit-user-select:text;user-select:text}
 .telephone .champ::selection{background:transparent}
-.legal{position:fixed;left:0;right:0;bottom:max(4px,env(safe-area-inset-bottom));display:none;justify-content:center;gap:14px;font-size:12px;line-height:1;pointer-events:none}
-.legal a{pointer-events:auto;color:var(--doux);text-decoration:underline;padding:6px 2px}
+.legal{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));display:none;align-items:center;gap:8px;padding:3px 8px;background:var(--miel);border:2px solid var(--laque);border-radius:9px;font:600 10px/1 system-ui,sans-serif;z-index:1}
+.legal a,.legal button{color:var(--expresso);text-decoration:none;padding:5px 1px;background:none;border:0;font:inherit;cursor:pointer}
+.legal a:hover,.legal button:hover{text-decoration:underline}
 body.pied .legal,body.grand .legal{display:flex}
-.legal button{pointer-events:auto;background:none;border:0;color:var(--doux);font:inherit;text-decoration:underline;padding:6px 2px;cursor:pointer}
 .tuto{position:fixed;inset:0;display:grid;place-items:center;padding:16px;z-index:2}
 .tuto[hidden]{display:none}
 .tuto::before{content:"";position:absolute;inset:0;background:var(--fond);opacity:${TELEPHONE.tuto.voile}}
@@ -61,7 +60,13 @@ export function pageDuJeu(textes: Textes, script: string): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual">
-<meta name="theme-color" content="${couleur('vinyle', 1)}">
+<meta name="theme-color" content="${couleur('laque')}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="${enXml(textes.logo.nom)}">
+<link rel="manifest" href="${APPLICATION.manifeste}">
+<link rel="icon" href="${APPLICATION.icone}" type="image/svg+xml">
 <title>${enXml(textes.logo.nom)}</title>
 <style>${STYLE}</style>
 </head>

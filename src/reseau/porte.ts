@@ -11,12 +11,14 @@ import { PARTIE } from '../ressources/reglages';
 /** D'où viennent les extraits que le téléphone joue : les serveurs de Deezer qui les diffusent, et le silence qui débloque le son. */
 const EXTRAITS = 'https://*.dzcdn.net blob:';
 /** Les images : celles de la page, et les vraies pochettes, que Deezer sert de chez lui. */
-const IMAGES = 'data: blob: https://*.dzcdn.net';
+const IMAGES = "'self' data: blob: https://*.dzcdn.net";
 
 /** Ce que la porte sert : la page, déjà fabriquée, les pages légales par leur adresse, et ce que le serveur dit de lui-même. */
 export interface Contenus {
   readonly page: string;
   readonly legales?: Readonly<Record<string, string>>;
+  /** Les fichiers de l'application (son manifeste, son icône), par leur adresse : leur type, et ce qu'ils contiennent. */
+  readonly fichiers?: Readonly<Record<string, { readonly type: string; readonly contenu: string }>>;
   readonly sante: () => Readonly<Record<string, number | string | boolean>>;
 }
 
@@ -37,6 +39,7 @@ export function ouvrirLaPorte(contenus: Contenus): (requete: IncomingMessage, re
     `img-src ${IMAGES}`,
     `media-src ${EXTRAITS}`,
     "connect-src 'self'",
+    "manifest-src 'self'",
     "base-uri 'none'",
     "form-action 'none'",
     "frame-ancestors 'none'",
@@ -64,6 +67,12 @@ export function ouvrirLaPorte(contenus: Contenus): (requete: IncomingMessage, re
     if (legale !== undefined) {
       reponse.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', ...enTetes });
       reponse.end(requete.method === 'HEAD' ? undefined : legale);
+      return;
+    }
+    const fichier = contenus.fichiers?.[chemin];
+    if (fichier !== undefined) {
+      reponse.writeHead(200, { 'Content-Type': fichier.type, 'Cache-Control': 'no-cache', ...enTetes });
+      reponse.end(requete.method === 'HEAD' ? undefined : fichier.contenu);
       return;
     }
     if (chemin !== '/' && !ADRESSE_D_UNE_ROOM.test(chemin)) {

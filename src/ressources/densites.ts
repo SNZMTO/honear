@@ -24,8 +24,6 @@ export interface Densite {
    * le pas est choisi pour qu'aucune ne longe l'arête arrière du socle de la platine (un test le vérifie).
    */
   readonly pasDesVeines: number;
-  /** Pans de la nappe de lumière. */
-  readonly pansDeNappe: number;
   /** Bandes en travers d'un cylindre couché (tube du bras, contrepoids). */
   readonly bandesDeCylindre: number;
 }
@@ -41,7 +39,6 @@ export const DENSITES = {
     pansDePetitRond: 16,
     pansDeCoin: 8,
     pasDesVeines: 16,
-    pansDeNappe: 160,
     bandesDeCylindre: 9,
   },
   sobre: {
@@ -54,7 +51,6 @@ export const DENSITES = {
     pansDePetitRond: 10,
     pansDeCoin: 4,
     pasDesVeines: 30,
-    pansDeNappe: 96,
     bandesDeCylindre: 5,
   },
 } as const satisfies Record<string, Densite>;

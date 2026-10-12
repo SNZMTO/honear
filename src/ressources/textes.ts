@@ -145,6 +145,9 @@ export interface Textes {
    * ce qu'on lit en arrivant pendant une piste.
    */
   readonly partie: {
+    /** La touche pour quitter la partie, en haut à gauche, et ce qu'on demande avant. */
+    readonly quitter: string;
+    readonly quitterVraiment: string;
     readonly code: string;
     readonly autourDuMeuble: string;
     readonly saisie: string;

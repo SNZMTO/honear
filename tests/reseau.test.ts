@@ -133,7 +133,8 @@ test('la porte sert la page à l’adresse du site et à celle d’une room, sou
       assert.doesNotMatch(politique, /script-src[^;]*unsafe-inline/);
       assert.match(politique, /connect-src 'self'/);
       assert.match(politique, /media-src https:\/\/\*\.dzcdn\.net blob:/);
-      assert.match(politique, /img-src data: blob: https:\/\/\*\.dzcdn\.net/);
+      assert.match(politique, /img-src 'self' data: blob: https:\/\/\*\.dzcdn\.net/);
+      assert.match(politique, /manifest-src 'self'/);
       assert.match(politique, /frame-ancestors 'none'/);
       assert.equal(r.headers.get('x-content-type-options'), 'nosniff');
     }
