@@ -199,7 +199,10 @@ export interface Textes {
     readonly adresse: string;
     readonly envoyer: string;
     readonly envoye: string;
+    /** Le lien parti : à quelle adresse, combien de temps il marche, et où le chercher s'il n'est pas là. */
     readonly envoyeA: string;
+    readonly valable: string;
+    readonly indesirables: string;
     readonly autreAdresse: string;
     readonly lienLa: string;
     readonly entrer: string;

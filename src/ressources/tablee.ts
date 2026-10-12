@@ -89,6 +89,8 @@ export const TABLEE = {
      */
     compte: {
       papier: { en: [132, 548], largeur: 228 },
+      /** Le lien parti : un papier plus large, qui laisse à l'adresse toute une ligne. */
+      envoye: { en: [184, 552], largeur: 336 },
       adresse: { en: [148, 630], largeur: 260, angle: -1 },
       /** La touche de l'étape (envoyer le lien, entrer…) ; les deux touches du compte ouvert, ou de la question avant d'effacer. */
       action: [18, 734],
