@@ -6,7 +6,10 @@
 
 import type { NomDeCalque } from '../../lexique';
 import { hitParade } from '../../regles/partie';
+import { MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
+import { PLATINE } from '../../ressources/platine';
 import { TABLEE } from '../../ressources/tablee';
+import { DIRECTIONS } from '../../scene/platine/interrupteur';
 import type { Textes } from '../../ressources/textes';
 import { CRANS_DU_BAC } from '../../scene/telephone/ecrans';
 import { interprete } from '../../scene/telephone/pieces';
@@ -91,8 +94,12 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     const C = textes.commandes;
     if (nom === 'bouton-pistes') return de({ genre: 'tournerLeBouton', bouton: 'pistes' }, `${C.pistes} : ${ecran.pistes}`);
     if (nom === 'bouton-extrait') return de({ genre: 'tournerLeBouton', bouton: 'extrait' }, `${C.extrait} : ${ecran.extrait}`);
-    if (nom === 'bouton-mode') return de({ genre: 'tournerLeBouton', bouton: 'mode' }, `${C.mode} : ${C.modes[ecran.mode.cle] ?? ecran.mode.cle}`);
-    if (nom === 'interrupteur-son') return de({ genre: 'basculerLeSon' }, `${C.son} : ${C.sons[ecran.son]}`);
+    // La manette du mode : la toucher la couche vers le mode suivant ; toucher un nom gravé autour d'elle prend ce mode-là.
+    if (nom === 'interrupteur-mode')
+      return de({ genre: 'tournerLeBouton', bouton: 'mode' }, `${C.mode} : ${C.modes[ecran.mode.cle] ?? ecran.mode.cle}`);
+    const direction = DIRECTIONS.find((d) => nom === `interrupteur-mode/${d}`);
+    const mode = direction !== undefined ? MODES_PAR_CRAN[PLATINE.commandes.interrupteur.manette.directions.indexOf(direction)] : undefined;
+    if (mode !== undefined) return de({ genre: 'choisirLeMode', mode: mode.cle as CleDeMode }, `${C.mode} : ${C.modes[mode.cle] ?? mode.cle}`);
   }
   switch (nom) {
     case 'touche-poser':

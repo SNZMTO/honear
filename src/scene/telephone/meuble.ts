@@ -6,7 +6,6 @@
 
 import { AMPLI } from '../../ressources/ampli';
 import { MODES_PAR_CRAN } from '../../regles/modes';
-import type { SonDeLaRoom } from '../../regles/partie';
 import { BAC, COULEURS_DES_THEMES, PLAYLISTS_PAR_THEME, type CleDeTheme } from '../../ressources/bac';
 import type { Densite } from '../../ressources/densites';
 import { PLATINE } from '../../ressources/platine';
@@ -21,6 +20,7 @@ import { etiquetteDuLogo } from '../etiquette/logo';
 import type { Etiquette } from '../etiquette/papier';
 import type { DecorDeLaPiste } from '../piste/dessin';
 import { CENTRE_DU_PLATEAU, dessinerLaPlatine, HAUTEURS, type EtatDeLaPlatine } from '../platine';
+import { DIRECTIONS, type EtatDInterrupteur } from '../platine/interrupteur';
 import { DENSITE, type Ecritoire } from './pieces';
 
 /** Le nom gravé d'un mode, dans la langue des textes. */
@@ -31,14 +31,19 @@ function nomDuMode(textes: Textes, cle: string): string {
 }
 
 /**
- * Le sélecteur des modes : ses crans numérotés, un par mode du registre, dans l'ordre ; sous lui, le nom du mode choisi (quatre
- * noms ne tiennent pas autour d'un si petit bouton).
+ * La manette des modes : les quatre modes du registre gravés autour d'elle, chacun du côté où la table le range ; elle se couche
+ * vers celui qui est choisi.
  */
-export const boutonDuMode = (textes: Textes, cran: number): { readonly titre: string; readonly crans: string[]; readonly choisi: number } => ({
-  titre: nomDuMode(textes, MODES_PAR_CRAN[cran]?.cle ?? MODES_PAR_CRAN[0]?.cle ?? ''),
-  crans: MODES_PAR_CRAN.map((_, rang) => textes.commandes.crans[rang] ?? ''),
-  choisi: cran,
-});
+export function manetteDuMode(textes: Textes, cran: number): EtatDInterrupteur {
+  const { directions } = PLATINE.commandes.interrupteur.manette;
+  if (MODES_PAR_CRAN.length !== DIRECTIONS.length)
+    throw new Error(`La manette a quatre positions, pour ${MODES_PAR_CRAN.length} modes.`);
+  const [haut = '', gauche = '', droite = '', bas = ''] = DIRECTIONS.map((position) => {
+    const mode = MODES_PAR_CRAN[directions.indexOf(position)];
+    return mode !== undefined ? nomDuMode(textes, mode.cle) : '';
+  });
+  return { titre: '', positions: [haut, gauche, droite, bas], choisie: DIRECTIONS.indexOf(directions[cran] ?? 'haut') };
+}
 
 /** La platine de l'accueil : à l'arrêt, bras posé sur son repos, levier baissé, réglages par défaut, le logo sur l'étiquette. */
 export function platineDeLAccueil(textes: Textes): EtatDeLaPlatine {
@@ -52,12 +57,9 @@ export function platineDeLAccueil(textes: Textes): EtatDeLaPlatine {
       boutons: {
         pistes: { titre: textes.commandes.pistes, crans: pistes.choix.map(String), choisi: pistes.choix.indexOf(pistes.defaut) },
         extrait: { titre: textes.commandes.extrait, crans: extrait.choix.map(String), choisi: extrait.choix.indexOf(extrait.defaut) },
-        // Les modes inscrits sur le sélecteur sont ceux du registre, dans l'ordre de leurs crans.
-        mode: boutonDuMode(textes, 0),
       },
-      interrupteurs: {
-        son: { titre: textes.commandes.son, positions: [textes.commandes.sons.tous, textes.commandes.sons.hote], choisie: 0 },
-      },
+      // Les modes gravés autour de la manette sont ceux du registre, dans l'ordre de leurs crans.
+      interrupteurs: { mode: manetteDuMode(textes, 0) },
     },
     marque: textes.logo.nom,
   };
@@ -76,16 +78,14 @@ export function disqueDeLAccueil(textes: Textes, densite: Densite, mesurer: Mesu
   };
 }
 
-/** Ce qu'on voit sur la platine à l'arrêt : le disque du salon et son code, le cran du mode, l'interrupteur du son qui bascule. */
+/** Ce qu'on voit sur la platine à l'arrêt : le disque du salon et son code, la manette sur un mode, les boutons réglés. */
 export interface PlatineALArret {
   /** Le code de la room et combien de joueurs l'ont rejointe : ils s'écrivent sur l'étiquette du disque. Sans eux, c'est le logo. */
   readonly code?: { readonly code: string; readonly joueurs: number };
-  /** Le cran du sélecteur de mode : par défaut, celui du premier mode. */
+  /** Le cran du mode, vers lequel la manette se couche : par défaut, celui du premier mode. */
   readonly mode?: number;
-  /** L'interrupteur du son en train de basculer, de « Tous » (0) à « Hôte » (1). */
-  readonly son?: number;
-  /** Ce que l'hôte a réglé sur les boutons « Pistes » et « Extrait » et sur l'interrupteur du son ; sans eux, les réglages du site. */
-  readonly reglages?: { readonly pistes: number; readonly extrait: number; readonly son: SonDeLaRoom };
+  /** Ce que l'hôte a réglé sur les boutons « Titres » et « Secondes » ; sans eux, les réglages du site. */
+  readonly reglages?: { readonly pistes: number; readonly extrait: number };
 }
 
 /** Le cran d'un bouton pour une valeur : le sien, ou celui de la valeur par défaut si elle n'est pas gravée sur le bouton. */
@@ -93,7 +93,7 @@ const cranDe = (choix: readonly number[], valeur: number, defaut: number): numbe
   choix.includes(valeur) ? choix.indexOf(valeur) : choix.indexOf(defaut);
 
 /** La platine à l'arrêt, avec un disque sur le plateau : celui du logo, ou celui du salon qui porte le code ; son sélecteur sur un mode. */
-export function platineArretee(a: Ecritoire, { code, mode = MODES_PAR_CRAN[0]?.cran ?? 0, son, reglages }: PlatineALArret = {}): Calque {
+export function platineArretee(a: Ecritoire, { code, mode = MODES_PAR_CRAN[0]?.cran ?? 0, reglages }: PlatineALArret = {}): Calque {
   const etiquette =
     code === undefined
       ? disqueDeLAccueil(a.textes, DENSITE, a.encrier.largeur).etiquette
@@ -101,7 +101,6 @@ export function platineArretee(a: Ecritoire, { code, mode = MODES_PAR_CRAN[0]?.c
   const disque = dessinerLeDisque({ en: CENTRE_DU_PLATEAU, hauteur: HAUTEURS.feutrine, support: HAUTEURS.feutrine, etiquette }, DENSITE);
   const platine = platineDeLAccueil(a.textes);
   const { boutons } = platine.commandes;
-  const { interrupteurs } = platine.commandes;
   const { pistes, extrait } = REGLAGES;
   const reglesSurLaPlatine =
     reglages === undefined
@@ -111,24 +110,14 @@ export function platineArretee(a: Ecritoire, { code, mode = MODES_PAR_CRAN[0]?.c
           pistes: { ...boutons.pistes, choisi: cranDe(pistes.choix, reglages.pistes, pistes.defaut) },
           extrait: { ...boutons.extrait, choisi: cranDe(extrait.choix, reglages.extrait, extrait.defaut) },
         };
-  const sonRegle =
-    reglages === undefined ? interrupteurs.son : { ...interrupteurs.son, choisie: reglages.son === 'hote' ? (1 as const) : (0 as const) };
-  const reglee = {
-    ...platine,
-    commandes: {
-      ...platine.commandes,
-      boutons: { ...reglesSurLaPlatine, mode: boutonDuMode(a.textes, mode) },
-      // Un interrupteur qu'on fait basculer est dessiné dans ses trois poses : le mouvement montre celle de l'instant.
-      interrupteurs: { ...interrupteurs, son: son !== undefined ? { ...sonRegle, course: son, enTroisPoses: true } : sonRegle },
-    },
-  };
+  const reglee = { ...platine, commandes: { boutons: reglesSurLaPlatine, interrupteurs: { mode: manetteDuMode(a.textes, mode) } } };
   return dessinerLaPlatine(reglee, DENSITE, [disque.ombre, disque.disque]);
 }
 
-/** Le décor d'une piste : la platine de l'accueil, le sélecteur sur le cran du mode, et le numéro de la piste, sur combien. */
+/** Le décor d'une piste : la platine de l'accueil, la manette sur le mode, et le numéro de la piste, sur combien. */
 export function decorDeLaPiste(textes: Textes, cran: number, piste: DecorDeLaPiste['piste']): DecorDeLaPiste {
   const { commandes, marque } = platineDeLAccueil(textes);
-  return { piste, commandes: { ...commandes, boutons: { ...commandes.boutons, mode: boutonDuMode(textes, cran) } }, marque };
+  return { piste, commandes: { ...commandes, interrupteurs: { mode: manetteDuMode(textes, cran) } }, marque };
 }
 
 /**

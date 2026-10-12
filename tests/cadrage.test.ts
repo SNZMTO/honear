@@ -122,8 +122,8 @@ test('regard arrêté, aucune petite pièce ne dépasse d’un rien dans le cadr
   const PETITES = [
     /^bras$/,
     /^levier$/,
-    /^interrupteur-son$/,
-    /^bouton-(pistes|extrait|mode)$/,
+    /^interrupteur-mode$/,
+    /^bouton-(pistes|extrait)$/,
     /^pastille-decompte$/,
     /^kraft\/(corps|devant)\/(pastille|tampon)$/,
     /^charniere-\d\/ombre$/,

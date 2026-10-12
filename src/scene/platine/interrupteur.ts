@@ -1,6 +1,7 @@
 /**
- * Un interrupteur à bascule de la platine : un réglage à deux positions. Un écrou moleté vissé sur sa rondelle,
- * et une bascule couchée vers la position choisie, seule pièce qui bouge. Les deux positions sont gravées dans le socle.
+ * Un interrupteur à bascule de la platine : un réglage à deux positions (à gauche, à droite), ou à quatre (une manette : en haut, à
+ * gauche, à droite, en bas). Un écrou moleté vissé sur sa rondelle, et une bascule couchée vers la position choisie, seule pièce qui
+ * bouge. Les positions sont gravées dans le socle, autour d'elle.
  */
 
 import { cercle } from '../../lowpoly/contours';
@@ -11,7 +12,7 @@ import { placer, type Polygone } from '../../lowpoly/polygones';
 import { direction, fois, moins, plus } from '../../lowpoly/vecteurs';
 import type { Densite } from '../../ressources/densites';
 import { PLATINE } from '../../ressources/platine';
-import { calque, peinture, soulever, type Calque, type Dessin } from '../calque';
+import { aPlatSurLeMeuble, calque, peinture, soulever, type Calque, type Dessin } from '../calque';
 import { ombre, ombreAuPied } from '../ombre';
 import { visibilite, type Reglage } from '../reglage';
 import { surLeBandeau, type PlaceDeCommande } from './emplacements';
@@ -19,11 +20,11 @@ import { graver, MI_HAUTEUR } from './gravure';
 
 const C = PLATINE.commandes;
 
-/** Un interrupteur à deux positions : la première à gauche, la seconde à droite. */
+/** Un interrupteur : deux positions, la première à gauche, la seconde à droite ; ou quatre, en haut, à gauche, à droite, en bas. */
 export interface EtatDInterrupteur {
   readonly titre: string;
-  readonly positions: readonly [string, string];
-  readonly choisie: 0 | 1;
+  readonly positions: readonly [string, string] | readonly [string, string, string, string];
+  readonly choisie: number;
   /**
    * En train de basculer : de 0 (couchée vers la première position) à 1 (vers la seconde). À mi-course, elle est debout :
    * vue d'en haut, elle raccourcit, et sa boule monte. Sans elle, la bascule est couchée vers la position choisie.
@@ -35,6 +36,11 @@ export interface EtatDInterrupteur {
    */
   readonly enTroisPoses?: boolean;
 }
+
+/** Où se couche une manette, pour chacune de ses quatre positions, en degrés dans le plan du meuble : en haut, à gauche, à droite, en bas. */
+const QUATRE = [270, 180, 0, 90] as const;
+/** Les quatre positions d'une manette, dans cet ordre-là : le nom du calque de chacune. */
+export const DIRECTIONS = ['haut', 'gauche', 'droite', 'bas'] as const;
 
 /** Debout, vue d'en haut, la tige garde au moins cette part de sa longueur : elle ne disparaît pas sous sa boule. */
 const DEBOUT = 0.3;
@@ -61,6 +67,11 @@ export function reglerLaBascule(cle: string, course: number): Reglage[] {
 export interface InterrupteurDessine {
   /** Les deux positions et le titre, gravés dans le socle : dans le décor. */
   readonly gravures: Dessin[];
+  /**
+   * Les quatre noms d'une manette, gravés dans le socle, chacun son calque (« interrupteur-mode/haut »…) : on touche celui qu'on veut.
+   * Aucun pour un interrupteur à deux positions.
+   */
+  readonly positions: Calque[];
   /** La rondelle et l'écrou, vissés sur le socle : dans le décor. */
   readonly fixe: Dessin[];
   readonly ombre: Calque;
@@ -87,10 +98,12 @@ export function dessinerUnInterrupteur(
 
   const { boule } = bascule;
   const sommet = bascule.hauteur - bascule.epaisseur / 2;
+  /** Une manette se couche vers sa position : en haut (vers le fond du meuble), à gauche, à droite, en bas (vers le joueur). */
+  const manette = etat.positions.length === QUATRE.length;
   /** La bascule à une course : couchée vers la position choisie, une tige puis une boule un peu plus haute ; debout à mi-course. */
   const basculeA = (course: number): { readonly silhouettes: Polygone[]; readonly contenu: Dessin[] } => {
-    const bascul = Math.PI * course;
-    const versLaPosition = Math.cos(bascul) >= 0 ? 180 : 0;
+    const bascul = manette ? 0 : Math.PI * course;
+    const versLaPosition = manette ? (QUATRE[etat.choisie] ?? QUATRE[0]) : Math.cos(bascul) >= 0 ? 180 : 0;
     const longueur = (bascule.longueur - boule.rayon) * Math.max(DEBOUT, Math.abs(Math.cos(bascul)));
     const tige = placer(
       [
@@ -126,7 +139,7 @@ export function dessinerUnInterrupteur(
       ],
     };
   };
-  const course = etat.course ?? etat.choisie;
+  const course = manette ? 0 : (etat.course ?? etat.choisie);
   const ombreA = (nom: `interrupteur-${string}`, silhouettes: readonly Polygone[]): Calque =>
     ombre(nom, { en: centre, silhouettes, hauteur: ecrou.epaisseur + bascule.hauteur + souleve, support, paliers: 2 });
   const montree = poseLaPlusProche(course);
@@ -135,11 +148,21 @@ export function dessinerUnInterrupteur(
 
   return {
     // Une position sans inscription n'est pas gravée : l'interrupteur de l'ampli a son voyant pour dire où il en est.
-    gravures: [
-      graver(etat.positions[0], [centre[0] - inscription, centre[1] + MI_HAUTEUR], 'fin'),
-      graver(etat.positions[1], [centre[0] + inscription, centre[1] + MI_HAUTEUR], 'debut'),
-      graver(etat.titre, [centre[0], centre[1] + C.titre], 'milieu'),
-    ].filter((gravure) => gravure.contenu !== ''),
+    gravures: manette
+      ? []
+      : [
+          graver(etat.positions[0], [centre[0] - inscription, centre[1] + MI_HAUTEUR], 'fin'),
+          graver(etat.positions[1], [centre[0] + inscription, centre[1] + MI_HAUTEUR], 'debut'),
+          graver(etat.titre, [centre[0], centre[1] + C.titre], 'milieu'),
+        ].filter((gravure) => gravure.contenu !== ''),
+    positions: manette
+      ? [
+          graver(etat.positions[0] ?? '', [centre[0], centre[1] - C.interrupteur.manette.haut], 'milieu'),
+          graver(etat.positions[1] ?? '', [centre[0] - inscription, centre[1] + MI_HAUTEUR], 'fin'),
+          graver(etat.positions[2] ?? '', [centre[0] + inscription, centre[1] + MI_HAUTEUR], 'debut'),
+          graver(etat.positions[3] ?? '', [centre[0], centre[1] + C.interrupteur.manette.bas], 'milieu'),
+        ].map((gravure, rang) => aPlatSurLeMeuble(`interrupteur-${cle}/${DIRECTIONS[rang] ?? 'haut'}`, support, [gravure]))
+      : [],
     fixe: [
       peinture(peindre([facetteAPlat(cercle(centre, rondelle.rayon, pans), support + rondelle.epaisseur, 'expresso')])),
       ombreAuPied(`${place.porteur}/ecrou-${cle}/ombre`, {

@@ -22,7 +22,8 @@ const STYLE = `
 html,body{height:100%;overscroll-behavior:none}
 body{margin:0;background:var(--fond);color:var(--encre);font:16px/${INTERLIGNE} system-ui,sans-serif;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
 body.grand{align-items:center}
-.telephone{position:relative;width:100vw;height:100vh;height:100dvh;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.telephone{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100lvh;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.bords{position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .telephone .attente,.telephone .manque{margin:0;padding:24px 18px;color:var(--doux);max-width:32ch}
 .telephone .zone{background:transparent;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .telephone .zone:focus-visible{outline:2px solid var(--miel);outline-offset:2px;border-radius:4px}
@@ -64,7 +65,7 @@ export function pageDuJeu(textes: Textes, script: string, version = ''): string 
 <meta name="theme-color" content="${couleur('laque')}">${version !== '' ? `\n<meta name="${META_DE_LA_VERSION}" content="${enXml(version)}">` : ''}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="${enXml(textes.logo.nom)}">
 <link rel="manifest" href="${APPLICATION.manifeste}">
 <link rel="icon" href="${APPLICATION.icone}" type="image/svg+xml">
@@ -72,6 +73,7 @@ export function pageDuJeu(textes: Textes, script: string, version = ''): string 
 <style>${STYLE}</style>
 </head>
 <body>
+<div class="bords" aria-hidden="true"></div>
 <main class="telephone" data-telephone role="application" aria-label="${enXml(textes.logo.nom)}"><p class="attente">${enXml(N.enAttendant)}</p></main>
 <nav class="legal"><button type="button" data-tuto>${enXml(textes.tuto.lien)}</button><a href="${PAGES_LEGALES.confidentialite}">${enXml(textes.legal.liens.confidentialite)}</a><a href="${PAGES_LEGALES.mentions}">${enXml(textes.legal.liens.mentions)}</a></nav>
 <div class="tuto" role="dialog" aria-modal="true" aria-labelledby="tuto-titre" hidden><div class="carte"><div class="points"></div><h2 id="tuto-titre"></h2><p></p><div class="touches"><button type="button" class="passer"></button><span><button type="button" class="precedent"></button> <button type="button" class="suivant"></button></span></div></div></div>
