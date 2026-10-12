@@ -1,16 +1,40 @@
-# Le relais devant le jeu, sur le VPS : HTTPS (le certificat Let's Encrypt se prend et se renouvelle tout seul), la page compressée,
-# et les WebSockets qui passent tels quels. Le serveur du jeu écoute en local, sur le port 8080.
-# Remplace miel-doreilles.fr par ton domaine (c'est ce que fait installer.sh).
+# Le relais devant le jeu, dans son conteneur : le HTTPS (Caddy prend et renouvelle seul les certificats Let's Encrypt), la page
+# compressée, les WebSockets qui passent tels quels, et les en-têtes de sécurité que le jeu ne pose pas lui-même. Le jeu répond
+# sur le réseau des conteneurs, à l'adresse « jeu:8080 ».
+#
+# DOMAINE est l'adresse du jeu ; ANCIEN_DOMAINE renvoie vers elle (deploiement/compose.yaml les lui donne, depuis
+# /etc/miel-doreilles/site.env).
 
-miel-doreilles.fr {
-	encode zstd gzip
-	reverse_proxy 127.0.0.1:8080
+{
+	# Les journaux de Caddy ne disent que ses erreurs : aucune visite n'y est écrite (voir la page « Confidentialité »).
+	log {
+		level ERROR
+	}
+}
+
+(securite) {
 	header {
 		Strict-Transport-Security "max-age=31536000"
+		Permissions-Policy "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+		X-Frame-Options "DENY"
 		-Server
 	}
 }
 
-www.miel-doreilles.fr {
-	redir https://miel-doreilles.fr{uri} permanent
+{$DOMAINE} {
+	import securite
+	encode zstd gzip
+	reverse_proxy jeu:8080
+}
+
+www.{$DOMAINE} {
+	import securite
+	redir https://{$DOMAINE}{uri} permanent
+}
+
+# L'ancienne adresse : tout y mène au jeu, à sa nouvelle adresse (un lien de room, un lien de connexion, son ancre comprise).
+# Temporaire (302) : ce domaine accueillera un autre site.
+{$ANCIEN_DOMAINE}, www.{$ANCIEN_DOMAINE} {
+	import securite
+	redir https://{$DOMAINE}{uri} 302
 }
