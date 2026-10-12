@@ -57,8 +57,8 @@ export const TEXTES: Textes = {
   },
 
   commandes: {
-    pistes: 'Pistes',
-    extrait: 'Extrait',
+    pistes: 'Titres',
+    extrait: 'Secondes',
     mode: 'Mode',
     son: 'Son',
     modes: { libre: 'Libre', quatreChoix: '4 choix' },
@@ -93,7 +93,7 @@ export const TEXTES: Textes = {
     monter: 'Monter le son',
     allume: 'Allume l’ampli',
     sigle: 'VU',
-    canaux: ['Pistes', 'Extrait'],
+    canaux: ['Titres', 'Secondes'],
     graduations: { positif: '+{n}', negatif: '–{n}' },
   },
 

@@ -10,6 +10,7 @@
 import type { PlaylistTrouvee, RaisonDeRefus } from '../regles/messages';
 import type { PisteDuMode } from '../regles/modes';
 import { memeReponse } from '../regles/piste';
+import { PLAYLISTS_EPINGLEES, type CleDeTheme } from '../ressources/bac';
 import { RESEAU } from '../ressources/reseau';
 import {
   adresseDeLaPiste,
@@ -48,8 +49,11 @@ export interface OptionsDeLaMusique {
 }
 
 export interface Musique {
-  /** Les playlists publiques que Deezer trouve pour une recherche. Échoue si Deezer ne répond pas, ou qu'on lui demande trop. */
-  chercher(recherche: string): Promise<PlaylistTrouvee[]>;
+  /**
+   * Les playlists publiques que Deezer trouve pour une recherche ; pour un thème du bac, celles qu'il épingle d'abord. Échoue si
+   * Deezer ne répond pas, ou qu'on lui demande trop.
+   */
+  chercher(recherche: string, theme?: CleDeTheme): Promise<PlaylistTrouvee[]>;
   /**
    * Un lien collé, de Deezer ou de Spotify : la playlist qu'il désigne, lue, avec ce qu'on peut en jouer ; ou pourquoi on ne peut
    * pas (une playlist Spotify qui ne se laisse pas lire, un lien qui ne mène à rien).
@@ -240,11 +244,18 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
   }
 
   return {
-    async chercher(recherche) {
-      const cle = recherche.trim().toLowerCase();
+    async chercher(recherche, theme) {
+      const cle = `${theme ?? ''}:${recherche.trim().toLowerCase()}`;
       const gardee = recherches.get(cle);
       if (gardee !== undefined && frais(gardee)) return gardee.valeur;
-      const trouvees = lireDesPlaylists(await appeler(adresseDeRecherche(cle, D.resultats * 2))).slice(0, D.resultats);
+      // Les épinglées d'abord ; une qui ne se lit plus chez Deezer est passée.
+      const epinglees: PlaylistTrouvee[] = [];
+      for (const id of theme !== undefined ? (PLAYLISTS_EPINGLEES[theme] ?? []) : []) {
+        const decrite = lireLaPlaylist(await appeler(adresseDeLaPlaylist(id)).catch(() => undefined));
+        if (decrite !== undefined) epinglees.push({ lien: lienDeezer(id), ...decrite });
+      }
+      const cherchees = lireDesPlaylists(await appeler(adresseDeRecherche(recherche.trim().toLowerCase(), D.resultats * 2)));
+      const trouvees = [...epinglees, ...cherchees.filter((p) => !epinglees.some((e) => e.lien === p.lien))].slice(0, D.resultats);
       garder(recherches, cle, { valeur: trouvees, jusqua: o.maintenant() + D.rechercheGardee }, o.maintenant(), D.gardeesAuPlus);
       return trouvees;
     },

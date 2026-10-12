@@ -7,12 +7,16 @@
  * Ce qui arrive du réseau n'est jamais cru sur parole : `lireUneAction` ne laisse passer qu'une action bien formée.
  */
 
+import { COULEURS_DES_THEMES, type CleDeTheme } from '../ressources/bac';
 import type { Pochette } from '../ressources/pochettes';
 import { REGLAGES } from '../ressources/reglages';
 import { MODES, type CleDeMode, type Proposition } from './modes';
 import { departageDeLaPiste, jugerUneReponse, ROOM_VIDE, suivre, type EvenementDePartie } from './partie';
 import type { ActionDePiste, Reponse } from './piste';
 import { estUnePochette } from './pochette';
+
+/** Un thème du bac, par sa clé. */
+export const estUnThemeDuBac = (x: unknown): x is CleDeTheme => typeof x === 'string' && Object.prototype.hasOwnProperty.call(COULEURS_DES_THEMES, x);
 
 /** Ce qu'un téléphone envoie. Rien d'autre : il ne dit jamais ce qu'il croit de l'état. */
 export type Action =
@@ -49,7 +53,7 @@ export type Action =
   /** Il s'en va pour de bon. */
   | { readonly genre: 'quitter' }
   /** L'hôte cherche une playlist, dans le bac : parmi les playlists publiques de la source de musique. */
-  | { readonly genre: 'chercher'; readonly recherche: string }
+  | { readonly genre: 'chercher'; readonly recherche: string; readonly theme?: CleDeTheme }
   /** L'hôte colle le lien d'une playlist : le serveur la lit, et dit ce qu'on peut en jouer. */
   | { readonly genre: 'importer'; readonly lien: string }
   /** Un joueur veut entrer dans son compte : on lui envoie, à cette adresse, un lien qui l'y fera entrer. */
@@ -239,7 +243,7 @@ export function lireUneAction(x: unknown): Action | undefined {
     }
     case 'chercher':
       return estUnTexte(x['recherche'], BORNES.recherche) && x['recherche'].trim() !== ''
-        ? { genre: 'chercher', recherche: x['recherche'] }
+        ? { genre: 'chercher', recherche: x['recherche'], ...(estUnThemeDuBac(x['theme']) ? { theme: x['theme'] } : {}) }
         : undefined;
     case 'importer':
       return estUnTexte(x['lien'], BORNES.playlist) && x['lien'].trim() !== '' ? { genre: 'importer', lien: x['lien'] } : undefined;

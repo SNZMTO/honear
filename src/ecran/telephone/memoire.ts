@@ -6,7 +6,7 @@
  */
 
 import { hasard } from '../../lowpoly/aleatoire';
-import type { Action, CompteVu, Nouvelle, PlaylistTrouvee, RaisonDeRefus } from '../../regles/messages';
+import { estUnThemeDuBac, type Action, type CompteVu, type Nouvelle, type PlaylistTrouvee, type RaisonDeRefus } from '../../regles/messages';
 import { MODES, type CleDeMode } from '../../regles/modes';
 import { numeroDeLaPiste, partieA, type EvenementDePartie, type Face, type SonDeLaRoom } from '../../regles/partie';
 import type { ActionDePiste } from '../../regles/piste';
@@ -514,7 +514,7 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
           ...m,
           preparation: { ...prep, bac: { ...prep.bac, theme: t.cle, enAttente: t.recherche, resultats: undefined, choisie: undefined } },
         },
-        actions: [{ genre: 'chercher', recherche: t.recherche }],
+        actions: [{ genre: 'chercher', recherche: t.recherche, ...(estUnThemeDuBac(t.cle) ? { theme: t.cle } : {}) }],
       };
     case 'resultat': {
       if (prep.ecran !== 'bac') return rien;

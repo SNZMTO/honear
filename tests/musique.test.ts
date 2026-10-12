@@ -8,6 +8,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { brancherLaMusique, type OptionsDeLaMusique } from '../src/reseau/musique';
+import { PLAYLISTS_EPINGLEES } from '../src/ressources/bac';
 import { RESEAU } from '../src/ressources/reseau';
 import { TABLEE } from '../src/ressources/tablee';
 import {
@@ -228,6 +229,23 @@ test('une recherche se garde une heure ; elle montre au plus le rang du bac, et 
   horloge.t += D.rechercheGardee;
   await musique.chercher('été 90');
   assert.equal(appels.length, 2);
+});
+
+test('un thème du bac épingle sa playlist avant ce que la recherche trouve ; son titre et ses pistes, sans ce qui ne s’écrit pas en latin', async () => {
+  const [epinglee = ''] = PLAYLISTS_EPINGLEES.generiques ?? [];
+  const recherche = { data: Array.from({ length: D.resultats * 2 }, (_, k) => ({ id: k + 1, title: `Playlist ${k + 1}`, nb_tracks: 30 })) };
+  const deezer = unFauxDeezer({ playlists: { [epinglee]: { titre: 'Anime Essentials 定番アニメ', pistes: 50 } }, recherche });
+  const { musique } = uneMusique(deezer.reponse);
+  const trouvees = await musique.chercher('Génériques de dessins animés', 'generiques');
+  assert.equal(trouvees.length, D.resultats);
+  assert.deepEqual(trouvees[0], { lien: `deezer:${epinglee}`, titre: 'Anime Essentials', total: 50 });
+  assert.equal((await musique.chercher('Génériques de dessins animés'))[0]?.lien, 'deezer:1', 'sans thème, rien d’épinglé');
+  assert.equal(lireUnePiste(uneTrackDeezer(1, 900, { title: '残酷な天使のテーゼ', title_short: '残酷な天使のテーゼ' })), undefined);
+  assert.equal(lireUnePiste(uneTrackDeezer(2, 900, { artist: { id: 1, name: '高橋洋子' } })), undefined);
+  assert.equal(
+    lireUnePiste(uneTrackDeezer(3, 900, { title: 'Gurenge', title_short: 'Gurenge', artist: { id: 2, name: 'LiSA' } }))?.reponse.titre,
+    'Gurenge',
+  );
 });
 
 test('une playlist se lit page par page, une fois même si deux la demandent, et se relit avant que ses liens expirent', async () => {

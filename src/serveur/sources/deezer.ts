@@ -46,6 +46,13 @@ export function erreurDeDeezer(reponse: unknown): 'quota' | 'introuvable' | 'aut
   return code === 4 ? 'quota' : code === 800 || code === 801 || code === 802 ? 'introuvable' : 'autre';
 }
 
+/** Une lettre qui n'est pas de l'alphabet latin : un titre qui en a ne s'écrit pas avec nos caractères, ni ne se tape au clavier. */
+const HORS_DE_L_ALPHABET = /(?=\p{L})\P{Script=Latin}/u;
+const HORS_DE_L_ALPHABET_PARTOUT = new RegExp(HORS_DE_L_ALPHABET.source, 'gu');
+
+/** Le titre d'une playlist, sans ce qu'il a hors de l'alphabet latin (« Anime Essentials 定番アニメ ») ; tel quel s'il n'avait que ça. */
+const titreLisible = (titre: string): string => titre.replace(HORS_DE_L_ALPHABET_PARTOUT, '').replace(/\s+/g, ' ').trim() || titre;
+
 /** Les playlists qu'une recherche a trouvées, dans l'ordre de Deezer. */
 export function lireDesPlaylists(reponse: unknown): PlaylistTrouvee[] {
   return liste(reponse).flatMap((x) => {
@@ -53,7 +60,9 @@ export function lireDesPlaylists(reponse: unknown): PlaylistTrouvee[] {
     const id = nombre(p?.['id']);
     const titre = texte(p?.['title']);
     const total = nombre(p?.['nb_tracks']);
-    return id !== undefined && titre !== undefined && total !== undefined && total > 0 ? [{ lien: lienDeezer(String(id)), titre, total }] : [];
+    return id !== undefined && titre !== undefined && total !== undefined && total > 0
+      ? [{ lien: lienDeezer(String(id)), titre: titreLisible(titre), total }]
+      : [];
   });
 }
 
@@ -62,7 +71,7 @@ export function lireLaPlaylist(reponse: unknown): { readonly titre: string; read
   const p = objet(reponse);
   const titre = texte(p?.['title']);
   const total = nombre(p?.['nb_tracks']);
-  return titre !== undefined && total !== undefined ? { titre, total } : undefined;
+  return titre !== undefined && total !== undefined ? { titre: titreLisible(titre), total } : undefined;
 }
 
 /** Ce qui annonce un invité dans un titre : « (feat. Roméo Elvis) », « [ft. Vianney] », « (avec Vianney) ». */
@@ -109,6 +118,8 @@ export function lireUnePiste(x: unknown): PisteDuMode | undefined {
   const extrait = texte(p?.['preview']);
   if (id === undefined || court === undefined || artiste === undefined || extrait === undefined || p?.['readable'] === false) return undefined;
   if (!extrait.startsWith('https://')) return undefined;
+  // Une réponse qu'on ne saurait ni montrer ni taper : la piste n'est pas jouable au blind test.
+  if (HORS_DE_L_ALPHABET.test(court) || HORS_DE_L_ALPHABET.test(artiste)) return undefined;
   const feat = INVITE.exec(complet ?? '')?.[1]?.trim();
   const titre = court.replace(INVITE, '').trim();
   const image = imageDe(p);
