@@ -42,6 +42,12 @@ export type CleDuReseau =
   | 'comptes.reprise'
   | 'comptes.sortie'
   | 'comptes.efface'
+  | 'comptes.motDePasse.entree'
+  | 'comptes.motDePasse.faux'
+  | 'comptes.motDePasse.tropDEssais'
+  | 'comptes.motDePasse.comptesFermes'
+  | 'comptes.motDePasse.choisi'
+  | 'comptes.motDePasse.faible'
   | 'bac.import.deezer'
   | 'bac.import.spotify'
   | 'bac.import.autre'
@@ -64,8 +70,12 @@ export interface OptionsDesStatistiques {
 }
 
 export interface Statistiques {
-  /** Une page du jeu servie : d'où (une adresse, qu'on ne garde pas), à quel navigateur, à l'accueil ou à l'adresse d'une room. */
-  page(adresse: string, navigateur: string, room: boolean): void;
+  /**
+   * Une page du jeu servie : d'où (une adresse, qu'on ne garde pas), à quel navigateur, à l'accueil ou à l'adresse d'une room. Un
+   * navigateur qui demande à ne pas être suivi (Global Privacy Control, Do Not Track) compte une page, jamais un visiteur : on ne
+   * calcule pas son empreinte, on ne lit pas son appareil.
+   */
+  page(adresse: string, navigateur: string, room: boolean, sansSuivi?: boolean): void;
   /** Une ligne s'ouvre (un téléphone se branche) ; ce qu'on rend s'appelle quand elle se ferme. */
   ligne(): () => void;
   /** Le nombre de téléphones branchés, à cet instant : de quoi tenir le record. */
@@ -76,7 +86,10 @@ export interface Statistiques {
   compter(cle: CleDuReseau): void;
   /** Ce que seul un téléphone voit, et qu'il dit : chaque chose une fois par ligne au plus (voir ligne.ts). */
   telephone(quoi: CeQueLeTelephoneCompte): void;
-  /** Une recherche dans le bac : ce qu'on a cherché (ou le thème touché), et combien de playlists elle a trouvées. */
+  /**
+   * Une recherche dans le bac : ce qu'on a cherché (ou le thème touché), et combien de playlists elle a trouvées. On ne garde le
+   * texte d'une recherche que si elle a trouvé de la musique : tapé pour rien, il pourrait être n'importe quoi.
+   */
   recherche(recherche: string, theme: string | undefined, trouvees: number): void;
   /** Des playlists que la source a nommées (une recherche, un lien collé) : on retient leur titre, pour les montrer. */
   playlistsNommees(playlists: readonly { readonly lien: string; readonly titre: string }[]): void;
@@ -340,7 +353,7 @@ export function ouvrirLesStatistiques(o: OptionsDesStatistiques): Statistiques {
   }
 
   return {
-    page(adresse, navigateur, room) {
+    page(adresse, navigateur, room, sansSuivi = false) {
       if (S.robots.test(navigateur)) {
         ajouter('robots');
         return;
@@ -350,6 +363,10 @@ export function ouvrirLesStatistiques(o: OptionsDesStatistiques): Statistiques {
       ajouter(room ? 'pages.room' : 'pages.accueil');
       d.heures[ici.heure] = (d.heures[ici.heure] ?? 0) + 1;
       d.semaine[ici.semaine] = (d.semaine[ici.semaine] ?? 0) + 1;
+      if (sansSuivi) {
+        ajouter('pages.sansSuivi');
+        return;
+      }
       // Un autre jour : un autre sel, et l'on oublie qui on avait vu hier.
       if (ici.jour !== jourDuSel) {
         jourDuSel = ici.jour;
@@ -392,7 +409,7 @@ export function ouvrirLesStatistiques(o: OptionsDesStatistiques): Statistiques {
       }
       ajouter('bac.recherches.libres');
       const rangee = rechercheRangee(recherche);
-      if (rangee === '') return;
+      if (rangee === '' || trouvees === 0) return;
       d.recherches[rangee] = (d.recherches[rangee] ?? 0) + 1;
       if (Object.keys(d.recherches).length > S.gardes.recherches * 2) d.recherches = elaguer(d.recherches, S.gardes.recherches, (n) => n);
     },

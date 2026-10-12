@@ -131,8 +131,12 @@ Pour que les liens n'arrivent pas dans les indésirables, vérifie dans la zone 
 ses e-mails : `v=spf1 include:mx.ovh.com ~all`), et active DKIM dans l'espace client si ton offre le propose.
 
 - **Ce qui est gardé** : pour chaque compte, son adresse e-mail, sa pochette, ses parties jouées et gagnées, ses dates de création
-  et de dernière visite. Rien d'autre. Le fichier est `/var/lib/honear/comptes.json`, que seul l'utilisateur `miel` (celui
-  du conteneur) lit ; il ne contient aucun secret (des sessions, seulement l'empreinte).
+  et de dernière visite, et l'empreinte scrypt de son mot de passe s'il en a choisi un. Rien d'autre. Le fichier est
+  `/var/lib/honear/comptes.json`, que seul l'utilisateur `honear` (celui du conteneur) lit ; il ne contient aucun secret (des
+  sessions et des mots de passe, seulement l'empreinte).
+- **Les mots de passe** : facultatifs ; le lien par e-mail marche toujours. Cinq essais par compte et par quart d'heure, vingt par
+  heure depuis une adresse ; un mot de passe changé prévient l'adresse du compte et fait sortir ses autres téléphones.
+- **Un joueur demande ses données** : `sudo sh deploiement/donnees.sh son@adresse.fr`, à lancer toi-même (voir `RGPD.md`).
 - **Ce qui s'efface seul** : un compte où personne ne revient depuis deux ans, prévenu un mois avant par e-mail.
 - **Effacer** : chacun efface son compte lui-même, depuis l'écran du compte ; tout part avec.
 - **Les envois sont limités** : un lien par adresse et par minute, cinq par heure ; dix par heure depuis un même téléphone ; trois cents

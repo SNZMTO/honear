@@ -212,3 +212,40 @@ test('la page des statistiques se sert à son adresse ; ce qu’elle montre ne s
   const garde = JSON.parse(readFileSync(fichier, 'utf8')) as { totaux: Record<string, number> };
   assert.equal(garde.totaux['pages'], 1);
 });
+
+test('qui demande à ne pas être suivi (GPC, DNT) compte une page, jamais un visiteur ; une recherche qui ne trouve rien ne se garde pas', async () => {
+  const { s } = desStatistiques();
+  s.page('1.2.3.4', IPHONE, false, true);
+  s.recherche('mon voisin Jean Dupont', undefined, 0);
+  const v = s.vue(enDirect);
+  assert.deepEqual(
+    [v.totaux['pages'], v.totaux['pages.sansSuivi'], v.totaux['visiteurs'], v.totaux['appareil.iphone']],
+    [1, 1, undefined, undefined],
+  );
+  assert.deepEqual([v.totaux['bac.recherches.vides'], v.recherches], [1, []]);
+  // Par la porte : l'en-tête du navigateur suffit.
+  const dossier = mkdtempSync(join(tmpdir(), 'miel-'));
+  const page = join(dossier, 'index.html');
+  writeFileSync(page, '<title>Le jeu</title>');
+  writeFileSync(join(dossier, 'statistiques.html'), '<title>Stats</title>');
+  const fichier = join(dossier, 'statistiques.json');
+  const site = lancerLeSite({
+    port: 0,
+    hote: '127.0.0.1',
+    origines: [],
+    page,
+    deezer: undefined,
+    statistiques: { fichier, cle: 'essaiessaiessaiessai' },
+  });
+  try {
+    const base = `http://127.0.0.1:${await site.pret}`;
+    await fetch(`${base}/`, { headers: { 'user-agent': IPHONE, 'sec-gpc': '1' } });
+    await fetch(`${base}/`, { headers: { 'user-agent': ORDINATEUR, dnt: '1' } });
+    const vue = (await (await fetch(`${base}/statistiques.json`, { headers: { authorization: 'Bearer essaiessaiessaiessai' } })).json()) as {
+      totaux: Record<string, number>;
+    };
+    assert.deepEqual([vue.totaux['pages'], vue.totaux['pages.sansSuivi'], vue.totaux['visiteurs']], [2, 2, undefined]);
+  } finally {
+    await site.fermer();
+  }
+});

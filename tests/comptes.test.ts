@@ -9,7 +9,17 @@ import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import { hasard } from '../src/lowpoly/aleatoire';
 import { pochetteDExemple } from '../src/planche/exemples';
-import { adresseEmail, lettreDAvertissement, lettreDuLien, ouvrirLesComptes, type OptionsDesComptes } from '../src/reseau/comptes';
+import { jugerUnMotDePasse } from '../src/regles/mot-de-passe';
+import { lireUneAction } from '../src/regles/messages';
+import {
+  adresseEmail,
+  lettreDAvertissement,
+  lettreDuLien,
+  lettreDuMotDePasse,
+  ouvrirLesComptes,
+  type OptionsDesComptes,
+} from '../src/reseau/comptes';
+import { estUneEmpreinteDeMotDePasse, hacherUnMotDePasse, verifierUnMotDePasse } from '../src/reseau/mots-de-passe';
 import { composer, posterParSmtp, type Lettre } from '../src/reseau/courrier';
 import { REGLAGES } from '../src/ressources/reglages';
 import { RESEAU } from '../src/ressources/reseau';
@@ -21,6 +31,8 @@ import { unFauxServeurDEnvoi } from './faux-courrier';
 const C = RESEAU.comptes;
 const POCHETTE = pochetteDExemple(TEXTES);
 const LETTRE = lettreDuLien(TEXTES.compte.courrier, 'https://honear.fr');
+/** Une empreinte de mot de passe vite faite, pour ces essais : le vrai scrypt a son test. */
+const vite = (motDePasse: string): string => `vite$${createHash('sha256').update(motDePasse).digest('hex')}`;
 
 /** Des comptes contre une horloge qu'on avance, des secrets qu'on lit, et un courrier qui garde ses lettres au lieu de les envoyer. */
 function desComptes(autres: Partial<OptionsDesComptes> = {}) {
@@ -33,6 +45,9 @@ function desComptes(autres: Partial<OptionsDesComptes> = {}) {
     secret: () => `secret-${String(++n).padStart(4, '0')}-abcdefghijklmnop`,
     identifiant: () => `compte-${++n}`,
     empreinte: (s) => createHash('sha256').update(s).digest('hex'),
+    hacher: (m) => Promise.resolve(vite(m)),
+    verifier: (m, e) => Promise.resolve(e === vite(m)),
+    avisDuMotDePasse: lettreDuMotDePasse(TEXTES.compte.courrier, 'https://honear.fr'),
     lu: undefined,
     garder: (texte) => garde.push(texte),
     poster: (lettre) => {
@@ -104,7 +119,7 @@ test('on entre par un lien envoyé à son adresse : il ne sert qu’une fois, un
   const lien = dernierLien();
   const ouvert = comptes.ouvrir(lien);
   assert.ok(ouvert !== undefined);
-  assert.deepEqual(ouvert.compte, { email: 'mateo@example.com', parties: 0, victoires: 0 });
+  assert.deepEqual(ouvert.compte, { email: 'mateo@example.com', parties: 0, victoires: 0, motDePasse: false });
   assert.equal(comptes.ouvrir(lien), undefined, 'un lien ne sert qu’une fois');
   assert.equal(comptes.reprendre(ouvert.session)?.id, ouvert.id);
   // Le même compte, par un autre lien, un autre jour.
@@ -150,7 +165,13 @@ test('le fichier garde les comptes et les sessions, jamais un secret ; relu, il 
   assert.ok(!fichier.includes(ouvert.session), 'le secret de la session n’est pas dans le fichier');
   assert.ok(!fichier.includes('secret-'), 'aucun secret');
   const relus = desComptes({ lu: fichier });
-  assert.deepEqual(relus.comptes.reprendre(ouvert.session)?.compte, { email: 'mateo@example.com', pochette: POCHETTE, parties: 0, victoires: 0 });
+  assert.deepEqual(relus.comptes.reprendre(ouvert.session)?.compte, {
+    email: 'mateo@example.com',
+    pochette: POCHETTE,
+    parties: 0,
+    victoires: 0,
+    motDePasse: false,
+  });
   // Un fichier abîmé ne casse rien : on repart sans comptes.
   assert.equal(desComptes({ lu: '{pas du json' }).comptes.reprendre(ouvert.session), undefined);
   // Effacer : le compte, ses sessions, tout part.
@@ -271,4 +292,102 @@ test('le serveur dit quand une face est finie, une fois, avec son classement : d
     serveur.avancer();
   }
   assert.deepEqual(finies, [{ code, phase: 'fin', joueurs: 2 }]);
+});
+
+test('ce que vaut un mot de passe : huit signes au moins, cinquante bits ou trois sortes de signes, et pas l’adresse dedans', () => {
+  assert.equal(jugerUnMotDePasse('Ab1!xyz'), 'court');
+  assert.equal(jugerUnMotDePasse('12345678'), 'simple');
+  assert.equal(jugerUnMotDePasse('motdepasse'), 'simple', 'dix minuscules : 47 bits');
+  assert.equal(jugerUnMotDePasse('motdepassee'), 'bon', 'onze minuscules : 52 bits');
+  assert.equal(jugerUnMotDePasse('Vinyle33'), 'bon', 'huit signes de trois sortes');
+  assert.equal(jugerUnMotDePasse('mateo-2048!', 'mateo@example.com'), 'adresse');
+  assert.equal(jugerUnMotDePasse('Le 45 tours de Mamie', 'mateo@example.com'), 'bon');
+});
+
+test('un mot de passe ne se garde qu’en empreinte scrypt, salée ; il se vérifie, accents composés ou non ; une empreinte abîmée ne laisse entrer personne', async () => {
+  const empreinte = await hacherUnMotDePasse('Café crème 33');
+  assert.ok(estUneEmpreinteDeMotDePasse(empreinte));
+  assert.match(empreinte, /^scrypt\$32768\$8\$3\$/);
+  assert.ok(!empreinte.includes('Café'));
+  assert.notEqual(await hacherUnMotDePasse('Café crème 33'), empreinte, 'un sel neuf à chaque fois');
+  assert.equal(await verifierUnMotDePasse('Café crème 33', empreinte), true);
+  assert.equal(await verifierUnMotDePasse('Cafe\u0301 crème 33', empreinte), true, 'le même, tapé autrement');
+  assert.equal(await verifierUnMotDePasse('café crème 33', empreinte), false);
+  assert.equal(await verifierUnMotDePasse('Café crème 33', 'pas une empreinte'), false);
+  // Des réglages qu'on ne calculerait pas sans peine : refusés sans calcul.
+  assert.equal(await verifierUnMotDePasse('x', empreinte.replace('$32768$', '$1048576$')), false);
+  assert.equal(await verifierUnMotDePasse('x', empreinte.replace('$32768$', '$1000$')), false);
+});
+
+test('avec un mot de passe : choisi dans le compte, il fait entrer ; faux, rien ne dit si l’adresse a un compte ; changé, les autres sessions sortent', async () => {
+  const { comptes, horloge, lettres, garde, dernierLien } = desComptes();
+  await comptes.demanderUnLien('mateo@example.com', 'ici');
+  const ouvert = comptes.ouvrir(dernierLien());
+  assert.ok(ouvert !== undefined);
+  // Pas encore de mot de passe : « faux », comme pour une adresse sans compte.
+  assert.equal(await comptes.entrer('mateo@example.com', 'Le 45 tours de Mamie', 'ici'), 'faux');
+  assert.equal(await comptes.entrer('personne@exemple.fr', 'Le 45 tours de Mamie', 'ici'), 'faux');
+  assert.equal(await comptes.choisirUnMotDePasse(ouvert.id, 'court', ouvert.session), 'faible');
+  assert.equal(await comptes.choisirUnMotDePasse(ouvert.id, 'mateo2048!', ouvert.session), 'faible', 'l’adresse dedans');
+  // Une autre session du même compte, ouverte par un autre lien.
+  horloge.t += C.parAdresse.attente;
+  await comptes.demanderUnLien('mateo@example.com', 'ailleurs');
+  const autre = comptes.ouvrir(dernierLien());
+  assert.ok(autre !== undefined);
+  assert.equal(await comptes.choisirUnMotDePasse(ouvert.id, 'Le 45 tours de Mamie', ouvert.session), 'garde');
+  assert.equal(comptes.vu(ouvert.id)?.motDePasse, true);
+  assert.equal(comptes.reprendre(autre.session), undefined, 'l’autre session est sortie');
+  assert.equal(comptes.reprendre(ouvert.session)?.id, ouvert.id, 'celle d’où il a changé reste');
+  assert.ok(
+    lettres.some((l) => l.a === 'mateo@example.com' && l.sujet === TEXTES.compte.courrier.motDePasseSujet),
+    'l’adresse est prévenue',
+  );
+  const fichier = garde[garde.length - 1] ?? '';
+  assert.ok(!fichier.includes('Mamie') && fichier.includes(vite('Le 45 tours de Mamie')), 'le fichier ne garde que l’empreinte');
+  // Il entre avec, d'où il veut, l'adresse tapée comme il veut : un compte, une session neuve.
+  const entre = await comptes.entrer(' Mateo@Example.com ', 'Le 45 tours de Mamie', 'la-bas');
+  assert.ok(typeof entre !== 'string' && entre.id === ouvert.id && entre.session !== ouvert.session);
+  // Relu du fichier, le mot de passe marche toujours.
+  const relus = desComptes({ lu: fichier });
+  const relu = await relus.comptes.entrer('mateo@example.com', 'Le 45 tours de Mamie', 'ici');
+  assert.ok(typeof relu !== 'string' && relu.compte.motDePasse);
+});
+
+test('les essais de mot de passe sont comptés : cinq par compte et par quart d’heure, vingt par heure depuis un téléphone ; et les changements', async () => {
+  const M = C.motDePasse;
+  const { comptes, horloge, dernierLien } = desComptes();
+  await comptes.demanderUnLien('mateo@example.com', 'ici');
+  const ouvert = comptes.ouvrir(dernierLien());
+  assert.ok(ouvert !== undefined);
+  await comptes.choisirUnMotDePasse(ouvert.id, 'Le 45 tours de Mamie', ouvert.session);
+  // Cinq essais faux, envoyés d'un coup : le sixième, même juste, attend.
+  const faux = await Promise.all(Array.from({ length: M.essais }, (_, k) => comptes.entrer('mateo@example.com', `faux ${k}`, `tel-${k}`)));
+  assert.deepEqual(
+    faux,
+    Array.from({ length: M.essais }, () => 'faux'),
+  );
+  assert.equal(await comptes.entrer('mateo@example.com', 'Le 45 tours de Mamie', 'encore'), 'tropDEssais');
+  horloge.t += M.fenetre;
+  // Ce qui ne compte plus s'oublie (la minuterie du site le fait chaque minute) : ça ne change rien à qui peut entrer.
+  comptes.oublier();
+  assert.equal(typeof (await comptes.entrer('mateo@example.com', 'Le 45 tours de Mamie', 'encore')), 'object', 'un quart d’heure après, il entre');
+  // D'un même téléphone, vingt essais par heure, toutes adresses confondues.
+  const parTelephone = await Promise.all(Array.from({ length: M.parTelephone + 1 }, (_, k) => comptes.entrer(`x${k}@exemple.fr`, 'faux', 'le-meme')));
+  assert.equal(parTelephone.filter((r) => r === 'tropDEssais').length, 1);
+  // On change de mot de passe cinq fois par heure au plus.
+  const changements = [];
+  for (let k = 0; k < M.changements; k++) changements.push(await comptes.choisirUnMotDePasse(ouvert.id, `Un autre encore, le ${k}e`, ouvert.session));
+  assert.equal(changements.length, M.changements);
+  assert.equal(await comptes.choisirUnMotDePasse(ouvert.id, 'Et encore un de plus', ouvert.session), 'tropDEssais');
+});
+
+test('par le réseau, un mot de passe ne passe que borné : non vide, 128 signes au plus', () => {
+  assert.deepEqual(lireUneAction({ genre: 'entrerAvecUnMotDePasse', email: 'a@b.fr', motDePasse: 'x' }), {
+    genre: 'entrerAvecUnMotDePasse',
+    email: 'a@b.fr',
+    motDePasse: 'x',
+  });
+  assert.equal(lireUneAction({ genre: 'entrerAvecUnMotDePasse', email: 'a@b.fr', motDePasse: '' }), undefined);
+  assert.equal(lireUneAction({ genre: 'choisirUnMotDePasse', motDePasse: 'x'.repeat(129) }), undefined);
+  assert.equal(lireUneAction({ genre: 'choisirUnMotDePasse', motDePasse: 42 }), undefined);
 });

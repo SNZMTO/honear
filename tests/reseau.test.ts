@@ -353,14 +353,41 @@ test('un compte par la ligne : le lien part par le serveur d’envoi, on entre, 
     // Un autre téléphone, avec la session : le même compte, la pochette avec lui ; le fichier ne garde pas le secret.
     const ailleurs = await unTelephone(port);
     ailleurs.envoyer({ genre: 'reprendreLeCompte', session: entre.session ?? '' });
-    assert.deepEqual((await ailleurs.attendre('compte')).compte, { email: 'mateo@example.com', pochette: refaite, parties: 0, victoires: 0 });
+    assert.deepEqual((await ailleurs.attendre('compte')).compte, {
+      email: 'mateo@example.com',
+      pochette: refaite,
+      parties: 0,
+      victoires: 0,
+      motDePasse: false,
+    });
     assert.ok(!readFileSync(fichier, 'utf8').includes(entre.session ?? '?'));
+    // Un mot de passe : choisi d'ici, il fait entrer d'ailleurs ; faux, on le dit sans dire quoi ; changé, qui y était entré sort.
+    telephone.envoyer({ genre: 'choisirUnMotDePasse', motDePasse: 'court' });
+    assert.equal((await telephone.attendre('refus')).raison, 'motDePasseFaible');
+    telephone.envoyer({ genre: 'choisirUnMotDePasse', motDePasse: 'Vinyle 33 tours !' });
+    assert.equal((await telephone.attendre('compte')).compte.motDePasse, true);
+    const parMotDePasse = await unTelephone(port);
+    parMotDePasse.envoyer({ genre: 'entrerAvecUnMotDePasse', email: 'mateo@example.com', motDePasse: 'pas le bon' });
+    assert.equal((await parMotDePasse.attendre('refus')).raison, 'motDePasseFaux');
+    parMotDePasse.envoyer({ genre: 'entrerAvecUnMotDePasse', email: 'Mateo@Example.com', motDePasse: 'Vinyle 33 tours !' });
+    const entreParMotDePasse = await parMotDePasse.attendre('compte');
+    assert.ok(entreParMotDePasse.session !== undefined && entreParMotDePasse.session !== entre.session);
+    assert.ok(!readFileSync(fichier, 'utf8').includes('Vinyle'), 'le mot de passe n’est pas dans le fichier');
+    telephone.envoyer({ genre: 'choisirUnMotDePasse', motDePasse: 'Un autre, plus long encore' });
+    await telephone.attendre('compte');
+    await parMotDePasse.attendre('horsCompte');
+    for (let essai = 0; essai < 40 && !courrier.lettres.some((l) => l.texte.includes(TEXTES.compte.courrier.motDePasse)); essai++)
+      await new Promise((fini) => setTimeout(fini, 50));
+    assert.ok(
+      courrier.lettres.some((l) => l.texte.includes(TEXTES.compte.courrier.motDePasse)),
+      'l’adresse est prévenue',
+    );
     ailleurs.envoyer({ genre: 'effacerLeCompte' });
     await ailleurs.attendre('horsCompte');
     const plusRien = await unTelephone(port);
     plusRien.envoyer({ genre: 'reprendreLeCompte', session: entre.session ?? '' });
     await plusRien.attendre('horsCompte');
-    for (const t of [telephone, ailleurs, plusRien]) t.socket.close();
+    for (const t of [telephone, ailleurs, plusRien, parMotDePasse]) t.socket.close();
   } finally {
     await site.fermer();
     await courrier.fermer();

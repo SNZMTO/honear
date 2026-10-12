@@ -271,7 +271,7 @@ export const TEXTES: Textes = {
 
   compte: {
     touche: 'Mon compte',
-    pourquoi: 'Un compte garde ta pochette et tes scores d’un téléphone à l’autre, sous ton adresse e-mail. Rien d’autre, ni mot de passe.',
+    pourquoi: 'Un compte garde ta pochette et tes scores d’un téléphone à l’autre, sous ton adresse e-mail. Rien d’autre.',
     adresse: 'Ton adresse e-mail',
     envoyer: 'Envoie-moi le lien',
     envoye: 'Regarde tes e-mails.',
@@ -289,11 +289,35 @@ export const TEXTES: Textes = {
     effacerVraiment: 'Oui, tout effacer',
     garder: 'Non, garder',
     retour: 'Retour',
+    avecUnMotDePasse: 'J’ai un mot de passe',
+    motDePasse: {
+      etiquette: 'Ton mot de passe',
+      nouveau: 'Ton nouveau mot de passe',
+      pour: 'Entre avec ton mot de passe.',
+      oublie: 'Mot de passe oublié',
+      touche: 'Mot de passe',
+      sans: 'Sans mot de passe : tu entres par un lien.',
+      avec: 'Avec un mot de passe, ou par un lien.',
+      garder: 'Garder ce mot de passe',
+      choisis: 'Choisis-le bien.',
+      regle: 'Au moins {n} signes, et pas celui d’un autre site. Plus il est long, ou mêle majuscules, chiffres et signes, plus il est solide.',
+      jugement: {
+        court: 'Encore trop court.',
+        simple: 'Encore trop simple.',
+        adresse: 'Sans ton adresse e-mail.',
+        bon: 'Assez solide.',
+      },
+      garde: 'Ton mot de passe est gardé.',
+      autres: 'Tes autres téléphones sont sortis du compte.',
+    },
     refus: {
       adresse: 'Ce n’est pas une adresse e-mail.',
       tropDeLiens: 'Un lien est déjà parti. Regarde tes e-mails, ou réessaie dans une minute.',
       lienPerime: 'Ce lien ne marche plus. Demande-en un autre.',
       comptesFermes: 'Les comptes ne marchent pas en ce moment : aucun e-mail ne part.',
+      motDePasseFaux: 'Adresse ou mot de passe faux.',
+      tropDEssais: 'Trop d’essais. Réessaie dans un quart d’heure, ou demande un lien.',
+      motDePasseFaible: 'Pas assez solide.',
     },
     courrier: {
       sujet: 'Ton lien pour entrer dans Honear',
@@ -309,6 +333,10 @@ export const TEXTES: Textes = {
       dort: 'Personne n’est entré dans ton compte Honear depuis presque deux ans. Dans un mois, il sera effacé, avec ta pochette et tes scores : on ne garde pas ce qui ne sert plus.',
       dortGarder:
         'Pour le garder, il suffit d’y revenir : ouvre le site sur ton téléphone, ou demande un lien de connexion. Pour le laisser partir, ne fais rien.',
+      motDePasseSujet: 'Le mot de passe de ton compte Honear a changé',
+      motDePasse: 'Le mot de passe de ton compte Honear vient d’être choisi. Tes autres téléphones sont sortis du compte.',
+      motDePassePasToi:
+        'Ce n’était pas toi ? Sur le site, « Mon compte », puis « Envoie-moi le lien » : entre par le lien reçu, et choisis un autre mot de passe.',
     },
   },
 
@@ -336,30 +364,33 @@ export const TEXTES: Textes = {
         {
           titre: 'Si tu ouvres un compte (c’est facultatif)',
           paragraphes: [
-            'Un compte garde ton adresse e-mail, ta pochette, le nombre de parties que tu as jouées et gagnées, sa date de création et celle de ta dernière visite. C’est tout.',
-            'Il n’y a pas de mot de passe : tu entres par un lien envoyé à ton adresse. Le serveur ne garde de ce lien, et du secret de ta session, qu’une empreinte qu’on ne peut pas retourner : qui lirait le fichier des comptes n’entrerait dans aucun.',
+            'Un compte garde ton adresse e-mail, ta pochette, le nombre de parties que tu as jouées et gagnées, sa date de création et celle de ta dernière visite, et, si tu en choisis un, l’empreinte de ton mot de passe. C’est tout.',
+            'Tu y entres par un lien envoyé à ton adresse, ou avec ton mot de passe, si tu en as choisi un. Il est facultatif : le lien marche toujours, et sert quand on l’a oublié.',
+            'Ton mot de passe n’est gardé nulle part : le serveur n’en garde qu’une empreinte, calculée avec scrypt et un sel tiré au sort, dont on ne peut pas le retrouver. Personne ne le connaît, pas même l’éditeur. Il ne voyage que chiffré (HTTPS), n’est écrit dans aucun journal, et ne part jamais par e-mail. Du lien de connexion et du secret de ta session aussi, le serveur ne garde qu’une empreinte : qui lirait le fichier des comptes n’entrerait dans aucun.',
+            'Les essais de mot de passe sont limités : cinq par quart d’heure pour un compte, vingt par heure depuis un même téléphone. Quand un mot de passe est choisi ou changé, un e-mail prévient l’adresse du compte, et ses autres téléphones en sortent.',
             'Base légale : le service que tu demandes en ouvrant ton compte (article 6, 1, b, du RGPD).',
           ],
         },
         {
           titre: 'L’adresse de ton téléphone sur le réseau',
           paragraphes: [
-            'Le serveur lit l’adresse IP de ton téléphone pour limiter les abus : pas plus de trente téléphones à la fois depuis une même adresse, pas plus de dix liens de connexion par heure. Il ne l’écrit nulle part : il la garde en mémoire tant que ton téléphone est branché, et une heure au plus quand il a demandé un lien.',
-            'Base légale : l’intérêt légitime à protéger le jeu (article 6, 1, f, du RGPD).',
+            'Le serveur lit l’adresse IP de ton téléphone pour limiter les abus : pas plus de trente téléphones à la fois depuis une même adresse, pas plus de dix liens de connexion ni de vingt essais de mot de passe par heure. Il ne l’écrit nulle part : il la garde en mémoire tant que ton téléphone est branché, et une heure au plus quand il a demandé un lien ou essayé un mot de passe.',
+            'Base légale : l’intérêt légitime à protéger le jeu et ses comptes (article 6, 1, f, du RGPD).',
           ],
         },
         {
           titre: 'Les statistiques',
           paragraphes: [
-            'Pour savoir comment le jeu est utilisé, le serveur compte ce qui s’y passe : les pages ouvertes, les rooms, les parties lancées et finies, les modes et les réglages choisis, les titres joués et trouvés, les playlists prises, ce qu’on cherche dans le bac, le genre d’appareil et de navigateur, l’heure et le jour. Ce ne sont que des compteurs : rien n’y dit qui a fait quoi. Ni ton nom d’artiste, ni tes réponses, ni ton adresse IP, ni ton e-mail.',
+            'Pour savoir comment le jeu est utilisé, le serveur compte ce qui s’y passe : les pages ouvertes, les rooms, les parties lancées et finies, les modes et les réglages choisis, les titres joués et trouvés, les playlists jouées, ce qu’on cherche dans le bac (seulement les recherches qui trouvent de la musique), le genre d’appareil, de navigateur et de système, l’heure et le jour. Ce ne sont que des compteurs : rien n’y dit qui a fait quoi. Ni ton nom d’artiste, ni tes réponses, ni ton adresse IP, ni ton e-mail.',
             'Pour compter les visiteurs d’un jour sans rien garder d’eux, le serveur calcule en mémoire une empreinte de l’adresse IP et du navigateur, mêlée à un secret tiré au sort chaque jour et jamais écrit : le lendemain, elle ne veut plus rien dire. Ton téléphone ne garde rien pour cela, ni cookie, ni identifiant.',
-            'Seul l’éditeur voit ces statistiques. Base légale : l’intérêt légitime à mesurer l’audience du site, dans les conditions où la CNIL dispense de consentement (article 82 de la loi Informatique et Libertés).',
+            'Tu peux t’y opposer : si ton navigateur envoie le signal « Global Privacy Control » ou « Do Not Track », le serveur ne compte que la page ouverte, sans empreinte et sans lire ton appareil. Tu peux aussi écrire à {contact}.',
+            'Seul l’éditeur voit ces statistiques, sur une page qui ne s’ouvre qu’avec sa clé. Base légale : l’intérêt légitime à mesurer l’audience du site, dans les conditions où la CNIL dispense de consentement (article 82 de la loi Informatique et Libertés).',
           ],
         },
         {
           titre: 'Les e-mails',
           paragraphes: [
-            'Le site n’envoie que deux sortes d’e-mails, et seulement à qui a un compte : le lien de connexion que tu demandes, et un avertissement si ton compte dort depuis presque deux ans. Jamais de lettre d’information ni de publicité. Ils partent par le service de messagerie de notre hébergeur, OVHcloud.',
+            'Le site n’envoie que trois sortes d’e-mails, et seulement à qui a un compte : le lien de connexion que tu demandes, un avis quand le mot de passe de ton compte change, et un avertissement si ton compte dort depuis presque deux ans. Jamais de lettre d’information ni de publicité. Ils partent par le service de messagerie de notre hébergeur, OVHcloud.',
           ],
         },
         {
@@ -372,8 +403,14 @@ export const TEXTES: Textes = {
         {
           titre: 'Ce que le site garde sur ton téléphone',
           paragraphes: [
-            'Ni cookie, ni traceur, ni outil tiers. Le site garde dans le stockage local de ton navigateur seulement ce qu’il faut pour marcher : ta pochette, la room où tu joues (pour y revenir si la page se recharge), le secret de ta session si tu as un compte, le fait que tu as vu le petit tutoriel, et les playlists que tu as importées (« Mes playlists »).',
+            'Ni cookie, ni traceur, ni outil tiers. Le site garde dans le stockage local de ton navigateur seulement ce qu’il faut pour marcher : ta pochette, la room où tu joues (pour y revenir si la page se recharge), le secret de ta session si tu as un compte, le fait que tu as vu le petit tutoriel, et les playlists que tu as importées (« Mes playlists »). Jamais ton mot de passe : ton navigateur peut le retenir dans son trousseau, si tu le lui demandes.',
             'Ces informations, strictement nécessaires au jeu que tu demandes, ne demandent pas ton consentement (article 82 de la loi Informatique et Libertés). Tu peux les effacer quand tu veux, en effaçant les données du site dans ton navigateur.',
+          ],
+        },
+        {
+          titre: 'Les journaux du serveur',
+          paragraphes: [
+            'Le serveur note ses erreurs et ses redémarrages, sans adresse IP ni e-mail. Si tu ouvres le site avec « ?diagnostic » au bout de son adresse (une aide au dépannage, que l’éditeur peut te demander), il note aussi, pendant cette visite, ce que font le son et la fenêtre de ton navigateur : son nom et sa version, la taille de l’écran, ce qu’il dit quand il joue un extrait ; jamais ton adresse IP, ni ce que tu tapes.',
           ],
         },
         {
@@ -381,10 +418,11 @@ export const TEXTES: Textes = {
           paragraphes: [
             'Une room et ce qui s’y joue : tant qu’elle existe, en mémoire.',
             'Un lien de connexion : un quart d’heure, et il ne sert qu’une fois.',
-            'Une session : six mois, prolongée à chaque visite ; oubliée dès que tu te déconnectes.',
-            'Un compte : tant que tu t’en sers. Après deux ans sans visite, il est effacé tout seul, avec ta pochette et tes scores ; un e-mail te prévient un mois avant. Tu peux aussi l’effacer toi-même, tout de suite : « Mon compte », puis « Effacer mon compte ».',
-            'L’adresse IP de ton téléphone : en mémoire seulement, le temps de ta connexion (une heure au plus pour un lien demandé). Les journaux techniques du serveur (ses erreurs, ses redémarrages) ne gardent rien plus de six mois.',
-            'Les statistiques : des compteurs, gardés treize mois jour par jour, puis seulement en totaux.',
+            'Une session : six mois, prolongée à chaque visite ; oubliée dès que tu te déconnectes, ou que ton mot de passe change ailleurs.',
+            'Un compte, et l’empreinte de ton mot de passe : tant que tu t’en sers. Après deux ans sans visite, il est effacé tout seul, avec ta pochette et tes scores ; un e-mail te prévient un mois avant. Tu peux aussi l’effacer toi-même, tout de suite : « Mon compte », puis « Effacer mon compte ».',
+            'L’adresse IP de ton téléphone : en mémoire seulement, le temps de ta connexion (une heure au plus pour un lien demandé ou un mot de passe essayé).',
+            'Les journaux du serveur : six mois au plus.',
+            'Les statistiques : des compteurs, gardés treize mois jour par jour, puis seulement en totaux, qui ne disent rien de personne.',
           ],
         },
         {
@@ -392,9 +430,16 @@ export const TEXTES: Textes = {
           paragraphes: ['Le serveur est loué à OVHcloud, en France (Strasbourg). Le site ne transfère aucune donnée hors de l’Union européenne.'],
         },
         {
+          titre: 'La sécurité',
+          paragraphes: [
+            'Le site ne se sert qu’en HTTPS. Le serveur tourne dans un conteneur sans droits, et le fichier des comptes n’est lisible que par lui ; les secrets (liens, sessions, mots de passe) n’y sont gardés qu’en empreintes. Si une fuite touchait tes données, on le dirait à la CNIL dans les 72 heures, et à toi si elle présente un risque élevé pour toi, comme le RGPD le demande.',
+          ],
+        },
+        {
           titre: 'Tes droits',
           paragraphes: [
-            'Tu peux accéder à tes données, les faire corriger ou effacer, en limiter l’usage, t’y opposer, et les récupérer dans un format lisible : écris à {contact}, on te répond sous un mois. Pour effacer ton compte, pas besoin d’écrire : « Mon compte », puis « Effacer mon compte ».',
+            'Tu peux accéder à tes données, les faire corriger ou effacer, en limiter l’usage, t’y opposer, et les récupérer dans un format lisible : écris à {contact}, on te répond sous un mois. Pour effacer ton compte, pas besoin d’écrire : « Mon compte », puis « Effacer mon compte » ; tout part avec, sur-le-champ.',
+            'Tu peux aussi dire ce que deviendront tes données après ta mort (article 85 de la loi Informatique et Libertés).',
             'Si tu estimes que tes droits ne sont pas respectés, tu peux t’adresser à la CNIL (cnil.fr).',
           ],
         },
@@ -422,6 +467,12 @@ export const TEXTES: Textes = {
           titre: 'La musique',
           paragraphes: [
             'Les extraits de 30 secondes, les pochettes et les titres viennent de l’API de Deezer et appartiennent à leurs ayants droit. Ici, on ne les écoute qu’en extraits, pour un usage privé et non commercial, entre proches, comme le demandent les conditions de Deezer. Deezer n’a ni approuvé ni parrainé ce site.',
+          ],
+        },
+        {
+          titre: 'Ce que les joueurs écrivent',
+          paragraphes: [
+            'Les noms d’artiste et les pochettes sont choisis par les joueurs, et ne se voient que dans leur room. Chacun répond de ce qu’il écrit. Pour signaler un contenu illicite, écris à {contact} : il sera retiré au plus vite.',
           ],
         },
         {
@@ -576,6 +627,7 @@ export const TEXTES: Textes = {
       pleinEcran: 'Passés en plein écran',
       sonBloque: 'Son bloqué par le navigateur',
       robots: 'Robots écartés',
+      sansSuivi: 'Pages ouvertes sans suivi (GPC, DNT)',
       noms: {
         iphone: 'iPhone',
         ipad: 'iPad',
@@ -623,6 +675,11 @@ export const TEXTES: Textes = {
       perimes: 'Liens périmés',
       sorties: 'Sorties',
       effaces: 'Comptes effacés',
+      motDePasseEntrees: 'Entrées par mot de passe',
+      motDePasseFaux: 'Mots de passe faux',
+      motDePasseBloques: 'Essais retenus',
+      motDePasseChoisis: 'Mots de passe choisis',
+      motDePasseFaibles: 'Mots de passe trop faibles',
     },
     records: {
       titre: 'Les records',

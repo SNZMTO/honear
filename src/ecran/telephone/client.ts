@@ -16,7 +16,7 @@ import { avancementDeLExtrait, type Reponse } from '../../regles/piste';
 import { TELEPHONE } from '../../ressources/ecran';
 import { AMPLEURS, TOUCHES } from '../../ressources/mouvement';
 import type { Pochette } from '../../ressources/pochettes';
-import { PARTIE } from '../../ressources/reglages';
+import { MOT_DE_PASSE, PARTIE } from '../../ressources/reglages';
 import { NOM_AU_PLUS } from '../../regles/pochette';
 import type { CleDeVibration } from '../../ressources/vibrations';
 import { calque, soulever, type Calque } from '../../scene/calque';
@@ -232,6 +232,7 @@ const SORTES_DE_CHAMP: Partial<Readonly<Record<Toucher['genre'], SorteDeChamp>>>
   collerLeLien: 'lien',
   taperLAdresse: 'email',
   taperLeNom: 'nom',
+  taperLeMotDePasse: 'motDePasse',
 };
 
 /** Le clavier qu'un champ demande au téléphone : sa touche de validation, ses capitales, sa sorte. */
@@ -242,6 +243,7 @@ const CLAVIERS: Readonly<Record<SorteDeChamp, { readonly touche: string; readonl
   lien: { touche: 'go', majuscules: 'none', sorteDeClavier: 'url' },
   email: { touche: 'send', majuscules: 'none', sorteDeClavier: 'email' },
   nom: { touche: 'done', majuscules: 'words', sorteDeClavier: 'text' },
+  motDePasse: { touche: 'go', majuscules: 'none', sorteDeClavier: 'text' },
 };
 
 /** Les millisecondes d'une seconde : les animations de la page comptent en millisecondes, nos tables en secondes. */
@@ -800,8 +802,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
 
   /** Pose le champ du clavier sur une étiquette, avec ce qu'on y a déjà tapé, sans toucher à ce qu'on est en train d'y taper. */
   function poserLeChamp(sorte: SorteDeChamp, cle: string, place: string, libelle: string): void {
+    const prep = memoire.preparation;
     if (champ.dataset['cle'] !== cle) {
-      const prep = memoire.preparation;
       champ.dataset['cle'] = cle;
       champ.dataset['pour'] = sorte;
       champ.value =
@@ -811,9 +813,11 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
             : ''
           : sorte === 'reponse'
             ? memoire.pouce.tape
-            : sorte === 'email'
+            : sorte === 'email' || sorte === 'motDePasse'
               ? prep.ecran === 'compte'
-                ? prep.email
+                ? sorte === 'email'
+                  ? prep.email
+                  : (prep.motDePasse ?? '')
                 : ''
               : sorte === 'nom'
                 ? prep.ecran === 'pochette'
@@ -825,14 +829,30 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
                     : prep.bac.recherche
                   : '';
       champ.maxLength =
-        sorte === 'code' ? PARTIE.code.longueur : sorte === 'email' ? ADRESSE_AU_PLUS : sorte === 'nom' ? NOM_AU_PLUS : SAISIE_AU_PLUS;
-      // Une adresse e-mail, le téléphone sait la proposer ; le reste, il ne doit rien deviner.
-      champ.setAttribute('autocomplete', sorte === 'email' ? 'email' : 'off');
+        sorte === 'code'
+          ? PARTIE.code.longueur
+          : sorte === 'email'
+            ? ADRESSE_AU_PLUS
+            : sorte === 'nom'
+              ? NOM_AU_PLUS
+              : sorte === 'motDePasse'
+                ? MOT_DE_PASSE.auPlus
+                : SAISIE_AU_PLUS;
+      // Une adresse e-mail, le téléphone sait la proposer, et un mot de passe, son trousseau : celui avec lequel on entre, ou un
+      // nouveau, qu'il peut proposer et garder. Le reste, il ne doit rien deviner. Un mot de passe ne s'affiche pas, même invisible.
+      const nouveau = prep.ecran === 'compte' && prep.etape === 'nouveauMotDePasse';
+      champ.type = sorte === 'motDePasse' ? 'password' : 'text';
+      champ.setAttribute(
+        'autocomplete',
+        sorte === 'email' ? 'email' : sorte === 'motDePasse' ? (nouveau ? 'new-password' : 'current-password') : 'off',
+      );
       const { touche, majuscules, sorteDeClavier } = CLAVIERS[sorte];
       champ.setAttribute('enterkeyhint', touche);
       champ.setAttribute('autocapitalize', majuscules);
       champ.setAttribute('inputmode', sorteDeClavier);
     }
+    // Un mot de passe que la mémoire a effacé (il était faux) s'efface aussi du champ.
+    if (sorte === 'motDePasse' && prep.ecran === 'compte' && champ.value !== (prep.motDePasse ?? '')) champ.value = prep.motDePasse ?? '';
     champ.setAttribute('aria-label', libelle);
     champ.style.cssText = place;
     champ.hidden = false;

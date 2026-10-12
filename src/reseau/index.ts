@@ -26,11 +26,12 @@ import { demarrerLeServeur } from '../serveur/serveur';
 import { API_DE_DEEZER } from '../serveur/sources/deezer';
 import { PAGES_DE_SPOTIFY } from '../serveur/sources/spotify';
 import { PISTES_D_ESSAI, PLAYLIST_D_ESSAI } from '../serveur/sources/essai';
-import { adresseEmail, enHtml, lettreDAvertissement, lettreDuLien, ouvrirLesComptes, type Comptes } from './comptes';
+import { adresseEmail, enHtml, lettreDAvertissement, lettreDuLien, lettreDuMotDePasse, ouvrirLesComptes, type Comptes } from './comptes';
 import { posterParSmtp, type ConfigurationDuCourrier, type Poster } from './courrier';
 import type { FaitDuJeu } from '../serveur/faits';
 import { aLHeureDe, dateDuCourrier, heureDuMonde, horlogeDuServeur, joursDu } from './horloge';
 import { ouvrirLaLigne } from './ligne';
+import { hacherUnMotDePasse, verifierUnMotDePasse } from './mots-de-passe';
 import { brancherLaMusique, type Musique } from './musique';
 import { ouvrirLaPorte } from './porte';
 import { ouvrirLesStatistiques, type Statistiques } from './statistiques';
@@ -110,6 +111,9 @@ function configuration(): ConfigurationDuSite {
 /** L'adresse e-mail d'un expéditeur, qu'il s'écrive seul ou avec un nom (« Honear <bonjour@…> »). */
 const adresseEmailDe = (de: string): string => /<([^<>]+)>/.exec(de)?.[1] ?? de;
 
+/** Vrai si le navigateur demande à ne pas être suivi : Global Privacy Control (« Sec-GPC: 1 »), ou Do Not Track (« DNT: 1 »). */
+const neVeutPasEtreSuivi = (requete: IncomingMessage): boolean => requete.headers['sec-gpc'] === '1' || requete.headers['dnt'] === '1';
+
 /** L'expéditeur des lettres : le nom du site, que les textes donnent, devant l'adresse qui les envoie ; l'adresse seule sans eux. */
 function expediteur(de: string): string {
   const nom = typeof TEXTES_DU_COMPTE !== 'undefined' && TEXTES_DU_COMPTE !== undefined ? TEXTES_DU_COMPTE.courrier.signature : undefined;
@@ -153,6 +157,8 @@ function comptesDansUnFichier(c: NonNullable<ConfigurationDuSite['comptes']>): C
     secret: () => randomBytes(32).toString('base64url'),
     identifiant: () => randomBytes(9).toString('base64url'),
     empreinte: (secret) => createHash('sha256').update(secret).digest('hex'),
+    hacher: hacherUnMotDePasse,
+    verifier: verifierUnMotDePasse,
     lu: existsSync(c.fichier) ? readFileSync(c.fichier, 'utf8') : undefined,
     garder(texte) {
       try {
@@ -167,6 +173,7 @@ function comptesDansUnFichier(c: NonNullable<ConfigurationDuSite['comptes']>): C
     poster,
     lettre: lettreDuLien(c.textes.courrier, c.site),
     avertissement: lettreDAvertissement(c.textes.courrier, c.site),
+    avisDuMotDePasse: lettreDuMotDePasse(c.textes.courrier, c.site),
   });
 }
 
@@ -237,8 +244,9 @@ function fichiersDeLApplication(c: ConfigurationDuSite): Record<string, { readon
   return fichiers;
 }
 
-/** Entre deux ménages des comptes, en millisecondes. */
+/** Entre deux ménages des comptes, en millisecondes ; entre deux oublis de ce qui ne compte plus (liens, essais). */
 const MENAGE = RESEAU.comptes.inactif.menage * 1000;
+const OUBLI = RESEAU.comptes.oubli * 1000;
 /** Entre deux écritures des statistiques, en millisecondes. */
 const ECRITURE_DES_STATISTIQUES = RESEAU.statistiques.ecriture * 1000;
 
@@ -316,6 +324,10 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
   faireLeMenage();
   const menage = comptes !== undefined ? setInterval(faireLeMenage, MENAGE) : undefined;
   menage?.unref();
+  // Les liens périmés, les adresses dont les essais ne comptent plus : oubliés au fil de l'heure.
+  const oublierLesEssais = (): void => comptes?.oublier();
+  const oubli = comptes !== undefined ? setInterval(oublierLesEssais, OUBLI) : undefined;
+  oubli?.unref();
   const serveur = demarrerLeServeur({
     maintenant,
     tirage,
@@ -391,7 +403,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
                   : undefined,
             },
             quandUnePage: (requete: IncomingMessage, room: boolean) =>
-              statistiques.page(adresseDe(requete), requete.headers['user-agent'] ?? '', room),
+              statistiques.page(adresseDe(requete), requete.headers['user-agent'] ?? '', room, neVeutPasEtreSuivi(requete)),
           }
         : {}),
     }),
@@ -411,6 +423,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
         ferme = true;
         if (reveil !== undefined) clearTimeout(reveil);
         if (menage !== undefined) clearInterval(menage);
+        if (oubli !== undefined) clearInterval(oubli);
         if (ecriture !== undefined) clearInterval(ecriture);
         statistiques?.garder();
         ligne.fermer();

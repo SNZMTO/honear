@@ -373,6 +373,8 @@ src/
     jugement.ts                 Juste, presque ou faux : la saisie normalisée, comparée à l'attendu à quelques fautes près.
     modes/                      Le contrat d'un mode et le registre ; « Libre » et « 4 choix », chacun son barème.
     messages.ts                 Le contrat du transport : actions, nouvelles, et le journal tel que le serveur le publie.
+    mot-de-passe.ts             Ce que vaut un mot de passe de compte (au téléphone comme au serveur), et sa forme normale.
+    statistiques.ts             Ce que la page des statistiques reçoit du serveur.
 
   mouvement/
     ressort.ts                  Le ressort amorti, par sa solution exacte ; son dépassement, son temps d'arrivée, sa retombée après un coup.
@@ -485,14 +487,16 @@ src/
     vibreur.ts                  Faire vibrer le téléphone, quand il sait.
     vider.ts                    Vider un élément de la page.
     jeu/                        La page du jeu en ligne : son gabarit, son démarrage (l'adresse d'une room, la reprise après un rechargement).
+    statistiques/               La page des statistiques, pour l'éditeur seul : son gabarit, son tableau.
     telephone/                  Le client du téléphone : sa mémoire (`memoire.ts` : ce que le serveur lui a dit, ce qu'on y fait), l'écran
                                 qu'elle donne (`route.ts`), ce qu'on y touche (`touchers.ts`), et la page (`client.ts`) ; l'heure du
                                 serveur (`heure.ts`), la ligne qui se rebranche (`websocket.ts`), et le haut-parleur (`son.ts`).
 
   reseau/                       Le site en ligne : `index.ts` (l'entrée, la minuterie), `porte.ts` (HTTP), `ligne.ts` (WebSocket), `horloge.ts` ;
                                 `musique.ts` (les appels à Deezer et les pages de Spotify, sous leur limite de débit, et ce qu'on en garde) ;
-                                `comptes.ts` (les comptes, leurs liens de connexion, leurs sessions, leur fichier) et `courrier.ts` (l'envoi
-                                des liens, par le serveur SMTP d'une boîte e-mail).
+                                `comptes.ts` (les comptes, leurs liens de connexion, leurs sessions, leur fichier), `mots-de-passe.ts` (leur
+                                empreinte scrypt) et `courrier.ts` (l'envoi des liens, par le serveur SMTP d'une boîte e-mail) ;
+                                `statistiques.ts` (ce qui se passe, compté, jamais qui).
   serveur/
     room.ts                     Une room : son journal, le déroulé de sa piste, sa playlist, ceux qui y sont branchés ; elle décide de tout.
     serveur.ts                  Les rooms par leur code, les connexions des téléphones et leurs jetons, une seule horloge, l'expiration.
@@ -916,6 +920,16 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   playlists et recherches du bac, partage et arrivées (QR, lien, code), tutoriel, comptes, records. Les rooms racontent ce qui
   s'y passe (`serveur/faits.ts`) ; le téléphone dit ce que lui seul voit (`statistique`). Jour par jour sur treize mois, puis en
   totaux, dans `/var/lib/honear/statistiques.json`, réécrit chaque minute. La page (`ecran/statistiques/`) se relit toutes les 30 s.
+- **Les mots de passe** : facultatifs, dans « Mon compte » (le lien par e-mail marche toujours, et sert quand on l'a oublié). Dehors,
+  « J'ai un mot de passe » sous l'adresse, puis « Entrer », ou « Mot de passe oublié » (le lien part) ; dedans, « Mot de passe »
+  (ce qu'il vaut s'écrit à mesure qu'on le tape). Empreinte scrypt, essais comptés, autres sessions sorties et adresse prévenue
+  quand il change (`reseau/mots-de-passe.ts`, `regles/mot-de-passe.ts`, voir NOTES-TECHNIQUES.md). L'écran du compte remonte d'un
+  cran pour ses trois touches (`TABLEE.telephone.compte.serre`, `dedans`, `nouveau`).
+- **Le RGPD, revu** : la confidentialité dit les mots de passe, les statistiques (et comment s'y opposer : Global Privacy Control,
+  Do Not Track, que le serveur respecte), les journaux et `?diagnostic`, la sécurité, les fuites, les directives après la mort ;
+  les mentions légales, comment signaler un contenu. Les statistiques ne gardent ni le texte d'une recherche qui ne trouve rien,
+  ni le nom d'une playlist collée. `RGPD.md` tient le registre des traitements et la marche à suivre ; `deploiement/donnees.sh`
+  donne à l'éditeur ce que le site garde d'un compte, pour répondre à qui le demande.
 - **Docker** : le jeu dans un conteneur sans droits (`Dockerfile`, `deploiement/compose.yaml`), deux scripts (mettre en ligne,
   régler le courrier) à la place de l'installateur et du service systemd. La machine durcie et le frontal Caddy, partagés avec
   les autres sites du VPS, sont dans le dépôt `vps`.
