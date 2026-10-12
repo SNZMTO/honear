@@ -107,6 +107,8 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
           }
           if (lien !== undefined) {
             if (!AFFAIRES_DU_RESEAU.has(action.genre)) lien.room.recevoir(lien.id, action, heure);
+            // Il s'en va : sa ligne reste, hors de toute room ; il peut en ouvrir ou en rejoindre une autre.
+            if (action.genre === 'quitter') lien = undefined;
             return;
           }
           // Chercher une playlist, en importer une, entrer dans son compte : c'est l'affaire du réseau, qui parle à la source de musique

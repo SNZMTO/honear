@@ -92,7 +92,8 @@ test('les quatre étiquettes arrivent à 40 ms d’écart ; celle qu’on touche
   assert.ok(proche((aLInstant(g, 1 + TOUCHES.enfonce) as Record<string, number>).enfonce0 ?? 0, TOUCHES.course));
   const apres = aLInstant(g, 3) as Record<string, number>;
   assert.equal(apres.x1, 0, 'la bonne reste');
-  for (const rang of [0, 2, 3]) assert.ok(T.choix.x + T.choix.largeur / 2 + (apres[`x${rang}`] ?? 0) < 0, `l’étiquette ${rang + 1} est sortie`);
+  for (const rang of [0, 2, 3])
+    assert.ok((T.choix.x[rang % 2] ?? 0) + T.choix.largeur / 2 + (apres[`x${rang}`] ?? 0) < 0, `l’étiquette ${rang + 1} est sortie`);
 });
 
 test('la vraie pochette sort de sous la kraft et s’arrête de travers ; une pochette qui se retourne se soulève, puis montre son dos', () => {

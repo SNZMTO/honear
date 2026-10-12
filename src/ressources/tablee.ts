@@ -49,6 +49,8 @@ export const TABLEE = {
       /** Ce dont une pochette sur deux descend, pour que l'éventail ait un peu de relief. */
       decalage: 3,
     },
+    /** Le tableau des scores, en jeu : les points de chacun, sous sa pochette dans l'éventail, de ce corps, tant de px sous elle. */
+    scores: { corps: 12, sous: 14 },
     /** La pastille qui claque sur une pochette de l'éventail quand son joueur trouve : petite, dans son coin bas-droit. */
     trouve: { rayon: 12, coin: [0.36, 0.34], angle: -10 },
     /** La pastille du hit-parade ou des points sur une pochette plus grande : dans son coin bas-droit (en part du côté). */
@@ -70,7 +72,18 @@ export const TABLEE = {
      */
     clavier: { hauteur: 291, descente: 44, eventail: 486, reponse: 526, auPlusHaut: 330 },
     /** Les quatre étiquettes à toucher du mode 4 choix, en colonne dans la zone du pouce. */
-    choix: { x: 134, y: [632, 686, 740, 794], largeur: 232, angles: [-1.5, 1, -1, 1.5] },
+    /**
+     * Les quatre étiquettes du mode 4 choix, en deux colonnes de deux, à gauche de la pochette kraft : le milieu de chaque colonne,
+     * la hauteur de chacune (de la première à la quatrième, rang par rang), leur largeur ; le titre au-dessus, l'interprète dessous.
+     */
+    choix: {
+      x: [74, 194],
+      y: [636, 636, 734, 734],
+      largeur: 112,
+      angles: [-1.5, 1, -1, 1.5],
+      /** L'étiquette qu'on a touchée : enfoncée de tant de px, à plat, dans ce papier plus sombre. */
+      touchee: { enfonce: 3, teinte: 'kraft' },
+    },
     /**
      * Un papier qui dit ce qui se passe, sur la colonne, au-dessus de la zone du pouce ; à gauche de la vraie pochette, une fois révélée.
      * Taillé à sa phrase, il garde son bord gauche.
@@ -83,6 +96,8 @@ export const TABLEE = {
      * contrepoids du bras), ou du cadre. Son centre, dans le regard du téléphone, et son rayon.
      */
     volume: { en: [364, 54], rayon: 15 },
+    /** La touche pour quitter la partie, en miroir du volume : au coin haut gauche du cadre, son bord gauche et son milieu. */
+    quitter: { en: [10, 54] },
     /**
      * L'accueil : le titre du jeu, en grand, sous la platine ; deux grandes touches au milieu, créer une room ou en rejoindre une
      * avec son code (leur hauteur) ; dessous, deux petits onglets, sa pochette à gauche et son compte à droite, entre ces deux bords.

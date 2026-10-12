@@ -10,8 +10,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { pageDuJeu } from '../src/ecran/jeu/gabarit';
+import { iconeDeLApplication, manifesteDeLApplication } from '../src/ecran/jeu/application';
 import { pageLegale, type CleDePageLegale } from '../src/ecran/jeu/legal';
-import { PAGES_LEGALES } from '../src/ressources/reglages';
+import { APPLICATION, PAGES_LEGALES } from '../src/ressources/reglages';
 import { policesEnBase64 } from '../src/planche/polices';
 import { CIBLE, pourUnePage } from '../src/planche/script';
 import { TEXTES } from '../src/ressources/textes.fr';
@@ -36,6 +37,10 @@ const [sortie] = script.outputFiles;
 if (sortie === undefined) throw new Error("Le script de la page n'a pas été assemblé.");
 const page = pageDuJeu(TEXTES, pourUnePage(sortie.text));
 writeFileSync(join(DIST, 'index.html'), page);
+
+// Le jeu comme une application : son manifeste et son icône, que le serveur sert à leur adresse.
+writeFileSync(join(DIST, APPLICATION.manifeste.slice(1)), manifesteDeLApplication(TEXTES));
+writeFileSync(join(DIST, APPLICATION.icone.slice(1)), iconeDeLApplication());
 
 // Les pages légales, sans script : le serveur les sert à leur adresse (« /confidentialite » dans confidentialite.html).
 for (const cle of Object.keys(PAGES_LEGALES) as CleDePageLegale[])

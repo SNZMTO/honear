@@ -11,7 +11,7 @@
 import type { NomDeCalque } from '../../lexique';
 import { couleur } from '../../lowpoly/tons';
 import type { Action, Brancher, Connexion } from '../../regles/messages';
-import type { Reponse } from '../../regles/piste';
+import { avancementDeLExtrait, type Reponse } from '../../regles/piste';
 import { TELEPHONE } from '../../ressources/ecran';
 import { AMPLEURS, TOUCHES } from '../../ressources/mouvement';
 import type { Pochette } from '../../ressources/pochettes';
@@ -34,10 +34,12 @@ import {
 } from '../../scene/telephone/ecrans';
 import { vueDuCompte } from '../../scene/telephone/compte';
 import type { PoseDeLaPiste } from '../../scene/piste/pose';
+import type { PisteEnScene } from '../../scene/piste/etat';
 import { regardDeLaPiste } from '../../scene/piste/regard';
 import { decorDeLaPiste } from '../../scene/telephone/meuble';
 import { meubleAutour, rangerSousLeDisque, regardPourLaFenetre } from '../../scene/telephone/grand';
-import { boutonDuVolume, cranDuVolume, type PlaceDuVolume } from '../../scene/telephone/volume';
+import { toucheQuitter } from '../../scene/telephone/quitter';
+import { angleDuVolume, boutonDuVolume, cranDuVolume, INDEX_DU_VOLUME, type PlaceDuVolume } from '../../scene/telephone/volume';
 import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
 import { autourDeLaPiste, pochetteSurLeVerso } from '../../scene/telephone/piste';
 import { vueDeLaPochette } from '../../scene/telephone/pochette';
@@ -100,6 +102,8 @@ export interface OptionsDuTelephone {
   readonly retenir?: (aGarder: AGarder) => void;
   /** Le vibreur du téléphone, s'il en a un. */
   readonly vibrer?: (cle: CleDeVibration) => void;
+  /** Demande oui ou non (quitter la partie) ; sans elle, c'est oui. */
+  readonly confirmer?: (question: string) => boolean;
   /** Vrai si le téléphone joue les extraits que le serveur lui donne (le jeu en ligne) ; sans cela, il reste muet. */
   readonly son?: boolean;
   /**
@@ -124,7 +128,15 @@ interface ImagePosee {
 }
 
 /** Un téléphone muet : rien à jouer, toujours prêt. */
-const SANS_SON: HautParleur = { debloquer: () => undefined, suivre: () => undefined, pret: () => true, bloque: false, fermer: () => undefined };
+const SANS_SON: HautParleur = {
+  debloquer: () => undefined,
+  suivre: () => undefined,
+  pret: () => true,
+  bloque: false,
+  volumeReglable: true,
+  cliquer: () => undefined,
+  fermer: () => undefined,
+};
 
 export interface Telephone {
   fermer(): void;
@@ -199,6 +211,15 @@ const CLAVIERS: Readonly<Record<SorteDeChamp, { readonly touche: string; readonl
 
 /** Les millisecondes d'une seconde : les animations de la page comptent en millisecondes, nos tables en secondes. */
 const MS_PAR_SECONDE = 1000;
+
+/** Le volume, en pour cent, pour les aides à la lecture. */
+const POUR_CENT = 100;
+/** L'index du volume rejoint son angle en ce temps-là, à peu près : il en a fait l'essentiel en tant de « temps de rapprochement ». */
+const RAPPROCHEMENTS = 3;
+/** La molette tourne le bouton tant de fois moins qu'un doigt qui glisse d'autant. */
+const MOLETTE = 4;
+/** Plus près que ça de son angle, l'index y est. */
+const DEMI_DEGRE = 0.5;
 
 /** L'index d'un bouton rond (« bouton-pistes/index/trait/tourne ») : c'est lui qui tourne. */
 const INDEX_D_UN_BOUTON = /^bouton-[^/]+\/index\/trait\/tourne$/;
@@ -495,6 +516,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   let tournants: { readonly montage: Montage; readonly nom: NomDeCalque; readonly de: number; readonly a: number; readonly depuis: number }[] = [];
   function faireTourner(montage: Montage, boutons: readonly { readonly nom: NomDeCalque; readonly angle: number }[]): void {
     for (const { nom, angle } of boutons) {
+      // Le volume se tourne librement, à part (poserLeVolume).
+      if (nom === INDEX_DU_VOLUME) continue;
       const avant = anglesMontres.get(nom);
       tournants = tournants.filter((t) => t.nom !== nom);
       if (avant === undefined || avant === angle || o.options.sobre) {
@@ -765,6 +788,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       const nouvelle = piste?.lanceeA !== e.lanceeA;
       fermerLaPiste();
       const decor = decorDeLaPiste(a.textes, e.cran, e.numero);
+      const aiguilleDesPistes = e.numero.sur > 0 ? e.numero.numero / e.numero.sur : 0;
       const ecran = ouvrirLEcranDeLaPiste(scene, {
         decor,
         textes: a.textes,
@@ -773,7 +797,17 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
         densiteDeLEcran: o.densiteDeLEcran,
         options: o.options,
         ...(p !== undefined
-          ? { fenetre: { regardPour: (r: Regard) => regardPourLaFenetre(p, r), meuble: meubleAutour(a, [], parcouru(p), false) } }
+          ? {
+              fenetre: {
+                regardPour: (r: Regard) => regardPourLaFenetre(p, r),
+                meuble: meubleAutour(a, [], parcouru(p), false, [aiguilleDesPistes, 0]),
+                // L'aiguille de gauche dit où en est la face, celle de droite, l'extrait.
+                aiguilles: (s: PisteEnScene, t: number): readonly [number, number] => [
+                  aiguilleDesPistes,
+                  s.piste !== undefined ? avancementDeLExtrait(s.piste, t) : 0,
+                ],
+              },
+            }
           : {}),
       });
       // La piste commence : sa scène apparaît, fondue sur le noir ; d'une piste à la suivante aussi.
@@ -803,17 +837,33 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
 
   /**
    * Le bouton du volume, toujours là : sur l'ampli, quand le regard le montre (un grand écran), sinon dans le coin du téléphone.
-   * Il a sa couche à lui : changer le volume ne remonte que lui. Deux zones le touchent : sa moitié gauche baisse, la droite monte.
+   * Il a sa couche à lui, et son index tourne sans le remonter : on le tourne librement, en glissant le doigt dessus (vers la
+   * droite ou le haut, il monte), à la molette, aux flèches du clavier ; un toucher sans glisser le change d'un pas, de son côté.
    */
   let volumeMonte: Montee | undefined;
-  const zonesDuVolume = ([-1, 1] as const).map((sens) => {
-    const zone = document.createElement('button');
-    zone.type = 'button';
-    zone.className = 'zone';
-    zone.dataset['volume'] = String(sens);
-    zone.setAttribute('aria-label', sens < 0 ? a.textes.ampli.baisser : a.textes.ampli.monter);
-    zones.append(zone);
-    return zone;
+  /** L'angle où l'on montre son index, qui rejoint celui du volume en tournant ; le montage où on l'a posé, et quand. */
+  let angleDuVolumeMontre: { readonly angle: number; readonly sur: Montage; readonly a: number } | undefined;
+  const zoneDuVolume = document.createElement('button');
+  zoneDuVolume.type = 'button';
+  zoneDuVolume.className = 'zone';
+  zoneDuVolume.dataset['volume'] = '';
+  zoneDuVolume.setAttribute('role', 'slider');
+  zoneDuVolume.setAttribute('aria-label', a.textes.ampli.volume);
+  zoneDuVolume.setAttribute('aria-valuemin', '0');
+  zoneDuVolume.setAttribute('aria-valuemax', String(POUR_CENT));
+  zones.append(zoneDuVolume);
+  // La touche pour quitter la partie : avec le volume, dans le coin d'en face, sur tous les écrans d'une room.
+  const zoneQuitter = document.createElement('button');
+  zoneQuitter.type = 'button';
+  zoneQuitter.className = 'zone';
+  zoneQuitter.dataset['volume'] = '';
+  zoneQuitter.setAttribute('aria-label', a.textes.partie.quitter);
+  zoneQuitter.hidden = true;
+  zones.append(zoneQuitter);
+  zoneQuitter.addEventListener('click', () => {
+    hautParleur.cliquer('touche');
+    if (o.confirmer?.(a.textes.partie.quitterVraiment) === false) return;
+    agir({ genre: 'quitter' });
   });
   function poserLeVolume(): void {
     const r = regardMonte;
@@ -834,33 +884,101 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
         ? 'platine'
         : 'coin';
     const d = definition(r);
-    const cle = JSON.stringify([cranDuVolume(volume), ou, r, d]);
+    const enRoom = memoire.room !== undefined;
+    const cle = JSON.stringify([ou, r, d, enRoom]);
+    zoneDuVolume.setAttribute('aria-valuenow', String(Math.round(volume * POUR_CENT)));
     if (volumeMonte?.cle === cle) {
       volumeMonte.plan.suivreLeCadre();
+      tournerLeVolume(volumeMonte.montage);
       return;
     }
-    const objets = boutonDuVolume(a, r, volume, ou);
+    const quitter = enRoom ? toucheQuitter(a, r) : undefined;
+    // Là où la page ne règle pas le volume (l'iPhone), pas de bouton : ce sont ceux du téléphone.
+    const reglable = hautParleur.volumeReglable;
+    zoneDuVolume.hidden = !reglable;
+    const objets = [...(reglable ? boutonDuVolume(a, r, volume, ou) : []), ...(quitter !== undefined ? [quitter] : [])];
     volumeMonte = monterDans(coucheDuVolume, volumeMonte, cle, calque('regard-volume', objets), r, d, new Map());
+    tournerLeVolume(volumeMonte.montage);
+    zoneQuitter.hidden = quitter === undefined;
+    const q = quitter !== undefined ? empriseDe([quitter], a.encrier.largeur) : undefined;
+    if (q !== undefined) {
+      const h = Math.max(TELEPHONE.zoneAuMoins, q.hauteur);
+      const y = q.y + q.hauteur / 2 - h / 2 - r.origine[1];
+      zoneQuitter.style.cssText = `position:absolute;left:${part(q.x - r.origine[0], r.largeur)};top:${part(y, r.hauteur)};width:${part(q.largeur, r.largeur)};height:${part(h, r.hauteur)};`;
+    }
     const bouton = objets.find((c) => c.nom === 'bouton-volume');
     const e = bouton !== undefined ? empriseDe([bouton], a.encrier.largeur) : undefined;
     if (e === undefined) return;
-    // Chaque moitié, assez grande pour un pouce : elle déborde du bouton de son côté.
-    const cote = TELEPHONE.zoneAuMoins;
-    const milieu = e.x + e.largeur / 2 - r.origine[0];
-    const haut = e.y + e.hauteur / 2 - Math.max(cote, e.hauteur) / 2 - r.origine[1];
-    const h = Math.max(cote, e.hauteur);
-    const l = Math.max(cote, e.largeur / 2);
-    for (const [rang, zone] of zonesDuVolume.entries()) {
-      const x = rang === 0 ? milieu - l : milieu;
-      zone.style.cssText = `position:absolute;left:${part(x, r.largeur)};top:${part(haut, r.hauteur)};width:${part(l, r.largeur)};height:${part(h, r.hauteur)};`;
-    }
+    // Assez grande pour un pouce : elle déborde du bouton.
+    const cote = Math.max(TELEPHONE.zoneAuMoins, e.largeur, e.hauteur);
+    const x = e.x + e.largeur / 2 - cote / 2 - r.origine[0];
+    const y = e.y + e.hauteur / 2 - cote / 2 - r.origine[1];
+    zoneDuVolume.style.cssText = `position:absolute;touch-action:none;left:${part(x, r.largeur)};top:${part(y, r.hauteur)};width:${part(cote, r.largeur)};height:${part(cote, r.hauteur)};`;
   }
-  function changerLeVolume(sens: number): void {
-    const P = TELEPHONE.volume.pas;
-    volume = Math.min(1, Math.max(0, Math.round((volume + sens * P) / P) * P));
-    o.vibrer?.('touche');
+  /** Tourne l'index du volume vers l'angle de son volume : il le suit de près quand on glisse, et y va en douceur après un pas. */
+  function tournerLeVolume(montage: Montage): void {
+    const cible = angleDuVolume(volume);
+    const maintenant = o.horloge.maintenant();
+    const avant = angleDuVolumeMontre;
+    const angle =
+      avant === undefined || avant.sur !== montage || o.options.sobre
+        ? cible
+        : cible + (avant.angle - cible) * Math.exp((-RAPPROCHEMENTS * (maintenant - avant.a)) / TELEPHONE.tourne);
+    const proche = Math.abs(angle - cible) < DEMI_DEGRE ? cible : angle;
+    if (avant?.sur === montage && avant.angle === proche) return;
+    montage.regler([rotation(INDEX_DU_VOLUME, 0, proche)]);
+    angleDuVolumeMontre = { angle: proche, sur: montage, a: maintenant };
+  }
+  /** Règle le volume ; quand l'index passe un cran gravé, le bouton fait son petit bruit. */
+  function reglerLeVolume(nouveau: number): void {
+    const avant = cranDuVolume(volume);
+    volume = Math.min(1, Math.max(0, nouveau));
+    if (cranDuVolume(volume) !== avant) {
+      hautParleur.cliquer('cran');
+      o.vibrer?.('touche');
+    }
     boucle.reveiller();
   }
+  const changerLeVolume = (sens: number): void => {
+    const P = TELEPHONE.volume.pas;
+    reglerLeVolume(Math.round((volume + sens * P) / P) * P);
+  };
+  /** Le doigt qui tourne le bouton du volume : d'où il est parti, à quel volume, et s'il a glissé. */
+  let doigtSurLeVolume: { readonly id: number; readonly x: number; readonly y: number; readonly volume: number; glisse: boolean } | undefined;
+  zoneDuVolume.addEventListener('pointerdown', (ev) => {
+    if (!ev.isPrimary || ev.button !== 0) return;
+    zoneDuVolume.setPointerCapture(ev.pointerId);
+    doigtSurLeVolume = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, volume, glisse: false };
+  });
+  zoneDuVolume.addEventListener('pointermove', (ev) => {
+    const d = doigtSurLeVolume;
+    if (d === undefined || ev.pointerId !== d.id) return;
+    const parcours = ev.clientX - d.x - (ev.clientY - d.y);
+    if (!d.glisse && Math.abs(parcours) < TELEPHONE.volume.course * TELEPHONE.volume.pas) return;
+    d.glisse = true;
+    reglerLeVolume(d.volume + parcours / TELEPHONE.volume.course);
+  });
+  const lacherLeVolume = (ev: PointerEvent): void => {
+    const d = doigtSurLeVolume;
+    if (d === undefined || ev.pointerId !== d.id) return;
+    doigtSurLeVolume = undefined;
+    if (d.glisse || ev.type === 'pointercancel') return;
+    // Un toucher sans glisser : un pas, du côté touché.
+    const boite = zoneDuVolume.getBoundingClientRect();
+    changerLeVolume(ev.clientX < boite.left + boite.width / 2 ? -1 : 1);
+  };
+  zoneDuVolume.addEventListener('pointerup', lacherLeVolume);
+  zoneDuVolume.addEventListener('pointercancel', lacherLeVolume);
+  zoneDuVolume.addEventListener('wheel', (ev) => {
+    ev.preventDefault();
+    reglerLeVolume(volume - ev.deltaY / (TELEPHONE.volume.course * MOLETTE));
+  });
+  zoneDuVolume.addEventListener('keydown', (ev) => {
+    const sens = ev.key === 'ArrowUp' || ev.key === 'ArrowRight' ? 1 : ev.key === 'ArrowDown' || ev.key === 'ArrowLeft' ? -1 : 0;
+    if (sens === 0) return;
+    ev.preventDefault();
+    changerLeVolume(sens);
+  });
 
   /** Repeint une touche à cette part de sa course, de 0 (au repos) à 1 (au fond). */
   function peindreLaTouche(nom: NomDeCalque, course: number): void {
@@ -944,21 +1062,13 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       enfoncee = { nom: z.nom, depuis: o.horloge.maintenant(), montree: 0 };
       o.vibrer?.('touche');
     }
+    hautParleur.cliquer(z.nom.startsWith('bouton-') ? 'cran' : 'touche');
     agir(z.toucher);
   };
-  /** Le sens d'une zone du bouton du volume (-1, baisser ; 1, monter), si c'est elle qu'on touche. */
-  const sensDuVolume = (cible: EventTarget | null): number | undefined => {
-    const zone = cible instanceof HTMLElement ? cible.closest<HTMLElement>('[data-volume]') : null;
-    return zone !== null ? Number(zone.dataset['volume']) : undefined;
-  };
+  /** Vrai si c'est le bouton du volume qu'on touche : il a ses gestes à lui. */
+  const surLeVolume = (cible: EventTarget | null): boolean => cible instanceof HTMLElement && cible.closest('[data-volume]') !== null;
   const auToucher = (ev: PointerEvent): void => {
-    if (!ev.isPrimary || ev.button !== 0) return;
-    const sens = sensDuVolume(ev.target);
-    if (sens !== undefined) {
-      avaler = true;
-      changerLeVolume(sens);
-      return;
-    }
+    if (!ev.isPrimary || ev.button !== 0 || surLeVolume(ev.target)) return;
     const z = zoneDe(ev.target);
     avaler = z !== undefined;
     if (z !== undefined) presser(z);
@@ -969,11 +1079,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       avaler = false;
       return;
     }
-    const sens = sensDuVolume(ev.target);
-    if (sens !== undefined) {
-      changerLeVolume(sens);
-      return;
-    }
+    if (surLeVolume(ev.target)) return;
     const z = zoneDe(ev.target);
     if (z !== undefined) presser(z);
   };

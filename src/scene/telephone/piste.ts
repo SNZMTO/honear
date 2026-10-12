@@ -6,16 +6,19 @@
  */
 
 import { surLEcran } from '../../lowpoly/projection';
+import { TON_DE_BASE } from '../../lowpoly/tons';
 import type { Vec2 } from '../../lowpoly/vecteurs';
-import type { EtatDeLaPartie } from '../../regles/partie';
+import { hitParade, type EtatDeLaPartie } from '../../regles/partie';
 import type { Reponse } from '../../regles/piste';
 import { ETIQUETTE } from '../../ressources/etiquette';
+import { MEUBLE } from '../../ressources/meuble';
 import { PLATINE } from '../../ressources/platine';
-import { TABLEE } from '../../ressources/tablee';
+import { TABLEE, type Place } from '../../ressources/tablee';
 import { VERSO } from '../../ressources/verso';
-import type { Calque } from '../calque';
-import type { Regard } from '../meuble';
+import { aPlatSurLeMeuble, type Calque, type Texte } from '../calque';
+import { surLeBois, type Regard } from '../meuble';
 import type { PoseDeLaPiste } from '../piste/pose';
+import { remplir } from '../phrases';
 import { regardDeLaPiste } from '../piste/regard';
 import { dessinerLaTablee, eventail, placesEnEventail } from '../tablee';
 import { phrase, type Ecritoire } from './pieces';
@@ -91,6 +94,29 @@ export const dessusDuClavier = (regard: Regard, vrai: number | undefined): numbe
 };
 
 /** Les objets posés autour de la piste, dans ce regard. */
+/** Les points de chacun, écrits sous sa pochette dans l'éventail, en crème sur le bois : le tableau des scores, en jeu. */
+function scoresSousLEventail(a: Ecritoire, regard: Regard, etat: EtatDeLaPartie, places: readonly Place[]): Calque {
+  const S = T.scores;
+  const textes: Texte[] = hitParade(etat).flatMap(({ joueur }, rang) => {
+    const place = places[rang];
+    if (place === undefined) return [];
+    return [
+      {
+        genre: 'texte',
+        contenu: remplir(a.textes.partie.points, { points: String(joueur.points) }),
+        role: 'techniqueFort',
+        corps: S.corps,
+        en: surLeBois(regard, place.en[0], place.en[1] + T.eventail.taille / 2 + S.sous),
+        ancrage: 'milieu',
+        teinte: 'creme',
+        ton: TON_DE_BASE,
+        fond: { teinte: MEUBLE.noyer.nu },
+      },
+    ];
+  });
+  return { ...aPlatSurLeMeuble('score', 0, textes), role: 'mobile' };
+}
+
 export function autourDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste): Calque[] {
   const { revelee, repondre } = o;
   const ouvert = repondre.genre === 'saisie' && repondre.clavier;
@@ -101,6 +127,8 @@ export function autourDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste
   // Le clavier ouvert prend le bas de l'écran : l'éventail remonte au-dessus de l'étiquette, sans la kraft.
   const places = placesEnEventail(joueurs.length, ouvert).map((p) => (ouvert ? { ...p, en: [p.en[0], T.clavier.eventail + remonte] as const } : p));
   const objets: Calque[] = [...dessinerLaTablee(joueurs, places, T.eventail.taille, regard, T.trouve, a.encrier.largeur)];
+  // Le tableau des scores, en jeu : sous chaque pochette (rangées au classement), ses points. Le clavier ouvert prend la place.
+  if (!ouvert) objets.push(scoresSousLEventail(a, regard, o.etat, places));
   if (repondre.genre === 'choix') {
     objets.push(...etiquettesAToucher(a, regard, repondre.proposes, revelee, revelee !== undefined ? undefined : repondre.touchee));
     return objets;

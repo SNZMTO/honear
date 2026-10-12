@@ -199,6 +199,8 @@ export type Toucher =
   | { readonly genre: 'porter'; readonly rang: number }
   | { readonly genre: 'cranDuBac'; readonly cran: CranDuBac }
   | { readonly genre: 'allumer' | 'lancer' | 'rejouer' | 'taper' }
+  /** Quitter la partie : on revient à l'accueil, la room oubliée. */
+  | { readonly genre: 'quitter' }
   | { readonly genre: 'toucherLEtiquette'; readonly rang: number }
   | { readonly genre: 'tournerLeBouton'; readonly bouton: 'pistes' | 'extrait' | 'mode' }
   | { readonly genre: 'basculerLeSon' }
@@ -575,6 +577,12 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       return { memoire: m, actions: [{ genre: 'lancer' }] };
     case 'rejouer':
       return { memoire: m, actions: [{ genre: 'rejouer' }] };
+    case 'quitter':
+      if (m.room === undefined) return rien;
+      return {
+        memoire: { ...m, room: undefined, reprise: undefined, refus: undefined, preparation: { ecran: 'accueil' }, pouce: POUCE_LIBRE },
+        actions: [{ genre: 'quitter' }],
+      };
     case 'taper': {
       if (m.room === undefined || p.clavier === undefined) return rien;
       const pouce = pouceDeLaPiste(m);

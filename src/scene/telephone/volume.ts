@@ -1,6 +1,5 @@
 /**
- * Le bouton du volume : celui de l'ampli, qu'on touche pour régler le son de ce téléphone (sa moitié gauche baisse, sa moitié
- * droite monte). Sur un grand écran, il est sur l'ampli même, par-dessus le sien. Au téléphone, où l'ampli n'est pas dans le
+ * Le bouton du volume : celui de l'ampli, qu'on tourne pour régler le son de ce téléphone, librement, d'une butée à l'autre. Sur un grand écran, il est sur l'ampli même, par-dessus le sien. Au téléphone, où l'ampli n'est pas dans le
  * cadre, sa copie, plus petite, se pose sur le coin haut droit de la platine ; sur un écran qui regarde ailleurs (le bac, sa
  * pochette), dans le coin haut droit du cadre. Il se dessine seul : changer le volume ne redessine que lui.
  */
@@ -23,6 +22,12 @@ export type PlaceDuVolume = 'ampli' | 'platine' | 'coin';
 
 /** Le cran du bouton pour un volume de 0 à 1 : le plus proche. */
 export const cranDuVolume = (volume: number): number => Math.round(Math.min(1, Math.max(0, volume)) * (CRANS_DU_VOLUME.length - 1));
+
+/** L'angle de l'index pour un volume de 0 à 1, sans cran : on tourne le bouton librement, d'une butée à l'autre. */
+export const angleDuVolume = (volume: number): number => AMPLI.volume.de + Math.min(1, Math.max(0, volume)) * (AMPLI.volume.a - AMPLI.volume.de);
+
+/** Le calque qu'on tourne : l'index du bouton du volume. */
+export const INDEX_DU_VOLUME = 'bouton-volume/index/trait/tourne';
 
 /** Le bouton du volume, à ce volume (de 0 à 1), à sa place dans ce regard. Il s'appelle « bouton-volume ». */
 export function boutonDuVolume(a: Ecritoire, regard: Regard, volume: number, ou: PlaceDuVolume): Calque[] {
