@@ -1,7 +1,7 @@
 # Miel d'oreilles, pour Claude
 
 Le blind test entre potes, à meuble hi-fi low-poly : les téléphones jouent, un serveur Node tient les parties. Il est en ligne sur
-**https://honear.fr** (mateosan.fr y renvoie), dans deux conteneurs Docker construits depuis ce dépôt. On écrit en français, le code aussi (noms, commentaires, textes).
+**https://honear.fr**, dans deux conteneurs Docker construits depuis ce dépôt (mateosan.fr, sur le même VPS, accueillera un autre site). On écrit en français, le code aussi (noms, commentaires, textes).
 
 ## Où lire
 

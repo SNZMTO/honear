@@ -827,7 +827,8 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Docker** : le jeu et Caddy dans deux conteneurs sans droits (`Dockerfile`, `deploiement/compose.yaml`) ; trois scripts,
   préparer le VPS, mettre en ligne, régler le courrier, à la place de l'installateur et du service systemd. Le durcissement de la
   machine est dans `deploiement/systeme/` (SSH, noyau, journaux six mois, LLMNR, mises à jour et redémarrage à 5 h).
-- **honear.fr** est l'adresse du jeu ; mateosan.fr y renvoie (302 : il accueillera un autre site).
+- **honear.fr** est l'adresse du jeu ; mateosan.fr, sur le même VPS, montre une page d'attente et ne mène pas au jeu : il
+  accueillera un autre site.
 
 ## Ce qui attend les étapes suivantes
 

@@ -38,8 +38,8 @@ docker build -t "miel-doreilles:$VERSION" "$RACINE"
 printf '== Les conteneurs\n'
 install -d -m 0755 "$CIBLE"
 install -m 0644 "$RACINE/deploiement/compose.yaml" "$RACINE/deploiement/Caddyfile" "$CIBLE/"
-printf 'VERSION=%s\nUID_DU_JEU=%s\nGID_DU_JEU=%s\nDOMAINE=%s\nANCIEN_DOMAINE=%s\n' \
-  "$VERSION" "$(id -u miel)" "$(id -g miel)" "$DOMAINE" "$ANCIEN_DOMAINE" > "$CIBLE/.env"
+printf 'VERSION=%s\nUID_DU_JEU=%s\nGID_DU_JEU=%s\nDOMAINE=%s\nAUTRE_DOMAINE=%s\n' \
+  "$VERSION" "$(id -u miel)" "$(id -g miel)" "$DOMAINE" "$AUTRE_DOMAINE" > "$CIBLE/.env"
 docker compose --project-directory "$CIBLE" up -d --wait --remove-orphans
 # Caddy relit son Caddyfile s'il a changé, sans couper une connexion.
 docker compose --project-directory "$CIBLE" exec -T caddy caddy reload --config /etc/caddy/Caddyfile
