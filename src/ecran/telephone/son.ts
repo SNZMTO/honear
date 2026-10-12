@@ -166,6 +166,8 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number, 
   let tour = 0;
   /** Ce qu'on vient de vouloir jouer : un toucher le démarre sur-le-champ, si c'est l'heure. */
   let enJeu = false;
+  /** L'heure du serveur où l'on a remis l'extrait à sa place, la dernière fois. */
+  let sauteA: number | undefined;
 
   // L'adresse telle qu'on l'a mise (l'élément, lui, la rend normalisée) : un extrait qui ne se charge pas ne retient personne.
   audio.addEventListener('error', () => {
@@ -278,10 +280,17 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number, 
       if (audio.paused) {
         if (demande || bloque || rate) return;
         audio.currentTime = position;
+        sauteA = heure;
         jouerMaintenant();
         return;
       }
-      if (!audio.seeking && Math.abs(audio.currentTime - position) > TELEPHONE.son.ecartAdmis) audio.currentTime = position;
+      // Il a dérivé : on le remet à sa place, mais pas coup sur coup, le temps qu'il reparte et que sa position suive.
+      const ecart = audio.currentTime - position;
+      if (audio.seeking || Math.abs(ecart) <= TELEPHONE.son.ecartAdmis) return;
+      if (sauteA !== undefined && heure - sauteA < TELEPHONE.son.entreDeuxSauts) return;
+      noter?.(`remis à sa place : écart ${ecart.toFixed(2)} s`);
+      sauteA = heure;
+      audio.currentTime = position;
     },
     pret(a) {
       return bloque || (adresse === a && (rate || audio.readyState >= audio.HAVE_FUTURE_DATA));

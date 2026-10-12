@@ -53,10 +53,11 @@ export const TELEPHONE = {
   /** Le tutoriel : le voile sombre qu'il pose sur le jeu, de cette opacité. */
   tuto: { voile: 0.9 },
   /**
-   * Le son : un extrait qui s'écarte de plus que ce temps de là où il devrait en être, à l'heure du serveur, y est remis ;
-   * il se tait en ce temps-là, là où le téléphone laisse baisser le volume.
+   * Le son : un extrait qui s'écarte de plus que ce temps de là où il devrait en être, à l'heure du serveur, y est remis, au plus
+   * une fois en tant de secondes : chaque saut s'entend (l'iPhone met un moment à repartir, et sa position à se mettre à jour ;
+   * le remettre trop vite, trop souvent, le faisait saccader). Il se tait en ce temps-là, là où le téléphone laisse baisser le volume.
    */
-  son: { ecartAdmis: 0.15, fondu: 0.6 },
+  son: { ecartAdmis: 0.6, entreDeuxSauts: 5, fondu: 0.6 },
   /**
    * Le volume de ce téléphone, de 0 à 1 : à 30 % en arrivant, pour ne pas agresser les oreilles. L'oreille l'entend à cette
    * puissance (un volume « cubique », comme sur les ordinateurs) ; les petits bruits des touches ne se taisent jamais tout à fait.
