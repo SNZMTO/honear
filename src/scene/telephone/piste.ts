@@ -12,6 +12,7 @@ import type { Reponse } from '../../regles/piste';
 import { ETIQUETTE } from '../../ressources/etiquette';
 import { PLATINE } from '../../ressources/platine';
 import { TABLEE } from '../../ressources/tablee';
+import { CORPS } from '../../ressources/typo';
 import type { Textes } from '../../ressources/textes';
 import { VERSO } from '../../ressources/verso';
 import type { Calque } from '../calque';
@@ -21,7 +22,7 @@ import type { PoseDeLaPiste } from '../piste/pose';
 import { regardDeLaPiste } from '../piste/regard';
 import { dessinerLaTablee, eventail, placesEnEventail } from '../tablee';
 import { phrase, type Ecritoire } from './pieces';
-import { clavier, etiquetteDeReponse, etiquettesAToucher } from './reponse';
+import { clavier, etiquetteDeReponse, etiquettesAToucher, reponseLaPlusGrande } from './reponse';
 
 /** Ce que la projection garde de la profondeur du meuble : une image posée à plat y est écrasée d'autant. */
 const ecrasement = (): number => surLEcran([0, 1])[1] - surLEcran([0, 0])[1];
@@ -151,6 +152,34 @@ export function pouceDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste)
       ),
     );
   // La pochette de la réponse est au milieu du disque retourné : rien d'autre ne se pose à côté de la kraft.
+  const M = T.message;
+  if (o.phrase !== undefined) objets.push(...phrase(o.phrase, regard, a.encrier, M.en, M.largeur));
+  if (ouvert) objets.push(clavier(regard, dessus));
+  return objets;
+}
+
+/**
+ * Ce qu'on touche, à la plus grande place qu'il puisse prendre pendant cette piste : l'étiquette vierge pleine sur toutes ses
+ * lignes, ses trois pastilles collées et le plus long de ses mots ; ou les quatre étiquettes du 4 choix ; et la phrase d'un état,
+ * s'il y en a une. Ce qui doit s'en tenir à l'écart (le décor de saison), ou glisser avec lui (sur un grand écran), s'en sert : cela
+ * ne change pas d'une lettre tapée à l'autre.
+ */
+export function pouceAuPlusGrand(a: Ecritoire, regard: Regard, o: AutourDeLaPiste): Calque[] {
+  const { repondre } = o;
+  const { ouvert, dessus, remonte } = auDessusDuClavier(regard, o);
+  const objets: Calque[] = [];
+  if (repondre.genre === 'choix') objets.push(...etiquettesAToucher(a, regard, repondre.proposes, undefined));
+  else {
+    const mots = [a.textes.pastilles.presque, a.textes.piste.raye];
+    const mot = mots.reduce((long, m) =>
+      a.encrier.largeur({ contenu: m, role: 'techniqueFort', corps: CORPS.mention }) >
+      a.encrier.largeur({ contenu: long, role: 'techniqueFort', corps: CORPS.mention })
+        ? m
+        : long,
+    );
+    const y = ouvert ? T.clavier.reponse + remonte : undefined;
+    objets.push(...etiquetteDeReponse(a, regard, reponseLaPlusGrande(a.encrier.largeur), ['artiste', 'titre', 'feat'], mot, y));
+  }
   const M = T.message;
   if (o.phrase !== undefined) objets.push(...phrase(o.phrase, regard, a.encrier, M.en, M.largeur));
   if (ouvert) objets.push(clavier(regard, dessus));
