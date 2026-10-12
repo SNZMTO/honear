@@ -62,13 +62,15 @@ const DEMI_TOUR = 180;
  * ses coins (elle est ronde), le trou de l'axe (en part de son côté) et l'écrasement de la profondeur, comme le disque.
  * Rien tant que le disque n'est pas à plat, son verso en haut.
  */
-export function pochetteSurLeVerso(pose: PoseDeLaPiste): {
-  readonly centre: Vec2;
-  readonly cote: number;
-  readonly coin: number;
-  readonly trou: number;
-  readonly ecrasement: number;
-} | undefined {
+export function pochetteSurLeVerso(pose: PoseDeLaPiste):
+  | {
+      readonly centre: Vec2;
+      readonly cote: number;
+      readonly coin: number;
+      readonly trou: number;
+      readonly ecrasement: number;
+    }
+  | undefined {
   const { en, hauteur, retourne } = pose.disque;
   if (Math.abs(retourne - DEMI_TOUR) > A_PLAT) return undefined;
   const E = VERSO.etiquette;
@@ -106,7 +108,14 @@ export function autourDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste
   if (revelee === undefined) {
     if (o.phrase === undefined)
       objets.push(
-        ...etiquetteDeReponse(a, regard, repondre.tape, o.etat.piste?.trouve[o.toi] ?? [], repondre.mot, ouvert ? T.clavier.reponse + remonte : undefined),
+        ...etiquetteDeReponse(
+          a,
+          regard,
+          repondre.tape,
+          o.etat.piste?.trouve[o.toi] ?? [],
+          repondre.mot,
+          ouvert ? T.clavier.reponse + remonte : undefined,
+        ),
       );
   }
   // La pochette de la réponse est au milieu du disque retourné : rien d'autre ne se pose à côté de la kraft.

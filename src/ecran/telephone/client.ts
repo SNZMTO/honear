@@ -671,7 +671,16 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const touches = new Map(vue.objets.filter((objet) => objet.nom.startsWith('touche-')).map((objet) => [objet.nom, objet] as const));
     // Un autre écran se fond sur l'ancien ; le même, qui change (une lettre tapée, un cran tourné), se repose tel quel.
     const fondre = e.genre !== genre;
-    ecranMonte = monterDans(scene, ecranMonte, cle, dessinerLeMeuble({ regard, densite: DENSITE, objets }), regard, definition(regard), touches, fondre);
+    ecranMonte = monterDans(
+      scene,
+      ecranMonte,
+      cle,
+      dessinerLeMeuble({ regard, densite: DENSITE, objets }),
+      regard,
+      definition(regard),
+      touches,
+      fondre,
+    );
     poserLesZones(vue.objets, regard, e);
   }
 
@@ -704,7 +713,10 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const pose = piste.ecran.montrer(e.scene, t);
     const regard = g ?? SUR_LA_PLATINE;
     regardMonte = regard;
-    poserLesImages(g !== undefined ? replacer(laVraiePochette(e.autour.revelee, pose), regardDeLaPiste(pose), g) : laVraiePochette(e.autour.revelee, pose), regard);
+    poserLesImages(
+      g !== undefined ? replacer(laVraiePochette(e.autour.revelee, pose), regardDeLaPiste(pose), g) : laVraiePochette(e.autour.revelee, pose),
+      regard,
+    );
     // Ce qu'on pose autour reste à l'écran pendant que le regard suit la piste : il a sa couche, au-dessus d'elle. Sur un grand
     // écran, il garde sa place sur le meuble, devant la platine.
     const d = definition(regard);
