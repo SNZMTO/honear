@@ -120,7 +120,8 @@ export function platineEclatee(densite: Densite, textes: Textes, encrier: Encrie
   const hBouton = HAUTEURS.socle + bouton.epaisseur + ECARTS.boutons;
   const hManette = HAUTEURS.socle + levier.embase.epaisseur + levier.manette.epaisseur + ECARTS.levier;
   const contrepoids = plus(PIVOT_DU_BRAS, tourner(surLeTube((bras.contrepoids.debut + bras.contrepoids.fin) / 2), etat.bras.angle));
-  const boule: Vec2 = [interrupteurs.son.x - (interrupteur.bascule.longueur - interrupteur.bascule.boule.rayon), commandes.ligne];
+  // La manette du mode, couchée vers le premier mode : en haut, vers le fond du meuble.
+  const boule: Vec2 = [interrupteurs.mode.x, commandes.ligne - (interrupteur.bascule.longueur - interrupteur.bascule.boule.rayon)];
   // Ce qu'il faut d'écart pour poser le point d'une légende contre une pièce menue : contre la boule, de biais ; contre l'index, de côté.
   const contreLaBoule = (interrupteur.bascule.boule.rayon + PAPIER.point + PAPIER.jour) * Math.SQRT1_2;
   const contreLIndex = bouton.index.largeur / 2 + PAPIER.point + PAPIER.jour;
@@ -178,8 +179,8 @@ export function platineEclatee(densite: Densite, textes: Textes, encrier: Encrie
     },
     {
       piece: 'interrupteur',
-      compte: LE_CALQUE('interrupteur-son'),
-      ombre: 'interrupteur-son/ombre',
+      compte: LE_CALQUE('interrupteur-mode'),
+      ombre: 'interrupteur-mode/ombre',
       // La bascule est menue : le point se pose contre sa boule, du côté d'où vient le trait, sans la couvrir.
       vise: plus(
         dansLeCadre(surLeSocle(boule), HAUTEURS.socle + interrupteur.ecrou.epaisseur + interrupteur.bascule.hauteur + ECARTS.interrupteurs),
@@ -200,12 +201,12 @@ export function platineEclatee(densite: Densite, textes: Textes, encrier: Encrie
     },
     {
       piece: 'bouton',
-      compte: LE_CALQUE('bouton-mode/corps'),
-      ombre: 'bouton-mode/ombre',
-      vise: ici([boutons.mode.x + boutons.mode.rayon * 0.72, commandes.ligne + 2], hBouton),
+      compte: LE_CALQUE('bouton-extrait/corps'),
+      ombre: 'bouton-extrait/ombre',
+      vise: ici([boutons.extrait.x + boutons.extrait.rayon * 0.72, commandes.ligne + 2], hBouton),
       coin: 'gauche',
       depart: 'gauche',
-      en: [margeAGauche + boutons.mode.x + 132, 692],
+      en: [margeAGauche + boutons.extrait.x + 232, 692],
     },
   ];
 

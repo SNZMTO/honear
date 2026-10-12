@@ -10,7 +10,6 @@ import { MODES, MODES_PAR_CRAN, type Proposition } from '../src/regles/modes';
 import { LIBRE } from '../src/regles/modes/libre';
 import { departageDeLaPiste, dureeDeLExtrait, equipesDeLaPartie, partieA, suivre, type EvenementDePartie } from '../src/regles/partie';
 import type { Reponse } from '../src/regles/piste';
-import { PLATINE } from '../src/ressources/platine';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { ANNEE, EQUIPES, INTRO_EXPRESS, MODES_D_EXEMPLE } from './modes-d-exemple';
 
@@ -27,10 +26,10 @@ const arrivent = (...ids: string[]): EvenementDePartie[] => [
   ...ids.map((id, rang): EvenementDePartie => ({ genre: 'arrivee', a: rang, id, pochette: POCHETTE })),
 ];
 
-test('chaque mode d’exemple prend un cran libre du sélecteur, sans rien demander au socle', () => {
+test('chaque mode d’exemple prend un cran libre, après les quatre de la manette (qui n’en grave pas plus)', () => {
   const pris = MODES_PAR_CRAN.map((m) => m.cran);
+  assert.equal(pris.length, 4, 'la manette a quatre positions : en haut, à gauche, à droite, en bas');
   for (const mode of MODES_D_EXEMPLE) {
-    assert.ok(mode.cran < PLATINE.commandes.boutons.mode.crans.length, `${mode.cle} : cran ${mode.cran} gravé`);
     assert.ok(!pris.includes(mode.cran), `${mode.cle} : cran ${mode.cran} libre`);
     assert.ok(!(mode.cle in MODES), `${mode.cle} n’est pas encore dans le registre`);
   }

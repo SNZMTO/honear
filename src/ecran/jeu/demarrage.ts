@@ -76,24 +76,35 @@ function codeDeLAdresse(): string | undefined {
 }
 
 /**
- * La fenêtre : le jeu la remplit toujours, bord à bord, quelle que soit sa taille. Le cadre la prend entière, et le regard en a la
- * proportion (voir `regardPourLaFenetre`). Sur une fenêtre bien plus large que haute (un ordinateur), les liens des pages légales
- * restent en vue.
- * @returns la proportion de la fenêtre, à lire à chaque image.
+ * La fenêtre : le jeu la remplit toujours, bord à bord, quelle que soit sa taille, jusque sous l'encoche et sous la barre de Safari.
+ * Le cadre prend l'écran entier ; ce que ses bords cachent (l'encoche, la Dynamic Island, la barre de Safari, le trait de l'iPhone),
+ * le jeu y dessine sans rien y poser à toucher. Le regard a la proportion de ce qui reste (voir `regardPourLaFenetre`). Sur une
+ * fenêtre bien plus large que haute (un ordinateur), les liens des pages légales restent en vue.
+ * @returns la proportion de ce qu'on voit sans rien de caché, et ce que cachent les bords, en part de la largeur : à lire à chaque image.
  */
 const CENTIEMES = 100;
-function suivreLaFenetre(cadre: HTMLElement): () => number {
+function suivreLaFenetre(cadre: HTMLElement): { readonly proportion: () => number; readonly bords: () => { readonly sur: number; readonly sous: number } } {
   let proportion = PROPORTION_DU_TELEPHONE;
+  let bords = { sur: 0, sous: 0 };
+  const sonde = document.querySelector<HTMLElement>('.bords');
   const mesurer = (): void => {
     const { innerWidth: l, innerHeight: h } = window;
-    // Celle du cadre, qui prend l'écran entier ; arrondie au centième : une fenêtre qu'on étire ne remonte pas la scène à chaque pixel.
     const { clientWidth: lc, clientHeight: hc } = cadre;
-    proportion = hc > 0 ? Math.round((lc / hc) * CENTIEMES) / CENTIEMES : PROPORTION_DU_TELEPHONE;
+    // Ce que cachent les bords : les marges de sûreté de l'écran ; en bas, aussi ce que le cadre a de plus que la fenêtre (la barre
+    // de Safari, qui flotte par-dessus).
+    const style = sonde !== null ? window.getComputedStyle(sonde) : undefined;
+    const sur = Number.parseFloat(style?.paddingTop ?? '') || 0;
+    const sous = Math.max(Number.parseFloat(style?.paddingBottom ?? '') || 0, hc - Math.min(hc, h));
+    const libre = hc - sous;
+    bords = lc > 0 ? { sur: Math.round(sur) / lc, sous: Math.round(sous) / lc } : { sur: 0, sous: 0 };
+    // Arrondie au centième : une fenêtre qu'on étire ne remonte pas la scène à chaque pixel.
+    proportion = libre > 0 ? Math.round((lc / libre) * CENTIEMES) / CENTIEMES : PROPORTION_DU_TELEPHONE;
     document.body.classList.toggle('grand', l >= h * GRAND_ECRAN.plusLargeQueHaut && h >= GRAND_ECRAN.hauteurAuMoins);
   };
   mesurer();
   window.addEventListener('resize', mesurer);
-  return () => proportion;
+  window.visualViewport?.addEventListener('resize', mesurer);
+  return { proportion: () => proportion, bords: () => bords };
 }
 
 /**
@@ -280,6 +291,7 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     ecrire(enSession, GARDE.rechargee, version);
     window.location.reload();
   };
+  const fenetre = suivreLaFenetre(cadre);
   ouvrirLeTelephone(cadre, {
     brancher: brancherEnLigne(ligne, recharger),
     horloge: horlogeDuNavigateur(),
@@ -292,7 +304,8 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     vibrer: (cle) => vibreur.vibrer(cle),
     confirmer: (question) => window.confirm(question),
     son: true,
-    fenetre: suivreLaFenetre(cadre),
+    fenetre: fenetre.proportion,
+    bords: fenetre.bords,
     diagnostic,
     // Les liens des pages légales, en bas : à l'accueil et au compte, là où rien d'autre ne se touche en bas de l'écran.
     enChangeant: (genre) => document.body.classList.toggle('pied', genre === 'accueil' || genre === 'compte'),

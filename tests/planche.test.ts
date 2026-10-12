@@ -86,7 +86,7 @@ test('la densité sobre pèse moins de la moitié de la fine ; dans l’une comm
 });
 
 test('chaque pièce mobile de la platine est un calque à part, et son ombre aussi, dessinée sous elle', () => {
-  const mobiles = ['etiquette', 'interrupteur-son', 'levier', 'bras'] as const;
+  const mobiles = ['etiquette', 'interrupteur-mode', 'levier', 'bras'] as const;
   for (const fichier of PLATINES) {
     const { scene } = image(fichier);
     const tous = calques(scene);
@@ -242,7 +242,7 @@ test('la lampe ne bouge pas : quand le disque, le plateau, le bras ou un bouton 
       boutons: {
         ...accueil.commandes.boutons,
         pistes: { ...accueil.commandes.boutons.pistes, choisi: 2 },
-        mode: { ...accueil.commandes.boutons.mode, choisi: 1 },
+        extrait: { ...accueil.commandes.boutons.extrait, choisi: 0 },
       },
     },
   };
@@ -250,7 +250,7 @@ test('la lampe ne bouge pas : quand le disque, le plateau, le bras ou un bouton 
   const enMarche = platine(enJeu, { ...disqueAuRepos, etiquette: { ...disqueAuRepos.etiquette, angle: 137 } });
 
   // Le vinyle garde ses deux secteurs clairs où ils sont, les corps des boutons leurs facettes claires, le décor ne bouge pas.
-  for (const nom of ['disque/vinyle', 'bouton-pistes/corps', 'bouton-mode/corps', 'platine/decor', 'reperes/gravure']) {
+  for (const nom of ['disque/vinyle', 'bouton-pistes/corps', 'bouton-extrait/corps', 'platine/decor', 'reperes/gravure']) {
     assert.deepEqual(sansRotation(calque(enMarche, nom)), sansRotation(calque(auRepos, nom)), nom);
   }
   // Le bras prend sa lumière une fois pour toutes : à un autre angle, ses facettes ont les mêmes tons. Seules ses transformations changent.
@@ -259,7 +259,7 @@ test('la lampe ne bouge pas : quand le disque, le plateau, le bras ou un bouton 
   // Seules des rotations de calques diffèrent, et seulement celles des pièces qui ont tourné.
   const avant = rotations(auRepos);
   const changees = [...rotations(enMarche)].filter(([nom, angle]) => avant.get(nom) !== angle).map(([nom]) => nom.split('/')[0]);
-  assert.deepEqual([...new Set(changees)].sort(), ['bouton-mode', 'bouton-pistes', 'bras', 'etiquette', 'reperes']);
+  assert.deepEqual([...new Set(changees)].sort(), ['bouton-extrait', 'bouton-pistes', 'bras', 'etiquette', 'reperes']);
 });
 
 test('tout est en SVG fait de polygones à plat : ni dégradé, ni flou, ni filtre, ni image, ni police à charger', () => {

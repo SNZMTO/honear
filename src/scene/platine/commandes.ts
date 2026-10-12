@@ -1,6 +1,6 @@
 /**
- * Les commandes de la platine : ce sont les réglages. Trois boutons à crans et un interrupteur à bascule,
- * alignés à l'avant du socle, et la plaque de marque. Aucun menu déroulant.
+ * Les commandes de la platine : ce sont les réglages. Deux boutons à crans et la manette du mode, alignés à l'avant du socle, et la
+ * plaque de marque. Aucun menu déroulant.
  *
  * Ce module range les commandes ; il ne sait pas ce que leurs positions veulent dire.
  */
@@ -54,7 +54,7 @@ export function dessinerLesCommandes(
         ...interrupteurs.flatMap((i) => i.gravures),
         plaque,
       ]),
-      ...interrupteurs.flatMap((i) => i.fixe),
+      ...interrupteurs.flatMap((i) => [...i.fixe, ...i.positions]),
     ],
     mobiles: [...boutons.flatMap((b) => [b.ombre, b.bouton]), ...interrupteurs.flatMap((i) => [i.ombre, i.bascule])],
   };
