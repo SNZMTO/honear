@@ -1,6 +1,6 @@
 /**
- * La porte du site : la page du jeu, servie à l'adresse du site et à celle d'une room (« /AENV », ce que donne le QR code), l'état du
- * serveur pour qui le surveille, et rien d'autre. La page est servie avec une politique de sécurité stricte : son seul script est
+ * La porte du site : la page du jeu, servie à l'adresse du site et à celle d'une room (« /AENV », ce que donne le QR code), les pages
+ * légales, l'état du serveur pour qui le surveille, et rien d'autre. La page est servie avec une politique de sécurité stricte : son seul script est
  * celui qu'elle porte, reconnu à son empreinte ; elle ne parle qu'à son propre serveur, et n'écoute que les extraits de Deezer.
  */
 
@@ -13,9 +13,10 @@ const EXTRAITS = 'https://*.dzcdn.net blob:';
 /** Les images : celles de la page, et les vraies pochettes, que Deezer sert de chez lui. */
 const IMAGES = 'data: blob: https://*.dzcdn.net';
 
-/** Ce que la porte sert : la page, déjà fabriquée, et ce que le serveur dit de lui-même. */
+/** Ce que la porte sert : la page, déjà fabriquée, les pages légales par leur adresse, et ce que le serveur dit de lui-même. */
 export interface Contenus {
   readonly page: string;
+  readonly legales?: Readonly<Record<string, string>>;
   readonly sante: () => Readonly<Record<string, number | string | boolean>>;
 }
 
@@ -57,6 +58,12 @@ export function ouvrirLaPorte(contenus: Contenus): (requete: IncomingMessage, re
     if (chemin === '/sante') {
       reponse.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...enTetes });
       reponse.end(requete.method === 'HEAD' ? undefined : JSON.stringify(contenus.sante()));
+      return;
+    }
+    const legale = contenus.legales?.[chemin];
+    if (legale !== undefined) {
+      reponse.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', ...enTetes });
+      reponse.end(requete.method === 'HEAD' ? undefined : legale);
       return;
     }
     if (chemin !== '/' && !ADRESSE_D_UNE_ROOM.test(chemin)) {

@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import { hasard } from '../src/lowpoly/aleatoire';
 import { pochetteDExemple } from '../src/planche/exemples';
-import { adresseEmail, lettreDuLien, ouvrirLesComptes, type OptionsDesComptes } from '../src/reseau/comptes';
+import { adresseEmail, lettreDAvertissement, lettreDuLien, ouvrirLesComptes, type OptionsDesComptes } from '../src/reseau/comptes';
 import { composer, posterParSmtp, type Lettre } from '../src/reseau/courrier';
 import { REGLAGES } from '../src/ressources/reglages';
 import { RESEAU } from '../src/ressources/reseau';
@@ -61,6 +61,37 @@ test('une adresse e-mail : sans espace autour, en minuscules ; rien de ce qui n�
     `${'a'.repeat(250)}@example.com`,
   ])
     assert.equal(adresseEmail(pas), undefined, pas);
+});
+
+test('un compte qui dort deux ans s’efface, avec ses sessions ; un mois avant, une lettre prévient ; y revenir le garde', async () => {
+  const { comptes, horloge, lettres, dernierLien, garde } = desComptes({
+    avertissement: lettreDAvertissement(TEXTES.compte.courrier, 'https://miel-doreilles.fr'),
+  });
+  const I = C.inactif;
+  await comptes.demanderUnLien('dort@example.com', '1.2.3.4');
+  const dort = comptes.ouvrir(dernierLien());
+  await comptes.demanderUnLien('revient@example.com', '1.2.3.5');
+  const revient = comptes.ouvrir(dernierLien());
+  assert.ok(dort !== undefined && revient !== undefined);
+  // Presque deux ans plus tard : les deux sont prévenus, une fois.
+  horloge.t += I.efface - I.prevenu + 1;
+  lettres.length = 0;
+  await comptes.entretenir();
+  assert.deepEqual(lettres.map((l) => [l.a, l.sujet]).sort(), [
+    ['dort@example.com', TEXTES.compte.courrier.dortSujet],
+    ['revient@example.com', TEXTES.compte.courrier.dortSujet],
+  ]);
+  await comptes.entretenir();
+  assert.equal(lettres.length, 2, 'on ne prévient qu’une fois');
+  // L'un revient (sa session a expiré depuis longtemps : il redemande un lien) : il est vu, et ne dort plus. L'autre passe les
+  // deux ans : il est effacé.
+  await comptes.demanderUnLien('revient@example.com', '1.2.3.5');
+  assert.equal(comptes.ouvrir(dernierLien())?.id, revient.id);
+  horloge.t += I.prevenu;
+  await comptes.entretenir();
+  assert.equal(comptes.vu(dort.id), undefined, 'le compte qui dort est effacé');
+  assert.ok(comptes.vu(revient.id) !== undefined, 'celui qui est revenu reste');
+  assert.ok(!(garde[garde.length - 1] ?? '').includes('dort@example.com'), 'le fichier ne garde plus son adresse');
 });
 
 test('on entre par un lien envoyé à son adresse : il ne sert qu’une fois, un quart d’heure ; la session, elle, ramène dans le compte', async () => {
