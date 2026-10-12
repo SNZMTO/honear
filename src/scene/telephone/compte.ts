@@ -10,7 +10,7 @@ import { TABLEE } from '../../ressources/tablee';
 import type { Calque } from '../calque';
 import { remplir } from '../phrases';
 import { platineArretee } from './meuble';
-import { papier, SUR_LA_PLATINE, toucheAuBord, type Ecritoire, type VueDuTelephone } from './pieces';
+import { papier, SUR_LA_PLATINE, toucheAuMilieu, type Ecritoire, type VueDuTelephone } from './pieces';
 
 const T = TABLEE.telephone.compte;
 
@@ -32,14 +32,14 @@ export function vueDuCompte(a: Ecritoire, c: CompteOuvertAuTelephone): VueDuTele
   const C = a.textes.compte;
   const objets: Calque[] = [platineArretee(a)];
   const ecrire = (lignes: Parameters<typeof papier>[5]): void => {
-    objets.push(...papier('etiquette-compte', r, T.papier.en, T.papier.largeur, -1.5, lignes, a.encrier, { ancre: 'debut' }).calques);
+    objets.push(...papier('etiquette-compte', r, T.papier.en, T.papier.largeur, -1.5, lignes, a.encrier, { ancre: 'milieu' }).calques);
   };
   const action = (nom: `touche-${string}`, libelle: string): void => {
-    if (c.enAttente !== true) objets.push(toucheAuBord(nom, 'principale', libelle, r, T.action, a.encrier));
+    if (c.enAttente !== true) objets.push(toucheAuMilieu(nom, 'principale', libelle, r, T.action, a.encrier));
   };
   const deux = (une: readonly [`touche-${string}`, string, 'principale' | 'secondaire'], autre: readonly [`touche-${string}`, string]): void => {
-    objets.push(toucheAuBord(une[0], une[2], une[1], r, T.deux[0], a.encrier));
-    objets.push(toucheAuBord(autre[0], 'secondaire', autre[1], r, T.deux[1], a.encrier));
+    objets.push(toucheAuMilieu(une[0], une[2], une[1], r, T.deux[0], a.encrier));
+    objets.push(toucheAuMilieu(autre[0], 'secondaire', autre[1], r, T.deux[1], a.encrier));
   };
   switch (c.etape) {
     case 'adresse':
@@ -62,7 +62,7 @@ export function vueDuCompte(a: Ecritoire, c: CompteOuvertAuTelephone): VueDuTele
             { contenu: c.email === '' ? ' ' : c.email, role: 'titrage', auPlus: 'intertitre' },
           ],
           a.encrier,
-          { curseur: c.enAttente !== true, alignement: 'debut', ancre: 'debut' },
+          { curseur: c.enAttente !== true, alignement: 'debut', ancre: 'milieu' },
         ).calques,
       );
       action('touche-envoyer', C.envoyer);
@@ -84,15 +84,15 @@ export function vueDuCompte(a: Ecritoire, c: CompteOuvertAuTelephone): VueDuTele
             { contenu: C.indesirables, role: 'technique', auPlus: 'mention' },
           ],
           a.encrier,
-          { ancre: 'debut' },
+          { ancre: 'milieu' },
         ).calques,
       );
-      objets.push(toucheAuBord('touche-autre-adresse', 'secondaire', C.autreAdresse, r, T.action, a.encrier));
+      objets.push(toucheAuMilieu('touche-autre-adresse', 'secondaire', C.autreAdresse, r, T.action, a.encrier));
       break;
     case 'lien':
       ecrire([{ contenu: c.refus !== undefined ? C.refus[c.refus] : C.lienLa, role: 'titrage', auPlus: 'intertitre' }]);
       if (c.refus === undefined) action('touche-entrer-compte', C.entrer);
-      else objets.push(toucheAuBord('touche-autre-adresse', 'secondaire', C.autreAdresse, r, T.action, a.encrier));
+      else objets.push(toucheAuMilieu('touche-autre-adresse', 'secondaire', C.autreAdresse, r, T.action, a.encrier));
       break;
     case 'dedans': {
       const compte = c.compte;
@@ -109,6 +109,6 @@ export function vueDuCompte(a: Ecritoire, c: CompteOuvertAuTelephone): VueDuTele
       deux(['touche-effacer-vraiment', C.effacerVraiment, 'principale'], ['touche-garder', C.garder]);
       break;
   }
-  objets.push(toucheAuBord('touche-retour', 'secondaire', C.retour, r, T.retour, a.encrier));
+  objets.push(toucheAuMilieu('touche-retour', 'secondaire', C.retour, r, T.retour, a.encrier));
   return { regard: r, objets };
 }

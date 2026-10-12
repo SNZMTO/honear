@@ -4,7 +4,7 @@
  * Elle glisse et tourne comme une seule pièce : c'est une pile, son ombre est un calque à part.
  */
 
-import { rectangleArrondi } from '../../lowpoly/contours';
+import { anneau, cercle, rectangleArrondi } from '../../lowpoly/contours';
 import { contraste } from '../../lowpoly/couleur';
 import { peindre, VUE_DE_DESSUS } from '../../lowpoly/facette';
 import type { Nuance } from '../../lowpoly/ombrage';
@@ -119,7 +119,7 @@ export function dessinerLaPochette(pochette: Pochette, pose: PoseDePochette, mes
       })),
     );
   }
-  return poserUnCarton(pose, image, imprime.slice(image.length), pochette.artiste);
+  return poserUnCarton(pose, image, imprime.slice(image.length), pochette.artiste, true);
 }
 
 /**
@@ -133,6 +133,7 @@ export function poserUnCarton(
   image: readonly Dessin[],
   pardessus: readonly Dessin[],
   usure: string,
+  avecSonDisque = false,
 ): PochetteDessinee {
   const k = pose.taille / M.cote;
   const carton = contourDuCarton(pose.taille);
@@ -143,6 +144,8 @@ export function poserUnCarton(
   imprime.push(coinsUses(usure, pose.taille, carton));
   const leve = pose.leve ?? 0;
   const etages = [
+    // Le disque glissé dedans, qui dépasse du haut : sous le carton, il n'en montre que son bord.
+    ...(avecSonDisque ? [{ nom: 'disque', hauteur: M.tranche / 2, contenu: disqueDansLaPochette(pose.taille) }] : []),
     ...tranche({ de: 0, a: M.tranche, silhouettes: [carton], teinte: 'creme' }),
     { nom: 'imprime', hauteur: M.tranche, contenu: imprime },
   ];
@@ -156,6 +159,17 @@ export function poserUnCarton(
       etages: etages.map((e) => ({ ...e, hauteur: e.hauteur + leve })),
     }),
   };
+}
+
+/** Le disque glissé dans une pochette de ce côté, qui en dépasse par le haut : du vinyle, et deux sillons un ton plus clair. */
+function disqueDansLaPochette(cote: number): Dessin[] {
+  const D = M.disque;
+  const rayon = D.rayon * cote;
+  const centre: Vec2 = [0, -cote / 2 - D.depasse * cote + rayon];
+  return [
+    aplat([cercle(centre, rayon, D.pans)], 'vinyle', tonAPlat()),
+    ...D.sillons.map((part) => aplat(anneau(centre, part * rayon, part * rayon - 1, D.pans), 'vinyle', tonAPlat(1))),
+  ];
 }
 
 /** Où est une pochette qui bouge : son centre sur le meuble, son angle, et ce dont elle est soulevée. */

@@ -85,12 +85,39 @@ function unSilence(): Blob {
   return new Blob([octets], { type: 'audio/wav' });
 }
 
-/** Le haut-parleur du téléphone : un seul élément audio, posé dans le cadre, qui joue tous les extraits. */
-export function brancherLeHautParleur(cadre: HTMLElement): HautParleur {
+/** Un volume d'essai, et l'écart qu'on tolère en le relisant : l'iPhone ne laisse pas régler le volume d'un élément audio. */
+const VOLUME_D_ESSAI = 0.5;
+const A_PEU_PRES = 0.01;
+
+/**
+ * Le haut-parleur du téléphone : un seul élément audio, posé dans le cadre, qui joue tous les extraits.
+ * @param volume le volume de ce téléphone, de 0 à 1, lu à chaque image. Là où l'élément audio ne se règle pas (l'iPhone), le son
+ * passe par le moteur audio du navigateur, qui, lui, se règle : les extraits de Deezer le permettent.
+ */
+export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number): HautParleur {
   const audio = document.createElement('audio');
   audio.preload = 'auto';
   audio.hidden = true;
   audio.setAttribute('playsinline', '');
+  audio.volume = VOLUME_D_ESSAI;
+  const volumeReglable = Math.abs(audio.volume - VOLUME_D_ESSAI) < A_PEU_PRES;
+  audio.volume = 1;
+  // Pour passer par le moteur audio, l'élément doit charger ses extraits en demandant la permission de leur serveur.
+  if (!volumeReglable) audio.crossOrigin = 'anonymous';
+  /** Le gain du moteur audio, une fois branché dans un geste ; sans lui, c'est le volume de l'élément qu'on règle. */
+  let gain: GainNode | undefined;
+  let moteur: AudioContext | undefined;
+  const brancherLeMoteur = (): void => {
+    if (volumeReglable || moteur !== undefined || typeof AudioContext !== 'function') return;
+    try {
+      moteur = new AudioContext();
+      gain = moteur.createGain();
+      moteur.createMediaElementSource(audio).connect(gain).connect(moteur.destination);
+    } catch {
+      // Le navigateur ne sait pas : le son garde le volume de l'appareil.
+      gain = undefined;
+    }
+  };
   cadre.append(audio);
   let silence: string | undefined;
   /** L'extrait qu'on a mis dans l'élément, pour la piste de ce lancer ; il n'a pas pu se charger ; on le fait jouer muet un instant pour qu'il charge. */
@@ -172,6 +199,8 @@ export function brancherLeHautParleur(cadre: HTMLElement): HautParleur {
       return bloque;
     },
     debloquer() {
+      brancherLeMoteur();
+      if (moteur !== undefined && moteur.state === 'suspended') void moteur.resume();
       if (debloque && !bloque) return;
       bloque = false;
       if (adresse === undefined) {
@@ -198,7 +227,9 @@ export function brancherLeHautParleur(cadre: HTMLElement): HautParleur {
       // C'est l'heure : s'il chargeait en sourdine, il s'entend désormais.
       amorce = false;
       audio.muted = false;
-      audio.volume = volumeA(voulu, heure);
+      const fort = volume() * volumeA(voulu, heure);
+      if (gain !== undefined) gain.gain.value = fort;
+      else audio.volume = fort;
       if (audio.paused) {
         if (demande || bloque || rate) return;
         audio.currentTime = position;
@@ -216,6 +247,7 @@ export function brancherLeHautParleur(cadre: HTMLElement): HautParleur {
       audio.load();
       audio.remove();
       if (silence !== undefined) URL.revokeObjectURL(silence);
+      void moteur?.close();
     },
   };
 }

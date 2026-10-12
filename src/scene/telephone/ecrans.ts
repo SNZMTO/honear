@@ -17,15 +17,26 @@ import { dessinerLeBac } from '../bac';
 import type { Calque } from '../calque';
 import { surLeBois, type Regard } from '../meuble';
 import { remplir } from '../phrases';
-import { dessinerLaVraiePochette } from '../pochette/dos';
 import { dessinerUnDisqueDeRecompense } from '../recompense';
 import { empriseDe } from '../rendu/emprise';
 import { dessinerLaTablee, eventail, placesEnEventail, type JoueurPose } from '../tablee';
 import { largeurDeLaTouche } from '../touche';
 import { kraftDuSalon } from './kraft';
 import { ampliDuSalon, bacDesPlaylistsPretes, platineArretee } from './meuble';
-import { estUnTheme, pochetteChoisie } from './choisie';
-import { DENSITE, interprete, papier, phrase, regardSur, SUR_LA_PLATINE, touche, toucheAuBord, type Ecritoire, type VueDuTelephone } from './pieces';
+import { disqueDePlaylist, estUnTheme, playlistsDuGenre, type PlaylistProposee } from './choisie';
+import {
+  DENSITE,
+  interprete,
+  papier,
+  phrase,
+  regardSur,
+  SUR_LA_PLATINE,
+  touche,
+  toucheAuBord,
+  toucheAuMilieu,
+  type Ecritoire,
+  type VueDuTelephone,
+} from './pieces';
 
 const T = TABLEE.telephone;
 
@@ -42,12 +53,24 @@ export function vueDeLAccueil(a: Ecritoire, avecLeCompte = false, maPochette = f
     const x = bord === 'gauche' ? O.gauche + largeur / 2 : O.droite - largeur / 2;
     return touche(nom, 'cran', libelle, r, [x, O.y], a.encrier, 'repos', true);
   };
+  // Le titre du jeu, en grand, sur un papier posé sous la platine : on sait tout de suite à quoi l'on joue.
+  const titre = papier(
+    'etiquette-titre',
+    r,
+    T.accueil.titre.en,
+    r.largeur,
+    T.accueil.titre.angle,
+    [{ contenu: a.textes.accueil.titre, role: 'titrage', auPlus: 'affiche' }],
+    a.encrier,
+    { ancre: 'milieu' },
+  ).calques;
   return {
     regard: r,
     objets: [
       platineArretee(a),
-      toucheAuBord('touche-poser', 'principale', a.textes.touches.poserUnDisque, r, T.accueil.poser, a.encrier),
-      toucheAuBord('touche-code', 'secondaire', a.textes.touches.jAiUnCode, r, T.accueil.code, a.encrier),
+      ...titre,
+      toucheAuMilieu('touche-poser', 'principale', a.textes.touches.poserUnDisque, r, T.accueil.poser, a.encrier),
+      toucheAuMilieu('touche-code', 'secondaire', a.textes.touches.jAiUnCode, r, T.accueil.code, a.encrier),
       ...(maPochette ? [onglet('touche-ma-pochette', a.textes.pochette.maPochette, 'gauche')] : []),
       // Le compte n'est que dans le jeu en ligne : le prototype et les planches n'en ont pas.
       ...(avecLeCompte ? [onglet('touche-compte', a.textes.compte.touche, 'droite')] : []),
@@ -70,8 +93,9 @@ export interface BacOuvert {
   readonly importee?: { readonly jouables: number; readonly total: number };
   /** Ce qui empêche de la choisir : trop peu de titres jouables, un lien que le site ne sait pas lire, un lien qui ne mène à rien. */
   readonly refus?: 'tropCourt' | 'spotify' | 'introuvable';
-  /** Aux « Prêtes à jouer », le thème touché : sa première playlist sort du bac. */
+  /** Aux « Prêtes à jouer », le thème touché, et ses playlists, en disques ; celle qu'on a touchée est `touche`. */
   readonly theme?: string;
+  readonly proposees?: readonly PlaylistProposee[];
   /** Ce qu'on a tapé pour chercher ; tant qu'il n'y a rien, l'étiquette dit ce qu'on peut y chercher. */
   readonly recherche?: string;
   /** La recherche fouille encore, ou n'a rien trouvé. */
@@ -102,11 +126,12 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
   const surLeBac = regardSur(meuble, a.encrier);
   const haut = empriseDe([meuble], a.encrier.largeur)?.y ?? surLeBac.origine[1];
   const r: Regard = { ...surLeBac, origine: [surLeBac.origine[0], Math.min(surLeBac.origine[1], haut - B.auDessus)] };
-  // Les trois crans, chacun taillé à son libellé, côte à côte depuis la colonne, un écart entre eux : aucun ne mord sur l'autre.
+  // Les trois crans, chacun taillé à son libellé, côte à côte et centrés, un écart entre eux : aucun ne mord sur l'autre.
   const largeurs = CRANS_DU_BAC.map((c) => largeurDeLaTouche({ genre: 'cran', libelle: P[c], ajustee: true }, a.encrier.largeur));
+  const enTout = largeurs.reduce((somme, l) => somme + l, 0) + B.crans.ecart * (largeurs.length - 1);
   const crans = CRANS_DU_BAC.map((c, rang) => {
     const avant = largeurs.slice(0, rang).reduce((somme, l) => somme + l + B.crans.ecart, 0);
-    const x = T.colonne.gauche + avant + (largeurs[rang] ?? 0) / 2;
+    const x = (r.largeur - enTout) / 2 + avant + (largeurs[rang] ?? 0) / 2;
     return touche(`touche-bac-${c}`, 'cran', P[c], r, [x, B.crans.y], a.encrier, c === bac.cran ? 'allumee' : 'repos', true);
   });
   const objets: Calque[] = [meuble, ...crans];
@@ -121,9 +146,7 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
         -1,
         [{ contenu: bac.source, role: 'technique', auPlus: 'gravure' }],
         a.encrier,
-        {
-          ancre: 'debut',
-        },
+        { ancre: 'milieu' },
       ).calques,
     );
   /** Un papier qui dit ce qui se passe, ou ce qu'on a choisi : à cette place, ces lignes. */
@@ -147,22 +170,20 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
         },
       ).calques,
     );
-    // Ce que la recherche trouve : des playlists publiques, chacune sa vignette.
+    // Ce que la recherche trouve : des playlists publiques, chacune un disque, son étiquette à sa couleur ; la touchée se soulève.
     for (const [rang, x] of B.resultats.x.entries()) {
       const vignette = resultats[rang];
       if (vignette === undefined) continue;
-      const p = dessinerLaVraiePochette(
-        vignette,
-        {
-          nom: `pochette-resultat-${rang + 1}`,
-          centre: surLeBois(r, x, B.resultats.y),
-          angle: B.resultats.angles[rang] ?? 0,
-          taille: B.resultats.taille,
-          ...(bac.touche === rang ? { leve: B.leve / 2 } : {}),
-        },
-        `resultat-${rang}`,
+      objets.push(
+        ...disqueDePlaylist(
+          `disque-resultat-${rang + 1}`,
+          r,
+          [x, B.resultats.y],
+          vignette.fond,
+          bac.touche === rang ? B.playlists.leve : 0,
+          B.resultats.rayon,
+        ),
       );
-      objets.push(p.ombre, p.pochette);
     }
     if (bac.etat !== undefined)
       ecrire('etiquette-message', B.message.en, B.message.largeur, [
@@ -175,17 +196,18 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
   }
   if (bac.cran === 'pretes') {
     const theme = bac.theme !== undefined && estUnTheme(bac.theme) ? bac.theme : undefined;
-    if (theme !== undefined) objets.push(...pochetteChoisie(r, theme));
-    const ici = theme !== undefined ? B.aCoteDeLaPochette : B.saisie;
+    const proposees = bac.proposees ?? [];
     if (bac.etat === 'fouille' || bac.etat === 'rien')
-      ecrire('etiquette-message', ici.en, ici.largeur, [
+      ecrire('etiquette-message', B.saisie.en, B.saisie.largeur, [
         { contenu: bac.etat === 'fouille' ? P.fouille : P.rien, role: 'titrage', auPlus: 'intertitre' },
       ]);
-    else if (bac.choisie !== undefined && choisie !== undefined)
-      ecrire('etiquette-choisie', ici.en, ici.largeur, [
-        { contenu: bac.choisie.titre, role: 'titrage', auPlus: 'intertitre' },
-        { contenu: choisie, role: 'technique', auPlus: 'mention' },
-      ]);
+    else if (theme !== undefined && proposees.length > 0) {
+      // Les playlists du genre, en disques ; « Au hasard » en tire une.
+      objets.push(...playlistsDuGenre(a, r, theme, proposees, bac.touche));
+      objets.push(toucheAuMilieu('touche-hasard-bac', 'secondaire', P.auHasard, r, B.playlists.auHasard, a.encrier));
+    } else if (bac.themeAToucher === true)
+      // Rien de touché encore : on dit quoi faire.
+      ecrire('etiquette-message', B.saisie.en, B.saisie.largeur, [{ contenu: P.toucheUnGenre, role: 'titrage', auPlus: 'intertitre' }]);
   }
   if (bac.cran === 'laMienne') {
     objets.push(
@@ -234,7 +256,7 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
       : bac.cran === 'chercher'
         ? resultats.length > 0
         : bac.importee !== undefined);
-  if (aChoisir && bac.refus === undefined) objets.push(toucheAuBord('touche-choisir', 'principale', P.choisir, r, B.choisir, a.encrier));
+  if (aChoisir && bac.refus === undefined) objets.push(toucheAuMilieu('touche-choisir', 'principale', P.choisir, r, B.choisir, a.encrier));
   return { regard: r, objets };
 }
 
@@ -253,7 +275,7 @@ export function vueDesReglages(
     objets: [
       platineArretee(a, { mode: mode.cran, ...(reglages !== undefined ? { reglages } : {}) }),
       ...phrase(a.textes.partie.bareme[mode.cle] ?? '', r, a.encrier),
-      toucheAuBord('touche-ouvrir', 'principale', a.textes.partie.ouvrirLeSalon, r, T.reglages.ouvrir, a.encrier),
+      toucheAuMilieu('touche-ouvrir', 'principale', a.textes.partie.ouvrirLeSalon, r, T.reglages.ouvrir, a.encrier),
     ],
   };
 }
@@ -262,17 +284,10 @@ export function vueDesReglages(
 export type QuiRegardeLeSalon = 'hote' | 'invite' | 'nouvelHote';
 
 /**
- * Le salon : le code en énorme sur l'étiquette, le QR code sur la kraft, le lien à copier, les pochettes, la touche qui allume
- * l'ampli (allumée une fois qu'il l'est), et celle de l'hôte, qui lance la face A.
+ * Le salon : le code en énorme sur l'étiquette, le QR code sur la kraft, le lien à copier, les pochettes, et la touche de l'hôte,
+ * qui lance la face A. L'ampli s'allume tout seul : le son part au premier toucher.
  */
-export function vueDuSalon(
-  a: Ecritoire,
-  etat: EtatDeLaPartie,
-  code: string,
-  qui: QuiRegardeLeSalon,
-  ampliAllume = false,
-  maPochette = false,
-): VueDuTelephone {
+export function vueDuSalon(a: Ecritoire, etat: EtatDeLaPartie, code: string, qui: QuiRegardeLeSalon, maPochette = false): VueDuTelephone {
   const lancer = etat.face === 'B' ? a.textes.touches.lancerLaFaceB : a.textes.touches.lancer;
   const r = SUR_LA_PLATINE;
   const S = T.salon;
@@ -307,7 +322,6 @@ export function vueDuSalon(
     const largeur = largeurDeLaTouche({ genre: 'cran', libelle, ajustee: true }, a.encrier.largeur);
     objets.push(touche('touche-ma-pochette', 'cran', libelle, r, [S.pochette[0] + largeur / 2, S.pochette[1]], a.encrier, 'repos', true));
   }
-  objets.push(toucheAuBord('touche-allume', 'secondaire', a.textes.ampli.allume, r, S.allume, a.encrier, ampliAllume ? 'allumee' : 'repos'));
   if (qui !== 'invite') objets.push(toucheAuBord('touche-lancer', 'principale', lancer, r, S.lancer, a.encrier));
   return { regard: r, objets };
 }
@@ -340,11 +354,11 @@ export function vueDeLaSaisie(a: Ecritoire, tape: string, refus?: 'codeInconnu' 
       ],
       a.encrier,
       // Sur la colonne, comme le reste : son papier garde son bord gauche pendant qu'on tape.
-      { curseur: refus === undefined, alignement: 'debut', ancre: 'debut' },
+      { curseur: refus === undefined, alignement: 'debut', ancre: 'milieu' },
     ).calques,
   ];
   if (refus !== undefined) objets.push(...phrase(a.textes.etats[refus], r, a.encrier, S.message));
-  objets.push(toucheAuBord('touche-rejoindre', 'principale', a.textes.partie.rejoindre, r, S.entrer, a.encrier));
+  objets.push(toucheAuMilieu('touche-rejoindre', 'principale', a.textes.partie.rejoindre, r, S.entrer, a.encrier));
   return { regard: r, objets };
 }
 

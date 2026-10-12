@@ -71,8 +71,13 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     const cle = nom.startsWith('intercalaire-') ? nom.slice('intercalaire-'.length) : undefined;
     const theme = cle !== undefined ? textes.bac.themes[cle] : undefined;
     if (cran === 'pretes' && cle !== undefined && theme !== undefined) return de({ genre: 'theme', cle, recherche: theme }, theme);
+    // Les playlists du genre : un disque, ou son papier ; et « Au hasard ».
+    const playlist = rangDans(nom, 'disque-playlist-') ?? rangDans(nom, 'etiquette-playlist-');
+    const proposee = playlist !== undefined ? ecran.bac.proposees?.[playlist] : undefined;
+    if (cran === 'pretes' && playlist !== undefined && proposee !== undefined) return de({ genre: 'resultat', rang: playlist }, proposee.titre);
+    if (cran === 'pretes' && nom === 'touche-hasard-bac') return de({ genre: 'playlistAuHasard' }, textes.playlists.auHasard);
     if (cran === 'chercher' && nom === 'etiquette-recherche') return de({ genre: 'taperLaRecherche' }, textes.playlists.chercher);
-    const rang = rangDans(nom, 'pochette-resultat-');
+    const rang = rangDans(nom, 'disque-resultat-');
     if (cran === 'chercher' && rang !== undefined) return de({ genre: 'resultat', rang }, `${textes.playlists.chercher} ${rang + 1}`);
     if (cran === 'laMienne' && nom === 'etiquette-lien') return de({ genre: 'collerLeLien' }, textes.playlists.laMienne);
   }

@@ -127,7 +127,6 @@ function jouerAuTelephone(mode: 'libre' | 'quatreChoix') {
         break;
       case 'salon':
         if (e.etat.face === 'B') faceB = true;
-        else if (!e.ampli) quand(1, { genre: 'allumer' });
         else if (e.etat.joueurs.length === 6) quand(1, { genre: 'lancer' });
         break;
       case 'piste':
@@ -157,8 +156,6 @@ test('au téléphone, la partie passe par chaque écran, dans l’ordre, jusqu�
     'pochette',
     'bac',
     'reglages',
-    'salon',
-    'ampli',
     'salon',
     'piste',
     'hitParade',
@@ -238,15 +235,11 @@ test('ce qu’on touche sur un écran est une touche qu’il montre, et chaque z
     maPochette,
   ]);
   // Dans la room, sa propre pochette se touche, sur la tablée (et pas celle des autres) ; au salon, un cran le dit aussi.
-  assert.deepEqual(touchers(vueDuSalon(A, salon.etat, salon.code, 'hote').objets, salon), [
-    maPochette,
-    `allumer:${TEXTES.ampli.allume}`,
-    `lancer:${TEXTES.touches.lancer}`,
-  ]);
-  assert.deepEqual(touchers(vueDuSalon(A, salon.etat, salon.code, 'hote', false, true).objets, salon), [
+  assert.deepEqual(touchers(vueDuSalon(A, salon.etat, salon.code, 'hote').objets, salon), [maPochette, `lancer:${TEXTES.touches.lancer}`]);
+  // L'ampli s'allume tout seul dans la room : le salon n'a plus de touche pour lui.
+  assert.deepEqual(touchers(vueDuSalon(A, salon.etat, salon.code, 'hote', true).objets, salon), [
     maPochette,
     maPochette,
-    `allumer:${TEXTES.ampli.allume}`,
     `lancer:${TEXTES.touches.lancer}`,
   ]);
   // Au hit-parade, seul l'hôte a de quoi lancer la piste suivante ; l'invité a, à sa place, sa pochette à refaire.

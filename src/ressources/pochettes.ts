@@ -62,10 +62,15 @@ export const MESURES_DE_POCHETTE = {
   pansDeCoin: 2,
   chanfrein: 1.3,
   /**
-   * Les coins usés, là où l'impression est partie en rond : le rayon de l'usure au plus, la part qu'elle en garde au moins,
-   * le nombre de pans de ce rond, et la chance qu'un coin soit épargné.
+   * Les coins usés, là où l'impression est partie en rond, tous les quatre, du même rond : son rayon, la part qu'il en garde au moins
+   * (tous la gardent entière), le nombre de pans de ce rond, et la chance qu'un coin soit épargné (aucun).
    */
-  usure: { taille: 6.5, auMoins: 0.55, pans: 16, epargne: 0.22 },
+  usure: { taille: 6.5, auMoins: 1, pans: 16, epargne: 0 },
+  /**
+   * Le disque qui dépasse du haut d'une pochette de joueur, glissé dedans : c'est à lui qu'on reconnaît une pochette de disque.
+   * Son rayon et ce qui en dépasse, en part du côté ; ses sillons, en part du rayon ; le nombre de pans de son contour.
+   */
+  disque: { rayon: 0.46, depasse: 0.11, sillons: [0.9, 0.78], pans: 48 },
   /** Marge laissée au nom d'artiste, de chaque côté. */
   marge: 11,
   /** Centre de la tête sur la pochette entière, par rapport à son centre. */

@@ -69,16 +69,13 @@ function uneRoom(son: SonDeLaRoom, pistes: readonly PisteDuMode[] = AVEC_EXTRAIT
   return { serveur, horloge, hote, invite };
 }
 
-test('l’ampli éteint, rien ne joue ; allumé, l’extrait de la piste lancée se précharge, part à l’heure du serveur, et se tait après la réponse', () => {
+test('dans la room, l’ampli est allumé d’office : l’extrait de la piste lancée se précharge, part à l’heure du serveur, et se tait après la réponse', () => {
   const { serveur, horloge, hote, invite } = uneRoom('tous');
   hote.connexion?.envoyer({ genre: 'lancer' });
   assert.match(hote.m.room?.extrait ?? '', /0\.mp3$/);
-  assert.equal(sonVoulu(hote.m), undefined, 'ampli éteint');
+  assert.ok(hote.m.ampliAllumeA !== undefined, 'l’ampli s’allume en entrant dans la room');
 
-  // Allumé pendant le décompte : il a un extrait à charger, il ne se dit pas prêt tout de suite.
-  const allume = toucher(hote.m, { genre: 'allumer' }, horloge.t, PREPARATIFS);
-  assert.deepEqual(allume.actions, []);
-  hote.m = allume.memoire;
+  // Pendant le décompte, il a un extrait à charger : il le précharge, et ne se dira prêt qu'une fois chargé.
   const prechargement = sonVoulu(hote.m);
   assert.equal(prechargement?.adresse, hote.m.room?.extrait);
   assert.equal(prechargement?.depuis, undefined, 'pendant le décompte, on précharge');

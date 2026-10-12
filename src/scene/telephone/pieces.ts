@@ -66,6 +66,19 @@ export function toucheAuBord(
   return touche(nom, genre, libelle, regard, [gauche + largeur / 2, y], encrier, etat);
 }
 
+/** Une touche posée au milieu du regard, à cette hauteur : les touches d'un écran se centrent les unes sous les autres. */
+export function toucheAuMilieu(
+  nom: `touche-${string}`,
+  genre: 'principale' | 'secondaire',
+  libelle: string,
+  regard: Regard,
+  y: number,
+  encrier: Encrier,
+  etat: EtatDeTouche = 'repos',
+): Calque {
+  return touche(nom, genre, libelle, regard, [regard.largeur / 2, y], encrier, etat);
+}
+
 /** Un papier posé dans un regard. */
 export function papier(
   nom: `etiquette-${string}`,

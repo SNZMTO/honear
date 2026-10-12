@@ -814,13 +814,22 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   remet le haut du téléphone en haut de l'écran si la page a glissé, et pose l'étiquette juste au-dessus du vrai clavier, quelle que
   soit sa hauteur (`dessusDuClavier`, `TABLEE.telephone.clavier.auPlusHaut`). Sur un ordinateur, rien ne bouge.
 - **La vraie pochette est au milieu du disque** retourné, ronde, percée de l'axe (`pochetteSurLeVerso`) ; plus rien ne sort de sous la kraft.
-- **Sur un ordinateur, le meuble entier** : une fenêtre bien plus large que haute élargit le regard au bac, à la platine et à l'ampli,
-  sans changer d'échelle (`scene/telephone/grand.ts`) ; chaque écran garde sa place, la piste ne glisse plus.
+- **La fenêtre, quelle qu'elle soit** : le jeu la remplit toujours, sans changer d'échelle (`regardPourLaFenetre`). Une fenêtre de
+  téléphone montre l'écran du téléphone ; plus elle s'élargit, plus le regard s'ouvre sur le meuble, jusqu'au meuble entier sur un
+  ordinateur, où ce qu'on touche se range sous le vinyle (`rangerSousLeDisque`). Le meuble que le regard voit est posé au repos.
 - **D'un écran à l'autre, un fondu** de 0,22 s (`TELEPHONE.fondu`) ; la piste apparaît sur le noir. Rien en version sobre.
-- **Le bac** : le thème touché ne soulève plus une pochette dans le bac ; sa pochette se pose devant, son disque à moitié sorti
-  (`scene/telephone/choisie.ts`), et le regard monte assez pour qu'on lise tous les onglets.
-- **« Fais ta pochette » se réduit** à la pochette en grand, son nom, « Au hasard » et « C'est moi ». L'accueil : deux grandes touches,
-  et deux petits onglets dessous, « Ma pochette » et « Mon compte ».
+- **Les pochettes sont les joueurs, les disques la musique** : dans le bac (peint en crème), des disques derrière les intercalaires ;
+  un genre touché étale ses playlists Deezer en disques, avec leur nom, et « Au hasard » (`scene/telephone/choisie.ts`) ; la
+  choisie se soulève. La recherche montre aussi des disques. Chaque pochette de joueur a son disque qui dépasse, et ses quatre coins
+  usés pareil.
+- **« Fais ta pochette » se réduit** à la pochette en grand, son nom, « Au hasard » et « C'est moi ». L'accueil : « BLIND TEST » en
+  grand, deux grandes touches, et deux petits onglets dessous, « Ma pochette » et « Mon compte ». Les touches et les papiers des
+  écrans sans kraft se centrent.
+- **Le son** : l'ampli s'allume tout seul dans une room, le son part au premier toucher. Le volume part de 30 % ; le bouton de
+  l'ampli le règle (sa moitié gauche baisse, la droite monte), sur l'ampli même sur un grand écran, en petit sur le coin de la
+  platine au téléphone (`scene/telephone/volume.ts`). Là où l'élément audio ne se règle pas (l'iPhone), le son passe par le moteur
+  audio du navigateur : les extraits de Deezer le permettent.
+- **La lumière de la lampe est un fondu** : des ellipses de bois clair à peine opaques, empilées, au lieu de trois paliers.
 - **Le RGPD** : `/confidentialite` et `/mentions-legales`, fabriquées par `npm run construire` (`ecran/jeu/legal.ts`), servies sans
   script ; le serveur y écrit l'adresse du site et celle où écrire (`CONTACT`, sinon celle qui envoie les liens). Leurs liens sont en
   bas de l'accueil et du compte. Un compte où personne ne revient depuis deux ans s'efface, prévenu un mois avant (`entretenir`).
