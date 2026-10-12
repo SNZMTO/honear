@@ -87,18 +87,32 @@ export function classementSousLeBac(regard: Regard): PlaceDuClassement | undefin
 const estDuMeuble = (c: Calque): boolean => c.nom === 'platine' || c.nom === 'bac' || c.nom === 'ampli' || c.nom.startsWith('kraft');
 
 /**
+ * Sur un grand écran, ce dont glisse ce qu'on touche et ce qu'on lit d'un écran posé sur la platine pour se ranger sous le vinyle :
+ * d'autant plus que la fenêtre est large, jusqu'à ce que le milieu de ces objets soit celui du disque. Rien au téléphone, ni pour un
+ * écran posé ailleurs que sur la platine.
+ */
+export function glissementSousLeDisque(objets: readonly Calque[], ecran: Regard, proportion: number, mesurer: Mesure): number {
+  const t = ouverture(proportion);
+  if (t === 0 || ecran.origine[0] !== SUR_LA_PLATINE.origine[0]) return 0;
+  const e = empriseDe(
+    objets.filter((c) => !estDuMeuble(c)),
+    mesurer,
+  );
+  return e === undefined ? 0 : t * (CENTRE_DU_PLATEAU[0] - (e.x + e.largeur / 2));
+}
+
+/** Ces objets glissés de tant, d'un bloc ; le meuble ne bouge pas. */
+export const glisserSousLeDisque = (objets: readonly Calque[], dx: number): Calque[] =>
+  dx === 0
+    ? [...objets]
+    : objets.map((c) => (estDuMeuble(c) ? c : { ...c, transformations: [{ genre: 'glisser', de: [dx, 0] }, ...(c.transformations ?? [])] }));
+
+/**
  * Sur un grand écran, ce qu'on touche et ce qu'on lit d'un écran posé sur la platine se range sous le vinyle : on le glisse d'un
  * bloc, d'autant plus que la fenêtre est large, jusqu'à ce que son milieu soit celui du disque. Le meuble ne bouge pas.
  */
-export function rangerSousLeDisque(objets: readonly Calque[], ecran: Regard, proportion: number, mesurer: Mesure): Calque[] {
-  const t = ouverture(proportion);
-  if (t === 0 || ecran.origine[0] !== SUR_LA_PLATINE.origine[0]) return [...objets];
-  const aRanger = objets.filter((c) => !estDuMeuble(c));
-  const e = empriseDe(aRanger, mesurer);
-  if (e === undefined) return [...objets];
-  const dx = t * (CENTRE_DU_PLATEAU[0] - (e.x + e.largeur / 2));
-  return objets.map((c) => (estDuMeuble(c) ? c : { ...c, transformations: [{ genre: 'glisser', de: [dx, 0] }, ...(c.transformations ?? [])] }));
-}
+export const rangerSousLeDisque = (objets: readonly Calque[], ecran: Regard, proportion: number, mesurer: Mesure): Calque[] =>
+  glisserSousLeDisque(objets, glissementSousLeDisque(objets, ecran, proportion, mesurer));
 
 /**
  * Le meuble au repos autour d'un écran du téléphone, ce que ce regard en voit : le bac rangé, la platine à l'arrêt, l'ampli

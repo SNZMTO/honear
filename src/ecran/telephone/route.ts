@@ -5,7 +5,7 @@
  */
 
 import { MODES, type ModeDeJeu } from '../../regles/modes';
-import { numeroDeLaPiste, partieA, type EtatDeLaPartie, type EvenementDePartie, type SonDeLaRoom } from '../../regles/partie';
+import { numeroDeLaPiste, partieA, partieAvant, type EtatDeLaPartie, type EvenementDePartie, type SonDeLaRoom } from '../../regles/partie';
 import { jouer, type Reponse } from '../../regles/piste';
 import type { ChoixDeLAvatar } from '../../ressources/avatar';
 import { TELEPHONE } from '../../ressources/ecran';
@@ -152,19 +152,6 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
   }
 }
 
-/** L'état d'avant un instant, pour ce journal : le dernier qu'on a demandé, gardé (l'écran le redemande à chaque image). */
-let avantGarde:
-  { readonly journal: readonly EvenementDePartie[]; readonly longueur: number; readonly a: number; readonly etat: EtatDeLaPartie } | undefined;
-function avantDe(journal: readonly EvenementDePartie[], a: number): EtatDeLaPartie {
-  if (avantGarde?.journal === journal && avantGarde.longueur === journal.length && avantGarde.a === a) return avantGarde.etat;
-  const etat = partieA(
-    journal.filter((e) => e.a < a),
-    Infinity,
-  );
-  avantGarde = { journal, longueur: journal.length, a, etat };
-  return etat;
-}
-
 /** La piste en cours, et tout ce qui se pose autour : ce que le journal en dit depuis son lancer, et ce qu'on y fait au pouce. */
 function ecranDeLaPiste(m: Memoire, room: RoomConnue, etat: EtatDeLaPartie, heure: number, textes: Textes): EcranDuTelephone | undefined {
   const piste = room.seance.reduce(jouer, undefined);
@@ -175,7 +162,7 @@ function ecranDeLaPiste(m: Memoire, room: RoomConnue, etat: EtatDeLaPartie, heur
   const depuis = room.journal.filter((e) => e.a >= lanceeA);
   const extrait = depuis.filter(estUn('extrait'))[0];
   const revelation = depuis.filter(estUn('revelation'))[0];
-  const avantLExtrait = extrait !== undefined ? avantDe(room.journal, extrait.a) : etat;
+  const avantLExtrait = extrait !== undefined ? partieAvant(room.journal, extrait.a) : etat;
   const miennes = depuis.filter(estUn('jugee')).filter((j) => j.id === room.toi);
   const derniere = miennes[miennes.length - 1];
   const moi = etat.joueurs.find((j) => j.id === room.toi);
@@ -265,10 +252,7 @@ export function ecranDuTelephone(m: Memoire, heure: number, p: Preparatifs, text
   if (etat.phase === 'pistes' && dernier !== undefined)
     return {
       genre: 'hitParade',
-      avant: partieA(
-        room.journal.filter((e) => e.a < dernier.a),
-        Infinity,
-      ),
+      avant: partieAvant(room.journal, dernier.a),
       apres: etat,
       hote,
       toi,

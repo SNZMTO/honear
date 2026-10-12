@@ -863,11 +863,15 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   en bas) sans rien y poser à toucher, et les petites touches du coin descendent sous l'encoche. Le haut du regard reste le bord de
   la platine (plus de bande de bois que Safari reprenait pour teinter sa barre). Posé sur l'écran d'accueil, la barre d'état est
   transparente (`black-translucent`).
-- **Ce qu'on tape** : toucher l'étiquette de la réponse la vide (on voit qu'on y est) ; « Entrée » l'enfonce un instant, à plat, en
-  kraft (`TELEPHONE.reponseEnfoncee`). Le curseur du champ reste au bout de ce qu'on a tapé, comme celui qu'on voit (un clic le
+- **Ce qu'on tape** : revenir dans l'étiquette de la réponse la vide quand elle montre la réponse qu'on vient d'envoyer (un brouillon
+  reste) ; « Entrée » l'enfonce un instant, à plat et droite, en kraft (`TELEPHONE.reponseEnfoncee`). Ce qu'on tape va au champ
+  que l'écran a posé (`saisir(m, texte, champ)`) : une piste passe avant la pochette qu'on refaisait, et le bac de l'hôte cherche
+  dans la room. Le curseur du champ reste au bout de ce qu'on a tapé, comme celui qu'on voit (un clic le
   posait n'importe où, et Ctrl + Retour arrière effaçait depuis le début). Sur un ordinateur, une lettre tapée va dans le champ posé,
   même si l'on a cliqué à côté. Autour de la piste, deux couches : la tablée (classement, décor de saison) ne se redessine plus à
-  chaque lettre ; et `partieA` ne rejoue plus le journal à chaque image (il garde son dernier état) : la fin de partie ne rame plus.
+  chaque lettre, et tout ce qu'on pose glisse sous le vinyle d'un seul bloc (`glissementSousLeDisque`, ce qu'on touche pris à sa
+  plus grande place) ; `partieA` et `partieAvant` gardent leur dernier état, tant que le journal a les mêmes événements : la fin de
+  partie ne rame plus.
 - **Le plein écran au premier toucher** (Android) ne part plus que d'une touche, jamais d'une étiquette où l'on tape : la page qui
   changeait de taille fermait le clavier, et le champ ne tapait plus.
 - **L'ampli et la saisie** : les cadrans comptent les titres de la face et les secondes de l'extrait ; le volume va de 0 à 10. Le

@@ -7,8 +7,9 @@
 import { rectangle } from '../../lowpoly/contours';
 import type { Reponse } from '../../regles/piste';
 import { PASTILLES } from '../../ressources/pastilles';
-import { TABLEE } from '../../ressources/tablee';
-import { aplat, calque, type Calque } from '../calque';
+import { PAPIER, TABLEE } from '../../ressources/tablee';
+import { CORPS } from '../../ressources/typo';
+import { aplat, calque, type Calque, type Mesure } from '../calque';
 import type { Regard } from '../meuble';
 import type { LigneDePapier } from '../papier';
 import { dessinerUnePastille, type Pastille } from '../pastille';
@@ -39,6 +40,27 @@ export function etiquetteDeReponse(
   return [...calques, d.ombre, d.pastille];
 }
 
+/** Ce qu'on pourrait taper de plus encombrant, une fois trouvé pour une façon de mesurer : on ne le cherche qu'une fois. */
+const LES_PLUS_GRANDES = new WeakMap<Mesure, string>();
+
+/**
+ * Ce qu'on pourrait taper de plus encombrant sur l'étiquette vierge : autant de lignes pleines qu'un papier en écrit, au plus grand
+ * corps de ce qu'on tape. Elle prend alors toute sa largeur et toute sa hauteur : c'est sa plus grande place.
+ */
+export function reponseLaPlusGrande(mesurer: Mesure): string {
+  const deja = LES_PLUS_GRANDES.get(mesurer);
+  if (deja !== undefined) return deja;
+  const utile = T.reponse.largeur - 2 * PAPIER.marge;
+  let mot = PLEIN;
+  while (mesurer({ contenu: mot + PLEIN, role: 'titrage', corps: CORPS.titre }) <= utile) mot += PLEIN;
+  const sonde = Array.from({ length: PAPIER.lignesAuPlus }, () => mot).join(' ');
+  LES_PLUS_GRANDES.set(mesurer, sonde);
+  return sonde;
+}
+
+/** La lettre la plus large, pour remplir une ligne. */
+const PLEIN = 'M';
+
 /** L'étiquette de réponse, et à part la pastille de son mot, s'il y en a un : une animation la dessine une fois, puis la fait bouger. */
 export function etiquetteEtSonMot(
   a: Ecritoire,
@@ -54,9 +76,10 @@ export function etiquetteEtSonMot(
   const ligne: LigneDePapier =
     tape === '' ? { contenu: a.textes.partie.taReponse, role: 'technique', auPlus: 'mention' } : { contenu: tape, role: 'titrage', auPlus: 'titre' };
   // Taillée à ce qu'on tape, assez large pour ses trois pastilles ; elle s'allonge vers la droite.
-  // La réponse part : l'étiquette s'enfonce un instant, à plat, comme une étiquette touchée au 4 choix.
+  // La réponse part : l'étiquette s'enfonce un instant, à plat et droite, comme une étiquette touchée au 4 choix.
   const E = T.choix.touchee;
-  const etiquette = papier('etiquette-reponse', regard, [R.en[0], y + (enfoncee ? E.enfonce : 0)], R.largeur, R.angle, [ligne], a.encrier, {
+  const angle = enfoncee ? 0 : R.angle;
+  const etiquette = papier('etiquette-reponse', regard, [R.en[0], y + (enfoncee ? E.enfonce : 0)], R.largeur, angle, [ligne], a.encrier, {
     // Rien de tapé : le curseur attend devant ce qu'on peut taper, pas au milieu de l'étiquette.
     curseur: tape === '' ? 'debut' : true,
     alignement: 'debut',

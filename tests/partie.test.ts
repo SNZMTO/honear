@@ -13,6 +13,7 @@ import {
   mouvementsDuClassement,
   numeroDeLaPiste,
   partieA,
+  partieAvant,
   rangs,
   type EvenementDePartie,
 } from '../src/regles/partie';
@@ -244,10 +245,22 @@ test('« Piste N sur M » suit la partie : la première au salon, celle qu’on 
   assert.equal(numeroDeLaPiste(partieA([ouvre(15)], 0)).sur, 15, 'combien : ce que l’hôte a réglé en ouvrant la room');
 });
 
-test('rejoué jusqu’au bout, un journal ne l’est qu’une fois ; un événement de plus, et il l’est de nouveau', () => {
+test('rejoué jusqu’au bout, un journal ne l’est qu’une fois ; un événement de plus, ou changé en place, et il l’est de nouveau', () => {
   const journal: EvenementDePartie[] = arrivent('a', 'b');
   const etat = partieA(journal, Infinity);
   assert.equal(partieA(journal, Infinity), etat, 'le même état, sans tout rejouer');
   journal.push({ genre: 'depart', a: 5, id: 'b' });
   assert.equal(partieA(journal, Infinity).joueurs.length, 1, 'le journal s’est allongé : il est rejoué');
+  journal[journal.length - 1] = { genre: 'depart', a: 5, id: 'a' };
+  assert.deepEqual(
+    partieA(journal, Infinity).joueurs.map((j) => j.id),
+    ['b'],
+    'changé en place, de la même longueur : il est rejoué aussi',
+  );
+  // Juste avant un instant : sans ce qui arrive à cet instant ni après.
+  assert.deepEqual(
+    partieAvant(journal, 5).joueurs.map((j) => j.id),
+    ['a', 'b'],
+  );
+  assert.equal(partieAvant(journal, 5), partieAvant(journal, 5));
 });

@@ -736,8 +736,9 @@ export function avancer(m: Memoire, heure: number): Suite {
   if (frappe === undefined) return { memoire: m, actions: [] };
   const finie = frappe.depuis + [...frappe.texte].length * TELEPHONE.clavier.parLettre + TELEPHONE.clavier.avantDEnvoyer;
   if (heure < finie) return { memoire: m, actions: [] };
+  // La réponse part, à l'heure où le clavier a fini de la taper : l'étiquette s'enfonce, comme sous le pouce.
   return {
-    memoire: { ...m, pouce: { ...pouce, tape: frappe.texte, frappe: undefined, tapees: pouce.tapees + 1 } },
+    memoire: { ...m, pouce: { ...pouce, tape: frappe.texte, frappe: undefined, tapees: pouce.tapees + 1, valideeA: finie } },
     actions: [{ genre: 'repondre', proposition: { genre: 'saisie', texte: frappe.texte } }],
   };
 }
@@ -770,63 +771,116 @@ export function clavierOuvert(m: Memoire, ouvert: boolean, dessus?: number): Mem
   return { ...m, pouce: { ...pouce, clavier: ouvert, ...(ouvert && dessus !== undefined ? { dessusDuClavier: dessus } : {}) } };
 }
 
+/** Les champs où tape le clavier du téléphone : la réponse, le code d'une room, une recherche, un lien, une adresse, un nom d'artiste. */
+export const CHAMPS_DE_SAISIE = ['reponse', 'code', 'recherche', 'lien', 'email', 'nom'] as const;
+export type ChampDeSaisie = (typeof CHAMPS_DE_SAISIE)[number];
+
+/**
+ * Vrai si ce qu'on voit sur l'étiquette de la réponse est la réponse qu'on vient d'envoyer, pas un brouillon : y revenir la vide,
+ * pour en taper une autre. Un brouillon, lui, reste.
+ */
+export const laReponseEstPartie = (m: Memoire): boolean => m.room !== undefined && pouceDeLaPiste(m).valideeA !== undefined;
+
+/**
+ * Le champ que montre l'écran d'où l'on tape, quand on ne le dit pas : le nom sur « Fais ta pochette », la recherche ou le lien dans
+ * le bac, le code à sa saisie, l'adresse au compte ; sinon, la réponse.
+ */
+function champDeLEcran(m: Memoire): ChampDeSaisie {
+  const prep = m.preparation;
+  if (prep.ecran === 'pochette') return 'nom';
+  if (prep.ecran === 'bac') return prep.cran === 'laMienne' ? 'lien' : 'recherche';
+  if (m.room === undefined && prep.ecran === 'saisie') return 'code';
+  if (m.room === undefined && prep.ecran === 'compte') return 'email';
+  return 'reponse';
+}
+
 /**
  * Ce qu'on tape au clavier du téléphone : le code d'une room, à la saisie (en capitales, sans les lettres qu'on confond, quatre au
  * plus) ; son nom d'artiste ; une adresse, une recherche, un lien ; ou une réponse, sur l'étiquette vierge.
+ * @param champ celui où l'on tape, tel que l'écran l'a posé : une piste passe avant la pochette qu'on refaisait, et le bac de l'hôte
+ * s'ouvre dans la room ; c'est lui qui dit où va ce qu'on tape. Sans lui, celui que montre l'écran d'où l'on tape.
  */
-export function saisir(m: Memoire, texte: string): Memoire {
+export function saisir(m: Memoire, texte: string, champ: ChampDeSaisie = champDeLEcran(m)): Memoire {
   const prep = m.preparation;
-  // Le nom d'artiste, sur l'étiquette de « Fais ta pochette » : avant la room, ou dedans, quand on la refait.
-  if (prep.ecran === 'pochette') {
-    const { sansNom: _reclame, ...reste } = prep;
-    return { ...m, preparation: { ...reste, pochette: { ...prep.pochette, artiste: nomTape(texte) } } };
+  switch (champ) {
+    case 'nom': {
+      // Le nom d'artiste, sur l'étiquette de « Fais ta pochette » : avant la room, ou dedans, quand on la refait.
+      if (prep.ecran !== 'pochette') return m;
+      const { sansNom: _reclame, ...reste } = prep;
+      return { ...m, preparation: { ...reste, pochette: { ...prep.pochette, artiste: nomTape(texte) } } };
+    }
+    case 'code': {
+      if (m.room !== undefined || prep.ecran !== 'saisie') return m;
+      const lettres = [...texte.toUpperCase()].filter((l) => PARTIE.code.lettres.includes(l)).slice(0, PARTIE.code.longueur);
+      return { ...m, refus: undefined, preparation: { ...prep, tape: lettres.join('') } };
+    }
+    case 'email':
+      if (m.room !== undefined || prep.ecran !== 'compte') return m;
+      // Une adresse s'écrit sans espace ; on la garde telle qu'on la tape, le serveur dira si c'en est une.
+      return { ...m, refus: undefined, preparation: { ...prep, email: [...texte.replace(/\s+/g, '')].slice(0, ADRESSE_AU_PLUS).join('') } };
+    case 'recherche':
+    case 'lien': {
+      // Dans le bac : avant la room, ou dedans, quand l'hôte change de playlist.
+      if (prep.ecran !== 'bac') return m;
+      const court = [...texte].slice(0, SAISIE_AU_PLUS).join('');
+      const bac =
+        prep.cran === 'laMienne'
+          ? { ...prep.bac, lien: court, refus: undefined, importee: undefined, choisie: undefined }
+          : { ...prep.bac, recherche: court };
+      return { ...m, preparation: { ...prep, bac } };
+    }
+    case 'reponse': {
+      if (m.room === undefined) return m;
+      // On retape : la réponse d'avant n'est plus celle qu'on voit, l'étiquette ne se videra plus d'elle-même.
+      const { valideeA: _partie, ...pouce } = pouceDeLaPiste(m);
+      return { ...m, pouce: { ...pouce, tape: [...texte].slice(0, SAISIE_AU_PLUS).join('') } };
+    }
   }
-  if (m.room === undefined && prep.ecran === 'saisie') {
-    const lettres = [...texte.toUpperCase()].filter((l) => PARTIE.code.lettres.includes(l)).slice(0, PARTIE.code.longueur);
-    return { ...m, refus: undefined, preparation: { ...prep, tape: lettres.join('') } };
-  }
-  if (m.room === undefined && prep.ecran === 'compte') {
-    // Une adresse s'écrit sans espace ; on la garde telle qu'on la tape, le serveur dira si c'en est une.
-    return { ...m, refus: undefined, preparation: { ...prep, email: [...texte.replace(/\s+/g, '')].slice(0, ADRESSE_AU_PLUS).join('') } };
-  }
-  if (m.room === undefined && prep.ecran === 'bac') {
-    const court = [...texte].slice(0, SAISIE_AU_PLUS).join('');
-    const bac =
-      prep.cran === 'laMienne'
-        ? { ...prep.bac, lien: court, refus: undefined, importee: undefined, choisie: undefined }
-        : { ...prep.bac, recherche: court };
-    return { ...m, preparation: { ...prep, bac } };
-  }
-  return m.room === undefined ? m : { ...m, pouce: { ...pouceDeLaPiste(m), tape: [...texte].slice(0, SAISIE_AU_PLUS).join('') } };
 }
 
-/** On valide ce qu'on a tapé (« Envoyer » au clavier) : on entre avec ce code, ou la réponse part. Ce qu'on a tapé reste écrit. */
-export function valider(m: Memoire, heure: number, p: Preparatifs): Suite {
+/**
+ * On valide ce qu'on a tapé (« Envoyer » au clavier) : on entre avec ce code, ou la réponse part. Ce qu'on a tapé reste écrit.
+ * @param champ celui où l'on a tapé (voir `saisir`).
+ */
+export function valider(m: Memoire, heure: number, p: Preparatifs, champ: ChampDeSaisie = champDeLEcran(m)): Suite {
   const prep = m.preparation;
-  // Le nom tapé : on a fini de l'écrire, rien ne part.
-  if (prep.ecran === 'pochette') return { memoire: m, actions: [] };
-  if (m.room === undefined && prep.ecran === 'compte') return toucher(m, { genre: 'envoyerLeLien' }, heure, p);
-  if (m.room === undefined && prep.ecran === 'bac') {
-    // Dans le bac : la recherche part, ou le lien collé ; on attend ce que le serveur en dira.
-    const chercher = prep.cran === 'chercher';
-    const texte = (chercher ? prep.bac.recherche : prep.bac.lien).trim();
-    if (texte === '' || !p.chercher || prep.cran === 'pretes') return { memoire: m, actions: [] };
-    const bac = {
-      ...prep.bac,
-      enAttente: texte,
-      ...(chercher ? { resultats: undefined, touche: undefined, choisie: undefined } : { importee: undefined, choisie: undefined, refus: undefined }),
-    };
-    return {
-      memoire: { ...m, preparation: { ...prep, bac } },
-      actions: [chercher ? { genre: 'chercher', recherche: texte } : { genre: 'importer', lien: texte }],
-    };
+  const rien: Suite = { memoire: m, actions: [] };
+  switch (champ) {
+    case 'nom':
+      // Le nom tapé : on a fini de l'écrire, rien ne part.
+      return rien;
+    case 'email':
+      return m.room === undefined && prep.ecran === 'compte' ? toucher(m, { genre: 'envoyerLeLien' }, heure, p) : rien;
+    case 'code':
+      return m.room === undefined ? toucher(m, { genre: 'entrer' }, heure, p) : rien;
+    case 'recherche':
+    case 'lien': {
+      if (prep.ecran !== 'bac') return rien;
+      // Dans le bac : la recherche part, ou le lien collé ; on attend ce que le serveur en dira.
+      const chercher = prep.cran === 'chercher';
+      const texte = (chercher ? prep.bac.recherche : prep.bac.lien).trim();
+      if (texte === '' || !p.chercher || prep.cran === 'pretes') return rien;
+      const bac = {
+        ...prep.bac,
+        enAttente: texte,
+        ...(chercher
+          ? { resultats: undefined, touche: undefined, choisie: undefined }
+          : { importee: undefined, choisie: undefined, refus: undefined }),
+      };
+      return {
+        memoire: { ...m, preparation: { ...prep, bac } },
+        actions: [chercher ? { genre: 'chercher', recherche: texte } : { genre: 'importer', lien: texte }],
+      };
+    }
+    case 'reponse': {
+      if (m.room === undefined) return rien;
+      const pouce = pouceDeLaPiste(m);
+      const texte = pouce.tape.trim();
+      if (texte === '') return rien;
+      return {
+        memoire: { ...m, pouce: { ...pouce, tapees: pouce.tapees + 1, valideeA: heure } },
+        actions: [{ genre: 'repondre', proposition: { genre: 'saisie', texte } }],
+      };
+    }
   }
-  if (m.room === undefined) return toucher(m, { genre: 'entrer' }, heure, p);
-  const pouce = pouceDeLaPiste(m);
-  const texte = pouce.tape.trim();
-  if (texte === '') return { memoire: m, actions: [] };
-  return {
-    memoire: { ...m, pouce: { ...pouce, tapees: pouce.tapees + 1, valideeA: heure } },
-    actions: [{ genre: 'repondre', proposition: { genre: 'saisie', texte } }],
-  };
 }
