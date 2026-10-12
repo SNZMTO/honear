@@ -34,6 +34,7 @@ const GARDE = {
   tuto: 'honear.tuto',
   rechargee: 'honear.rechargee',
   playlists: 'honear.playlists',
+  diagnostic: 'honear.diagnostic',
 } as const;
 
 /** Un secret de compte, tel que le serveur les donne (voir `regles/messages.ts`). */
@@ -264,6 +265,10 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     if (window.location.pathname !== ici) window.history.replaceState(null, '', ici);
   };
 
+  // Le diagnostic, demandé par l'adresse (« ?diagnostic ») : il reste pour cet onglet, même quand l'adresse devient celle de la room.
+  if (new URLSearchParams(window.location.search).has('diagnostic')) ecrire(enSession, GARDE.diagnostic, true);
+  const diagnostic = lire(enSession, GARDE.diagnostic) === true;
+
   const vibreur = creerLeVibreur(window.navigator);
   // La page donne sa version en se branchant : si le site a changé depuis qu'elle est ouverte, le serveur lui demande de se recharger.
   // Une fois par version : une page que le navigateur rendrait encore ancienne ne se recharge pas en boucle.
@@ -288,6 +293,7 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     confirmer: (question) => window.confirm(question),
     son: true,
     fenetre: suivreLaFenetre(cadre),
+    diagnostic,
     // Les liens des pages légales, en bas : à l'accueil et au compte, là où rien d'autre ne se touche en bas de l'écran.
     enChangeant: (genre) => document.body.classList.toggle('pied', genre === 'accueil' || genre === 'compte'),
   });

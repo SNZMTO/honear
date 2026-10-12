@@ -43,6 +43,11 @@ export const TELEPHONE = {
   boisAuDessus: 28,
   /** Un bouton rond qu'on tourne d'un cran (Pistes, Extrait, Mode, le volume) y va en ce temps-là, en ralentissant. */
   tourne: 0.25,
+  /**
+   * Le diagnostic (« ?diagnostic ») : ses lignes partent au serveur par paquets, toutes les tant de secondes, d'au plus tant de
+   * caractères ; on n'en garde pas plus que tant en attendant la ligne.
+   */
+  diagnostic: { envoi: 2, paquet: 3000, enAttente: 400 },
   /** Le curseur de ce qu'on tape clignote : allumé ce temps-là, éteint autant. */
   curseur: { demiPeriode: 0.53 },
   /** Le tutoriel : le voile sombre qu'il pose sur le jeu, de cette opacité. */

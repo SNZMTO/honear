@@ -299,7 +299,9 @@ export function ouvrirUneRoom(
         case 'reprendreLeCompte':
         case 'sortirDuCompte':
         case 'effacerLeCompte':
-          // On ne crée ni ne rejoint une room de l'intérieur d'une autre ; l'heure, la musique et les comptes ne sont pas l'affaire d'une room.
+        case 'diagnostic':
+          // On ne crée ni ne rejoint une room de l'intérieur d'une autre ; l'heure, la musique, les comptes et le diagnostic ne sont pas
+          // l'affaire d'une room.
           return;
       }
     },

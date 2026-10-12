@@ -48,6 +48,7 @@ const AFFAIRES_DU_RESEAU: ReadonlySet<Action['genre']> = new Set([
   'reprendreLeCompte',
   'sortirDuCompte',
   'effacerLeCompte',
+  'diagnostic',
 ]);
 
 export function demarrerLeServeur(o: OptionsDuServeur): Serveur {

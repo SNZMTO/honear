@@ -51,8 +51,11 @@ export function volumeA(voulu: SonVoulu, heure: number): number {
 }
 
 export interface HautParleur {
-  /** À appeler dans le geste d'une main (un toucher, une touche du clavier) : le navigateur laisse alors partir le son, et le laissera. */
-  debloquer(): void;
+  /**
+   * À appeler dans le geste d'une main (un toucher, une touche du clavier) : le navigateur laisse alors partir le son, et le laissera.
+   * @param geste le nom de l'événement, pour le diagnostic.
+   */
+  debloquer(geste?: string): void;
   /** À chaque image : joue, à cette heure du serveur, ce qu'il faut jouer. */
   suivre(voulu: SonVoulu | undefined, heure: number): void;
   /**
@@ -117,12 +120,16 @@ const seanceAudio = (): SeanceAudio | undefined => (navigator as Navigator & { r
 const MoteurAudio = (): typeof AudioContext | undefined =>
   typeof AudioContext === 'function' ? AudioContext : (window as Window & { readonly webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
 
+/** Ce que l'élément audio dit de lui, et qu'on note au diagnostic. */
+const EVENEMENTS_NOTES = ['loadedmetadata', 'canplay', 'playing', 'pause', 'waiting', 'stalled', 'ended', 'error'] as const;
+
 /**
  * Le haut-parleur du téléphone : un seul élément audio, posé dans le cadre, qui joue tous les extraits.
  * @param volume le volume de ce téléphone, de 0 à 1, lu à chaque image ; là où l'élément ne se règle pas (l'iPhone), il joue au
  * volume du téléphone.
+ * @param noter le diagnostic, quand la page l'a demandé : chaque essai de jouer, ce qu'il a donné, ce que l'élément dit de lui.
  */
-export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number): HautParleur {
+export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number, noter?: (texte: string) => void): HautParleur {
   const audio = document.createElement('audio');
   audio.preload = 'auto';
   audio.hidden = true;
@@ -164,13 +171,24 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
   audio.addEventListener('error', () => {
     if (adresse !== undefined && audio.getAttribute('src') === adresse) rate = true;
   });
+  noter?.(`haut-parleur : iOS ${surIOS}, volume réglable ${volumeReglable}, séance audio ${seance !== undefined}, moteur ${moteur !== undefined}`);
+  if (noter !== undefined)
+    for (const nom of EVENEMENTS_NOTES)
+      audio.addEventListener(nom, () =>
+        noter(
+          `audio ${nom} : ${audio.currentSrc.startsWith('blob:') ? 'silence' : (audio.currentSrc.split('/')[2] ?? '')} prêt ${audio.readyState} ` +
+            `muet ${audio.muted} à ${audio.currentTime.toFixed(1)}${audio.error !== null ? ` erreur ${audio.error.code}` : ''}`,
+        ),
+      );
 
   /** Fait jouer l'élément ; ce que le navigateur répond dit s'il laisse partir le son. */
-  function jouerMaintenant(puis?: (joue: boolean) => void): void {
+  function jouerMaintenant(puis?: (joue: boolean) => void, pourquoi = 'extrait'): void {
     const ce = ++tour;
     demande = true;
+    noter?.(`play (${pourquoi}) muet ${audio.muted}`);
     audio.play().then(
       () => {
+        noter?.(`play (${pourquoi}) : accepté`);
         debloque = true;
         bloque = false;
         if (ce !== tour) return;
@@ -178,6 +196,7 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
         puis?.(true);
       },
       (erreur: unknown) => {
+        noter?.(`play (${pourquoi}) : refusé, ${erreur instanceof Error ? `${erreur.name} ${erreur.message}` : String(erreur)}`);
         // Refusé faute de geste : on attend le prochain toucher. Une autre erreur (un lien mort) se voit à l'élément.
         if (erreur instanceof DOMException && erreur.name === 'NotAllowedError') bloque = true;
         if (ce !== tour) return;
@@ -198,10 +217,11 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
       amorce = false;
       audio.muted = false;
       if (joue) audio.pause();
-    });
+    }, 'amorce');
   }
 
   function charger(voulu: SonVoulu): void {
+    noter?.(`extrait : ${voulu.adresse.split('/')[2] ?? ''}, débloqué ${debloque}, bloqué ${bloque}`);
     adresse = voulu.adresse;
     lancee = voulu.lanceeA;
     rate = false;
@@ -225,9 +245,10 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
       return bloque;
     },
     volumeReglable,
-    debloquer() {
+    debloquer(geste) {
       if (moteur !== undefined && moteur.state !== 'running') void moteur.resume().catch(() => undefined);
       if (debloque && !bloque) return;
+      noter?.(`geste ${geste ?? ''} : on débloque (${adresse === undefined ? 'silence' : enJeu ? 'extrait' : 'amorce'})`);
       bloque = false;
       if (adresse === undefined) {
         // Rien à jouer encore : un instant de silence, joué dans ce geste-ci.
@@ -235,11 +256,11 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number):
         if (audio.src !== silence) audio.src = silence;
         jouerMaintenant((joue) => {
           if (joue) audio.pause();
-        });
+        }, 'silence');
         return;
       }
       // Un extrait est là : s'il doit s'entendre, il part dans ce geste, et il se remettra à sa place ; sinon, il se charge.
-      if (enJeu) jouerMaintenant();
+      if (enJeu) jouerMaintenant(undefined, 'geste');
       else amorcer();
     },
     suivre(voulu, heure) {

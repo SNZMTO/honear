@@ -848,6 +848,11 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **L'hôte change de playlist en pleine partie** : « Autre playlist », à côté de « Quitter », ouvre le bac (même en pleine piste) ;
   « Celle-là » envoie `changerDePlaylist`, et la room repart sur la face A de la nouvelle, avec les mêmes, points à zéro (trop
   courte : refusée, retour au bac). Dans le bac, la même touche dit « Retour ». Le bac répond à l'hôte dans la room.
+- **L'iPhone, le son et la page qui bouge** : les zones touchées restent dans la page (inertes) jusqu'au doigt suivant, et le geste
+  qui débloque le son s'écoute sur toute la page : l'écran changeait sous le doigt, le doigt levé n'arrivait nulle part, et Safari
+  n'avait jamais de geste pour laisser partir le son. Hors d'un champ, la page qui a défilé (Safari la laisse glissée après le
+  clavier) est remise en place ; plus de rebond. `?diagnostic` envoie au journal du serveur ce que font le son et la fenêtre
+  (voir HEBERGEMENT.md).
 - **Le plein écran au premier toucher** (Android) ne part plus que d'une touche, jamais d'une étiquette où l'on tape : la page qui
   changeait de taille fermait le clavier, et le champ ne tapait plus.
 - **L'ampli et la saisie** : les cadrans comptent les titres de la face et les secondes de l'extrait ; le volume va de 0 à 10. Le
