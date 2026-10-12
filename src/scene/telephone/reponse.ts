@@ -119,9 +119,8 @@ export function etiquettesAToucher(
   });
 }
 
-/** Le clavier du téléphone, quand il est ouvert : il prend le bas de l'écran. */
-export function clavier(regard: Regard): Calque {
+/** Le clavier du téléphone, quand il est ouvert : il prend le bas de l'écran, depuis son dessus (en px depuis le haut du regard). */
+export function clavier(regard: Regard, dessus: number = regard.hauteur - T.clavier.hauteur): Calque {
   const { origine, largeur, hauteur } = regard;
-  const haut = origine[1] + hauteur - T.clavier.hauteur;
-  return calque('decor-clavier', [aplat([rectangle(origine[0], haut, largeur, T.clavier.hauteur)], 'vinyle', 1)], { role: 'decor' });
+  return calque('decor-clavier', [aplat([rectangle(origine[0], origine[1] + dessus, largeur, hauteur - dessus)], 'vinyle', 1)], { role: 'decor' });
 }

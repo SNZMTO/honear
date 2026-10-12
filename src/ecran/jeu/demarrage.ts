@@ -8,11 +8,13 @@
 import { MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { estUnePochette } from '../../regles/pochette';
 import { PLAYLIST_D_ESSAI } from '../../ressources/bac';
+import { GRAND_ECRAN } from '../../ressources/ecran';
 import { PARTIE, REGLAGES } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
 import { CARACTERES } from '../../ressources/typo';
 import { VERSO_DU_JEU } from '../../scene/disque/verso';
 import { remplir } from '../../scene/phrases';
+import { HAUTEUR_DU_GRAND_ECRAN, regardDuGrandEcran } from '../../scene/telephone/grand';
 import { encrier as creerLEncrier } from '../../scene/rendu/texte';
 import { SCENE_ENTIERE } from '../allegements';
 import { horlogeDuNavigateur } from '../horloge';
@@ -62,6 +64,27 @@ const surLAppareil = (): Storage => window.localStorage;
 function codeDeLAdresse(): string | undefined {
   const code = window.location.pathname.slice(1).toUpperCase();
   return code.length === PARTIE.code.longueur && [...code].every((l) => PARTIE.code.lettres.includes(l)) ? code : undefined;
+}
+
+/**
+ * Le grand écran : sur une fenêtre bien plus large que haute (un ordinateur), le regard s'élargit au meuble entier, à la proportion
+ * de la fenêtre ; le cadre la prend toute, au milieu. Sur un téléphone, le cadre garde sa proportion, et l'on n'élargit rien.
+ * @returns la largeur du regard, à lire à chaque image ; rien sur un téléphone.
+ */
+function suivreLeGrandEcran(cadre: HTMLElement): () => number | undefined {
+  let largeur: number | undefined;
+  const mesurer = (): void => {
+    const { innerWidth: l, innerHeight: h } = window;
+    const grand = l >= h * GRAND_ECRAN.plusLargeQueHaut && h >= GRAND_ECRAN.hauteurAuMoins;
+    largeur = grand ? regardDuGrandEcran((HAUTEUR_DU_GRAND_ECRAN * l) / h).largeur : undefined;
+    const proportion = largeur !== undefined ? `${largeur} / ${HAUTEUR_DU_GRAND_ECRAN}` : '';
+    cadre.style.aspectRatio = proportion;
+    cadre.style.width = largeur !== undefined ? `min(100vw, calc(100svh * ${largeur} / ${HAUTEUR_DU_GRAND_ECRAN}))` : '';
+    document.body.classList.toggle('grand', largeur !== undefined);
+  };
+  mesurer();
+  window.addEventListener('resize', mesurer);
+  return () => largeur;
 }
 
 /** Un nombre que personne d'autre n'a tiré : la graine des pochettes de ce téléphone. */
@@ -148,5 +171,8 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     retenir,
     vibrer: (cle) => vibreur.vibrer(cle),
     son: true,
+    grandEcran: suivreLeGrandEcran(cadre),
+    // Les liens des pages légales, en bas : à l'accueil et au compte, là où rien d'autre ne se touche en bas de l'écran.
+    enChangeant: (genre) => document.body.classList.toggle('pied', genre === 'accueil' || genre === 'compte'),
   });
 }

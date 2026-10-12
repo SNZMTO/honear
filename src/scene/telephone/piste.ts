@@ -1,7 +1,7 @@
 /**
  * Ce qu'on pose autour de la piste, au téléphone : l'éventail des pochettes (ce que chacun a trouvé, puis ce que la piste lui a
- * rapporté), l'étiquette vierge où l'on tape ou les quatre étiquettes à toucher, la vraie pochette sortie de sous la kraft
- * à la révélation, la phrase d'un état, le clavier ouvert. Tout est placé dans le regard : ces objets restent à l'écran pendant
+ * rapporté), l'étiquette vierge où l'on tape ou les quatre étiquettes à toucher, la phrase d'un état, le clavier ouvert ; et la
+ * place de la vraie pochette, au milieu du disque retourné. Tout est placé dans le regard : ces objets restent à l'écran pendant
  * que le regard suit la piste.
  */
 
@@ -9,11 +9,14 @@ import { surLEcran } from '../../lowpoly/projection';
 import type { Vec2 } from '../../lowpoly/vecteurs';
 import type { EtatDeLaPartie } from '../../regles/partie';
 import type { Reponse } from '../../regles/piste';
-import { MESURES_DE_POCHETTE } from '../../ressources/pochettes';
+import { ETIQUETTE } from '../../ressources/etiquette';
+import { PLATINE } from '../../ressources/platine';
 import { TABLEE } from '../../ressources/tablee';
+import { VERSO } from '../../ressources/verso';
 import type { Calque } from '../calque';
-import { surLeBois, type Regard } from '../meuble';
-import { dessinerLaVraiePochette } from '../pochette/dos';
+import type { Regard } from '../meuble';
+import type { PoseDeLaPiste } from '../piste/pose';
+import { regardDeLaPiste } from '../piste/regard';
 import { dessinerLaTablee, eventail, placesEnEventail } from '../tablee';
 import { phrase, type Ecritoire } from './pieces';
 import { clavier, etiquetteDeReponse, etiquettesAToucher } from './reponse';
@@ -30,6 +33,8 @@ export type CeQuOnRepond =
       readonly tape: string;
       readonly mot?: string;
       readonly clavier: boolean;
+      /** Le dessus du vrai clavier, en px depuis le haut du regard, quand la page sait le lire ; sans lui, celui d'un clavier ordinaire. */
+      readonly dessus?: number;
     }
   | { readonly genre: 'choix'; readonly proposes: readonly Reponse[]; readonly touchee?: number };
 
@@ -46,31 +51,53 @@ export interface AutourDeLaPiste {
   readonly phrase?: string;
 }
 
+/** De combien le disque peut encore être penché, en degrés, quand on y pose la vraie pochette : il est à plat, son verso en haut. */
+const A_PLAT = 3;
+/** Le disque retourné : son verso en haut. */
+const DEMI_TOUR = 180;
+
 /**
- * Où se pose l'image de la vraie pochette, quand la source en donne une : sur le dessus du carton qu'on a dessiné (sa vignette, en
- * attendant qu'elle arrive), en px dans le regard. Son centre, son côté (au bord du chanfrein), ses coins, son angle sur le meuble,
- * et l'écrasement de la profondeur, comme le carton.
+ * Où se pose l'image de la vraie pochette, quand la source en donne une : au milieu du disque retourné, à la place de la pochette
+ * ronde que son verso dessine (sa vignette, en attendant qu'elle arrive), en px dans le regard de la piste. Son centre, son côté,
+ * ses coins (elle est ronde), le trou de l'axe (en part de son côté) et l'écrasement de la profondeur, comme le disque.
+ * Rien tant que le disque n'est pas à plat, son verso en haut.
  */
-export function dessusDeLaVraiePochette(): {
+export function pochetteSurLeVerso(pose: PoseDeLaPiste): {
   readonly centre: Vec2;
   readonly cote: number;
   readonly coin: number;
-  readonly angle: number;
+  readonly trou: number;
   readonly ecrasement: number;
-} {
-  const V = T.vraiePochette;
-  const M = MESURES_DE_POCHETTE;
-  const k = V.taille / M.cote;
-  return { centre: [V.en[0], V.en[1] - M.tranche], cote: V.taille - 2 * M.chanfrein * k, coin: M.coin * k, angle: V.angle, ecrasement: ecrasement() };
+} | undefined {
+  const { en, hauteur, retourne } = pose.disque;
+  if (Math.abs(retourne - DEMI_TOUR) > A_PLAT) return undefined;
+  const E = VERSO.etiquette;
+  const rayon = E.pochette - E.lisere;
+  const [x, y] = surLEcran(en, hauteur + PLATINE.disque.epaisseur + ETIQUETTE.colle);
+  const { origine } = regardDeLaPiste(pose);
+  const trou = PLATINE.axe.rayon + PLATINE.axe.jeu;
+  return { centre: [x - origine[0], y - origine[1]], cote: 2 * rayon, coin: rayon, trou: trou / (2 * rayon), ecrasement: ecrasement() };
 }
+
+/**
+ * Le dessus du clavier ouvert, en px depuis le haut du regard : celui du vrai clavier, s'il est plus haut qu'un clavier ordinaire,
+ * sans monter au-delà de `auPlusHaut` ; sinon, celui d'un clavier ordinaire.
+ */
+export const dessusDuClavier = (regard: Regard, vrai: number | undefined): number => {
+  const ordinaire = regard.hauteur - T.clavier.hauteur;
+  return vrai === undefined ? ordinaire : Math.max(T.clavier.auPlusHaut, Math.min(ordinaire, vrai));
+};
 
 /** Les objets posés autour de la piste, dans ce regard. */
 export function autourDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste): Calque[] {
   const { revelee, repondre } = o;
   const ouvert = repondre.genre === 'saisie' && repondre.clavier;
+  // Un vrai clavier plus haut qu'un clavier ordinaire remonte l'éventail et l'étiquette d'autant : ils restent au-dessus de lui.
+  const dessus = dessusDuClavier(regard, repondre.genre === 'saisie' ? repondre.dessus : undefined);
+  const remonte = dessus - (regard.hauteur - T.clavier.hauteur);
   const joueurs = eventail(o.etat, a.textes, revelee !== undefined ? 'points' : 'trouvailles', revelee !== undefined ? o.avantLExtrait : undefined);
   // Le clavier ouvert prend le bas de l'écran : l'éventail remonte au-dessus de l'étiquette, sans la kraft.
-  const places = placesEnEventail(joueurs.length, ouvert).map((p) => (ouvert ? { ...p, en: [p.en[0], T.clavier.eventail] as const } : p));
+  const places = placesEnEventail(joueurs.length, ouvert).map((p) => (ouvert ? { ...p, en: [p.en[0], T.clavier.eventail + remonte] as const } : p));
   const objets: Calque[] = [...dessinerLaTablee(joueurs, places, T.eventail.taille, regard, T.trouve, a.encrier.largeur)];
   if (repondre.genre === 'choix') {
     objets.push(...etiquettesAToucher(a, regard, repondre.proposes, revelee, revelee !== undefined ? undefined : repondre.touchee));
@@ -79,20 +106,12 @@ export function autourDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste
   if (revelee === undefined) {
     if (o.phrase === undefined)
       objets.push(
-        ...etiquetteDeReponse(a, regard, repondre.tape, o.etat.piste?.trouve[o.toi] ?? [], repondre.mot, ouvert ? T.clavier.reponse : undefined),
+        ...etiquetteDeReponse(a, regard, repondre.tape, o.etat.piste?.trouve[o.toi] ?? [], repondre.mot, ouvert ? T.clavier.reponse + remonte : undefined),
       );
-  } else if ('vignette' in revelee.pochette) {
-    // La vraie pochette a glissé de sous la kraft : elle est posée à côté, de travers.
-    const V = T.vraiePochette;
-    const vraie = dessinerLaVraiePochette(
-      revelee.pochette.vignette,
-      { nom: 'pochette-vraie', centre: surLeBois(regard, V.en[0], V.en[1]), angle: V.angle, taille: V.taille },
-      'vraie',
-    );
-    objets.push(vraie.ombre, vraie.pochette);
   }
-  const M = revelee !== undefined ? T.message.aCoteDeLaVraie : T.message;
+  // La pochette de la réponse est au milieu du disque retourné : rien d'autre ne se pose à côté de la kraft.
+  const M = T.message;
   if (o.phrase !== undefined) objets.push(...phrase(o.phrase, regard, a.encrier, M.en, M.largeur));
-  if (ouvert) objets.push(clavier(regard));
+  if (ouvert) objets.push(clavier(regard, dessus));
   return objets;
 }

@@ -181,6 +181,7 @@ function ecranDeLaPiste(m: Memoire, room: RoomConnue, etat: EtatDeLaPartie, heur
           tape: frappe !== undefined ? tapeA(frappe, heure) : (pouce?.tape ?? ''),
           ...(mot !== undefined ? { mot } : {}),
           clavier: frappe !== undefined || (pouce?.clavier ?? false),
+          ...(pouce?.dessusDuClavier !== undefined ? { dessus: pouce.dessusDuClavier } : {}),
         };
   return {
     genre: 'piste',

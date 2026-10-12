@@ -9,7 +9,8 @@ import { MONTAGE } from '../ressources/ecran';
 import type { Textes } from '../ressources/textes';
 import { CALQUES_DU_VERSO } from '../scene/disque';
 import type { GenreDeVerso } from '../scene/disque/verso';
-import { dessinerLeMeuble } from '../scene/meuble';
+import type { Calque } from '../scene/calque';
+import { dessinerLeMeuble, type Regard } from '../scene/meuble';
 import { dessinerLaPiste, type DecorDeLaPiste } from '../scene/piste/dessin';
 import type { PisteEnScene } from '../scene/piste/etat';
 import { instantsDeLaPiste } from '../scene/piste/instants';
@@ -32,6 +33,11 @@ export interface PisteADessiner {
   readonly decor: DecorDeLaPiste;
   readonly textes: Textes;
   readonly encrier: Encrier;
+  /**
+   * Sur un grand écran : le regard, qui ne glisse jamais et montre tout ce que la piste parcourt, et le reste du meuble, au repos.
+   * Sans lui, le regard du téléphone, qui glisse vers le disque.
+   */
+  readonly grand?: { readonly regard: Regard; readonly meuble: readonly Calque[] };
 }
 
 /** Une piste dessinée et montée dans la page. */
@@ -50,14 +56,18 @@ export interface PisteMontee {
 export function monterLaPiste(piste: PisteADessiner, facture: Facture, verso: GenreDeVerso): PisteMontee {
   const { decor, textes, encrier } = piste;
   const { densite, ombresFigees, definition } = facture;
+  const etendue = piste.grand?.regard ?? ETENDUE_DE_LA_PISTE;
   const arbre = dessinerLeMeuble({
-    regard: ETENDUE_DE_LA_PISTE,
+    regard: etendue,
     densite,
-    objets: dessinerLaPiste(decor, { genre: verso }, poseDeDepart(ombresFigees), textes, encrier.largeur, densite),
+    objets: [
+      ...(piste.grand?.meuble ?? []),
+      ...dessinerLaPiste(decor, { genre: verso }, poseDeDepart(ombresFigees), textes, encrier.largeur, densite),
+    ],
   });
   const reglages = regleurDeLaPiste(arbre, densite, ombresFigees);
   const montage = monter(arbre, {
-    etendue: ETENDUE_DE_LA_PISTE,
+    etendue,
     reglables: new Set(reglages(POSE_AVANT_LA_PISTE).map((reglage) => reglage.calque)),
     remplacables: new Set(Object.values(CALQUES_DU_VERSO)),
     definition,
@@ -115,7 +125,9 @@ export function ouvrirLEcranDeLaPiste(
   },
 ): EcranDeLaPiste {
   let options = o.options;
-  const plan = poserUnPlan(cadre, regardDeLaPiste(POSE_AVANT_LA_PISTE));
+  /** Le regard à cette pose : celui du grand écran ne glisse jamais. */
+  const regard = (pose: PoseDeLaPiste): Regard => o.grand?.regard ?? regardDeLaPiste(pose);
+  const plan = poserUnPlan(cadre, regard(POSE_AVANT_LA_PISTE));
   const suivi = suivreLaPiste();
   const refuser = (erreur: unknown): void => o.enCasDeRefus?.(erreur);
   const voulue = (echelle: number): Facture => factureVoulue(options.allegements, echelle, o.densiteDeLEcran());
@@ -192,7 +204,7 @@ export function ouvrirLEcranDeLaPiste(
         presse: pose.disque.retourne > 0,
       });
       montee.montage.regler(montee.reglages(pose));
-      montee.montage.regarder(regardDeLaPiste(pose).origine);
+      montee.montage.regarder(regard(pose).origine);
       return pose;
     },
     changer(nouvelles) {
