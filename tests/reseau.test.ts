@@ -148,6 +148,24 @@ test('la porte sert la page à l’adresse du site et à celle d’une room, sou
   }
 });
 
+test('les pages légales se servent à leur adresse, avec l’adresse du site et celle où écrire ; sans leur fichier, rien', async () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'miel-'));
+  const page = join(dossier, 'index.html');
+  writeFileSync(page, PAGE);
+  writeFileSync(join(dossier, 'confidentialite.html'), '<p>Le site {site}, le contact {contact}.</p>');
+  const site = lancerLeSite({ port: 0, hote: '127.0.0.1', origines: ['https://miel-doreilles.fr'], page, deezer: undefined, contact: 'moi@exemple.fr' });
+  try {
+    const base = `http://127.0.0.1:${await site.pret}`;
+    const r = await fetch(`${base}/confidentialite`);
+    assert.equal(r.status, 200);
+    assert.equal(await r.text(), '<p>Le site miel-doreilles.fr, le contact moi@exemple.fr.</p>');
+    assert.match(r.headers.get('content-security-policy') ?? '', /default-src 'none'/);
+    assert.equal((await fetch(`${base}/mentions-legales`)).status, 404, 'son fichier manque');
+  } finally {
+    await site.fermer();
+  }
+});
+
 test('par la ligne, une partie se crée et se rejoint ; l’heure s’y demande ; qui revient avec son jeton retrouve sa place', async () => {
   const site = unSite();
   try {

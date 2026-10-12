@@ -36,6 +36,9 @@ export const SERVEUR = {
 /** L'adresse du site, telle que les planches l'écrivent sur le lien d'une room ; en ligne, c'est celle de la page. */
 export const SITE = { adresse: 'miel-doreilles.fr' } as const;
 
+/** Les pages légales du site, par leur adresse : la confidentialité et les mentions légales. */
+export const PAGES_LEGALES = { confidentialite: '/confidentialite', mentions: '/mentions-legales' } as const;
+
 /** Une room : de 2 à 12 pochettes autour du meuble, et le code qui l'ouvre. Ce que rapporte une réponse, c'est le mode qui le dit. */
 export const PARTIE = {
   joueurs: { auMoins: 2, auPlus: 12 },

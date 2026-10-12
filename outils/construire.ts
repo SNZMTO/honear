@@ -1,6 +1,6 @@
 /**
  * Construit le site à mettre en ligne, dans dist/ : la page du jeu (son script, ses polices à tracer et ses textes embarqués, servie
- * telle quelle) et le serveur, en un seul fichier que Node lance sans rien installer à côté.
+ * telle quelle), les pages légales, et le serveur, en un seul fichier que Node lance sans rien installer à côté.
  *
  *   npm run construire      puis      node dist/serveur.mjs
  */
@@ -10,6 +10,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
 import { pageDuJeu } from '../src/ecran/jeu/gabarit';
+import { pageLegale, type CleDePageLegale } from '../src/ecran/jeu/legal';
+import { PAGES_LEGALES } from '../src/ressources/reglages';
 import { policesEnBase64 } from '../src/planche/polices';
 import { CIBLE, pourUnePage } from '../src/planche/script';
 import { TEXTES } from '../src/ressources/textes.fr';
@@ -35,6 +37,10 @@ if (sortie === undefined) throw new Error("Le script de la page n'a pas été as
 const page = pageDuJeu(TEXTES, pourUnePage(sortie.text));
 writeFileSync(join(DIST, 'index.html'), page);
 
+// Les pages légales, sans script : le serveur les sert à leur adresse (« /confidentialite » dans confidentialite.html).
+for (const cle of Object.keys(PAGES_LEGALES) as CleDePageLegale[])
+  writeFileSync(join(DIST, `${PAGES_LEGALES[cle].slice(1)}.html`), pageLegale(TEXTES, cle));
+
 // Le serveur : un module pour Node, `ws` compris, avec les textes de ses lettres. Ce que `ws` charge de lui-même en CommonJS a
 // besoin de `require`.
 await build({
@@ -45,7 +51,7 @@ await build({
   target: 'node22',
   outfile: join(DIST, 'serveur.mjs'),
   external: ['bufferutil', 'utf-8-validate'],
-  define: { TEXTES_DU_COMPTE: JSON.stringify(TEXTES.compte) },
+  define: { TEXTES_DU_COMPTE: JSON.stringify(TEXTES.compte), TEXTES_DU_CONTACT: JSON.stringify(TEXTES.legal.sansContact) },
   banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" },
   legalComments: 'none',
   logLevel: 'warning',

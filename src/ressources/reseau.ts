@@ -47,12 +47,18 @@ export const RESEAU = {
   spotify: { fenetre: 10, parFenetre: 5, attente: 8, titresAuPlus: 60, pistesAuPlus: 40, sansDeezer: 3600 },
   /**
    * Les comptes. Un lien de connexion marche une fois, un quart d'heure ; une session dure six mois, et se prolonge à chaque retour.
+   * Un compte dont personne ne se sert s'efface au bout de deux ans.
    * On envoie un lien par adresse et par minute au plus, cinq par heure ; dix par heure depuis un même téléphone (sa même adresse
    * sur le réseau) ; trois cents par jour en tout, ce que permettent les envois gratuits. Le serveur d'envoi a tant pour répondre.
    */
   comptes: {
     lien: 900,
     session: 15552000,
+    /**
+     * Un compte où personne n'est revenu depuis deux ans est effacé, avec sa pochette, ses scores et ses sessions ; un mois avant,
+     * une lettre prévient son adresse. On fait ce ménage au démarrage, puis une fois par jour.
+     */
+    inactif: { efface: 63072000, prevenu: 2592000, menage: 86400 },
     parAdresse: { attente: 60, parHeure: 5 },
     parTelephone: 10,
     parJour: 300,
