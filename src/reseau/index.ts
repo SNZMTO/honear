@@ -71,7 +71,9 @@ function configuration(): ConfigurationDuSite {
     .map((o) => o.trim())
     .filter((o) => o !== '');
   const courrier = courrierDeLEnvironnement();
-  const contact = process.env['CONTACT'] ?? (typeof courrier === 'object' && courrier.de !== '' ? courrier.de : undefined);
+  // L'adresse qui envoie les liens s'écrit souvent avec un nom (« Miel d'oreilles <bonjour@…> ») : on n'en garde que l'adresse.
+  const expediteur = typeof courrier === 'object' && courrier.de !== '' ? (/<([^<>]+)>/.exec(courrier.de)?.[1] ?? courrier.de) : undefined;
+  const contact = process.env['CONTACT'] ?? expediteur;
   return {
     ...(contact !== undefined ? { contact } : {}),
     port: Number(process.env['PORT'] ?? 8080),
