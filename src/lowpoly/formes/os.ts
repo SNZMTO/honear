@@ -42,7 +42,9 @@ export function os(o: Os): Facette[] {
   const longueur = Math.hypot(...axe);
   // Ses couronnes, espacées comme ses pans le sont autour de lui ; plus minces vers son milieu.
   const troncons = Math.min(o.couronnesAuPlus, Math.max(2, Math.round(longueur / ((2 * Math.PI * o.rayon) / o.pans))));
-  const anneaux = Array.from({ length: troncons + 1 }, (_, i) => couronne(i / troncons, o.rayon * (1 - o.amincit * Math.sin((Math.PI * i) / troncons))));
+  const anneaux = Array.from({ length: troncons + 1 }, (_, i) =>
+    couronne(i / troncons, o.rayon * (1 - o.amincit * Math.sin((Math.PI * i) / troncons))),
+  );
   const bouts: readonly [Vec3, Vec3] = [sur(-o.rayon / 2 / longueur), sur(1 + o.rayon / 2 / longueur)];
   const facettes: Facette[] = [];
   const dehors = (sommets: Vec3[], depuis: Vec3): Facette => {

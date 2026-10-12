@@ -346,3 +346,41 @@ test('dans la room, l’hôte ouvre le bac et en prend une autre : la room en ch
   const refusee = recevoir(prise.memoire, { genre: 'refus', heure: 3, raison: 'tropCourt' });
   assert.equal(refusee.preparation.ecran === 'bac' && refusee.preparation.bac.refus, 'tropCourt');
 });
+
+test('la réponse validée part : son étiquette s’enfonce un instant, puis remonte, ce qu’on a tapé toujours écrit', () => {
+  const { clavier: _scripte, ...p } = preparatifs('libre');
+  const pochette = joueursDExemple(TEXTES)[0]?.pochette;
+  assert.ok(pochette !== undefined);
+  const piste = {
+    reponse: { titre: 'Les Démons de minuit', artiste: 'Images', pochette: { vignette: { fond: 'lilasFume', motif: 'rayons' } } },
+  } as const;
+  const journal = [
+    { genre: 'ouverture', a: 0, mode: 'libre', pistes: 3 },
+    { genre: 'arrivee', a: 0, id: 'toi', pochette },
+    { genre: 'arrivee', a: 0, id: 'lui', pochette },
+    { genre: 'extrait', a: 5, piste },
+  ] as const;
+  const seance = [
+    { genre: 'lancer', a: 1, duree: 20 },
+    { genre: 'prets', a: 2 },
+  ] as const;
+  let m = recevoir(memoireDeDepart(p, {}), {
+    genre: 'etat',
+    heure: 6,
+    code: 'AENV',
+    toi: 'toi',
+    jeton: 'j',
+    journal: [...journal],
+    seance: [...seance],
+  });
+  m = saisir(m, 'images');
+  const validee = valider(m, 6, p);
+  assert.deepEqual(validee.actions, [{ genre: 'repondre', proposition: { genre: 'saisie', texte: 'images' } }]);
+  const etiquette = (heure: number) => {
+    const e = ecranDuTelephone(validee.memoire, heure, p, TEXTES);
+    return e.genre === 'piste' && e.autour.repondre.genre === 'saisie' ? e.autour.repondre : undefined;
+  };
+  assert.equal(etiquette(6.05)?.enfoncee, true);
+  assert.equal(etiquette(7)?.enfoncee, undefined);
+  assert.equal(etiquette(7)?.tape, 'images');
+});

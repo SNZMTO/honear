@@ -131,6 +131,8 @@ export interface AuPouce {
   readonly clavier: boolean;
   /** Le dessus du vrai clavier, en px depuis le haut du regard, quand la page sait le lire : l'étiquette se pose au-dessus. */
   readonly dessusDuClavier?: number;
+  /** L'heure du serveur où l'on a validé sa dernière réponse : l'étiquette s'enfonce un instant. */
+  readonly valideeA?: number;
 }
 
 export interface Memoire {
@@ -824,7 +826,7 @@ export function valider(m: Memoire, heure: number, p: Preparatifs): Suite {
   const texte = pouce.tape.trim();
   if (texte === '') return { memoire: m, actions: [] };
   return {
-    memoire: { ...m, pouce: { ...pouce, tapees: pouce.tapees + 1 } },
+    memoire: { ...m, pouce: { ...pouce, tapees: pouce.tapees + 1, valideeA: heure } },
     actions: [{ genre: 'repondre', proposition: { genre: 'saisie', texte } }],
   };
 }
