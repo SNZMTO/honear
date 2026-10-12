@@ -3,6 +3,8 @@
  * branche les téléphones par WebSocket au serveur du jeu, et fait avancer celui-ci à ses rendez-vous (l'extrait qui part,
  * la révélation). Il écoute en local : c'est le relais devant lui (Caddy) qui parle HTTPS au monde. Il va chercher la musique chez
  * Deezer, et les titres d'une playlist sur sa page Spotify (DEEZER et SPOTIFY : d'autres adresses, celles de faux, pour essayer le site).
+ * Il compte ce qui s'y passe pour la page des statistiques (STATISTIQUES, le fichier, sinon à côté des comptes ; STATISTIQUES_CLE,
+ * la clé qui l'ouvre : sans elle, la page est fermée).
  * Il garde les comptes dans un fichier (COMPTES, sinon à côté de lui), et envoie leurs liens de connexion par
  * le serveur d'envoi d'une boîte e-mail (COURRIER_HOTE, COURRIER_PORT, COURRIER_UTILISATEUR, COURRIER_MOT_DE_PASSE, COURRIER_DE ;
  * COURRIER=journal les écrit dans le journal au lieu de les envoyer, pour essayer).
@@ -10,7 +12,7 @@
  *   PORT=8080 ORIGINES=https://honear.fr node serveur.mjs
  */
 
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { createServer, type IncomingMessage } from 'node:http';
 import { dirname, join } from 'node:path';
@@ -18,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { hitParade } from '../regles/partie';
 import { APPLICATION, META_DE_LA_VERSION, PAGES_LEGALES } from '../ressources/reglages';
 import { RESEAU } from '../ressources/reseau';
+import { ADRESSES_DES_STATISTIQUES } from '../ressources/statistiques';
 import type { Textes } from '../ressources/textes';
 import { demarrerLeServeur } from '../serveur/serveur';
 import { API_DE_DEEZER } from '../serveur/sources/deezer';
@@ -25,10 +28,12 @@ import { PAGES_DE_SPOTIFY } from '../serveur/sources/spotify';
 import { PISTES_D_ESSAI, PLAYLIST_D_ESSAI } from '../serveur/sources/essai';
 import { adresseEmail, enHtml, lettreDAvertissement, lettreDuLien, ouvrirLesComptes, type Comptes } from './comptes';
 import { posterParSmtp, type ConfigurationDuCourrier, type Poster } from './courrier';
-import { dateDuCourrier, heureDuMonde, horlogeDuServeur } from './horloge';
+import type { FaitDuJeu } from '../serveur/faits';
+import { aLHeureDe, dateDuCourrier, heureDuMonde, horlogeDuServeur, joursDu } from './horloge';
 import { ouvrirLaLigne } from './ligne';
 import { brancherLaMusique, type Musique } from './musique';
 import { ouvrirLaPorte } from './porte';
+import { ouvrirLesStatistiques, type Statistiques } from './statistiques';
 
 /** Un tirage de zéro à un, pris au hasard du système : celui des codes de room et des leurres. */
 const tirage = (): number => randomBytes(4).readUInt32BE(0) / 2 ** 32;
@@ -60,6 +65,8 @@ export interface ConfigurationDuSite {
     readonly courrier: ConfigurationDuCourrier | 'journal' | undefined;
     readonly textes: Textes['compte'];
   };
+  /** Les statistiques : le fichier où elles se gardent, et la clé qui ouvre leur page (rien : la page est fermée). */
+  readonly statistiques?: { readonly fichier: string; readonly cle: string | undefined };
 }
 
 function configuration(): ConfigurationDuSite {
@@ -73,8 +80,14 @@ function configuration(): ConfigurationDuSite {
   const courrier = courrierDeLEnvironnement();
   // L'adresse qui envoie les liens, sans le nom qui la précède.
   const contact = process.env['CONTACT'] ?? (typeof courrier === 'object' && courrier.de !== '' ? adresseEmailDe(courrier.de) : undefined);
+  const comptes = process.env['COMPTES'] ?? join(ici, 'comptes.json');
+  const cle = process.env['STATISTIQUES_CLE'];
   return {
     ...(contact !== undefined ? { contact } : {}),
+    statistiques: {
+      fichier: process.env['STATISTIQUES'] ?? join(dirname(comptes), 'statistiques.json'),
+      cle: cle !== undefined && /^[A-Za-z0-9_-]{16,128}$/.test(cle) ? cle : undefined,
+    },
     port: Number(process.env['PORT'] ?? 8080),
     hote: process.env['HOTE'] ?? '127.0.0.1',
     origines,
@@ -84,7 +97,7 @@ function configuration(): ConfigurationDuSite {
     ...(typeof TEXTES_DU_COMPTE !== 'undefined' && TEXTES_DU_COMPTE !== undefined
       ? {
           comptes: {
-            fichier: process.env['COMPTES'] ?? join(ici, 'comptes.json'),
+            fichier: comptes,
             site: process.env['SITE'] ?? origines[0] ?? 'http://localhost:8080',
             courrier,
             textes: TEXTES_DU_COMPTE,
@@ -158,6 +171,38 @@ function comptesDansUnFichier(c: NonNullable<ConfigurationDuSite['comptes']>): C
 }
 
 /**
+ * Les statistiques, gardées dans leur fichier : relu au démarrage, réécrit en entier de temps en temps (dans un fichier à côté, puis
+ * mis à sa place d'un coup). Si on ne peut pas l'écrire, elles vivent en mémoire, et on le dit une fois.
+ */
+function statistiquesDansUnFichier(fichier: string): Statistiques {
+  let dit = false;
+  return ouvrirLesStatistiques({
+    lu: existsSync(fichier) ? readFileSync(fichier, 'utf8') : undefined,
+    garder(texte) {
+      try {
+        mkdirSync(dirname(fichier), { recursive: true });
+        writeFileSync(`${fichier}.neuf`, texte, { mode: 0o600 });
+        renameSync(`${fichier}.neuf`, fichier);
+      } catch (erreur) {
+        if (!dit) console.error(`Les statistiques ne s'écrivent pas dans ${fichier} : ${String(erreur)}`);
+        dit = true;
+      }
+    },
+    monde: heureDuMonde,
+    local: aLHeureDe(RESEAU.statistiques.fuseau),
+    joursDu,
+    sel: () => randomBytes(32).toString('base64url'),
+  });
+}
+
+/** Vrai si la clé donnée est celle des statistiques : comparées par leur empreinte, en un temps qui ne dit rien de l'une ni de l'autre. */
+function bonneCle(donnee: string | undefined, attendue: string | undefined): boolean {
+  if (donnee === undefined || attendue === undefined) return false;
+  const empreinte = (cle: string): Buffer => createHash('sha256').update(cle).digest();
+  return timingSafeEqual(empreinte(donnee), empreinte(attendue));
+}
+
+/**
  * Les pages légales, lues à côté de la page du jeu (« /confidentialite » dans confidentialite.html), l'adresse du site et celle où
  * écrire à l'éditeur écrites dedans. Celles qui manquent ne sont pas servies.
  */
@@ -175,6 +220,12 @@ function pagesLegales(c: ConfigurationDuSite): Record<string, string> {
   return pages;
 }
 
+/** La page des statistiques, fabriquée à côté de celle du jeu ; rien si elle n'y est pas. */
+function lirePageDesStatistiques(c: ConfigurationDuSite): string | undefined {
+  const fichier = join(dirname(c.page), `${ADRESSES_DES_STATISTIQUES.page.slice(1)}.html`);
+  return existsSync(fichier) ? readFileSync(fichier, 'utf8') : undefined;
+}
+
 /** Le manifeste et l'icône de l'application, fabriqués à côté de la page : par leur adresse, avec leur type. */
 function fichiersDeLApplication(c: ConfigurationDuSite): Record<string, { readonly type: string; readonly contenu: string }> {
   const types = { [APPLICATION.manifeste]: 'application/manifest+json; charset=utf-8', [APPLICATION.icone]: 'image/svg+xml' };
@@ -188,6 +239,8 @@ function fichiersDeLApplication(c: ConfigurationDuSite): Record<string, { readon
 
 /** Entre deux ménages des comptes, en millisecondes. */
 const MENAGE = RESEAU.comptes.inactif.menage * 1000;
+/** Entre deux écritures des statistiques, en millisecondes. */
+const ECRITURE_DES_STATISTIQUES = RESEAU.statistiques.ecriture * 1000;
 
 /** Ce qu'on laisse à Deezer, à Spotify, pour répondre, en millisecondes. */
 const PATIENCE = RESEAU.deezer.attente * 1000;
@@ -253,6 +306,11 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
   const maintenant = horlogeDuServeur();
   const musique = c.deezer !== undefined ? musiqueEnLigne({ deezer: c.deezer, spotify: c.spotify ?? PAGES_DE_SPOTIFY }, maintenant) : undefined;
   const comptes = c.comptes !== undefined ? comptesDansUnFichier(c.comptes) : undefined;
+  const statistiques = c.statistiques !== undefined ? statistiquesDansUnFichier(c.statistiques.fichier) : undefined;
+  // Les statistiques s'écrivent de temps en temps, et une dernière fois quand le site s'arrête.
+  const garderLesStatistiques = (): void => statistiques?.garder();
+  const ecriture = statistiques !== undefined ? setInterval(garderLesStatistiques, ECRITURE_DES_STATISTIQUES) : undefined;
+  ecriture?.unref();
   // Le ménage des comptes qui dorment : au démarrage, puis une fois par jour.
   const faireLeMenage = (): void => void comptes?.entretenir();
   faireLeMenage();
@@ -272,6 +330,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
           .filter(({ joueur }) => !joueur.spectateur)
           .map(({ joueur, rang }) => ({ joueur: joueur.id, premier: rang === 1 && joueur.points > 0 })),
       ),
+    ...(statistiques !== undefined ? { raconter: (fait: FaitDuJeu) => statistiques.jeu(fait) } : {}),
   });
 
   // La minuterie : le serveur dit l'heure de son prochain rendez-vous ; on dort jusque-là, jamais plus d'une seconde.
@@ -298,7 +357,10 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
     adresseDe,
     ...(musique !== undefined ? { musique } : {}),
     ...(comptes !== undefined ? { comptes } : {}),
+    ...(statistiques !== undefined ? { statistiques } : {}),
   });
+  const demarreA = maintenant();
+  const pageDesStatistiques = lirePageDesStatistiques(c);
   const http = createServer(
     ouvrirLaPorte({
       page,
@@ -311,6 +373,27 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
         musique: musique !== undefined,
         comptes: c.comptes === undefined ? 'absents' : c.comptes.courrier === undefined ? 'fermes' : 'ouverts',
       }),
+      ...(statistiques !== undefined && pageDesStatistiques !== undefined
+        ? {
+            statistiques: {
+              page: pageDesStatistiques,
+              donnees: (cle: string | undefined) =>
+                bonneCle(cle, c.statistiques?.cle)
+                  ? JSON.stringify(
+                      statistiques.vue({
+                        rooms: serveur.apercu(),
+                        telephones: ligne.branches,
+                        ...(comptes !== undefined ? { comptes: comptes.nombre() } : {}),
+                        ...(version !== undefined ? { version } : {}),
+                        depuis: maintenant() - demarreA,
+                      }),
+                    )
+                  : undefined,
+            },
+            quandUnePage: (requete: IncomingMessage, room: boolean) =>
+              statistiques.page(adresseDe(requete), requete.headers['user-agent'] ?? '', room),
+          }
+        : {}),
     }),
   );
   http.on('upgrade', (requete, prise, debut) => ligne.accueillir(requete, prise, debut));
@@ -328,6 +411,8 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
         ferme = true;
         if (reveil !== undefined) clearTimeout(reveil);
         if (menage !== undefined) clearInterval(menage);
+        if (ecriture !== undefined) clearInterval(ecriture);
+        statistiques?.garder();
         ligne.fermer();
         http.close(() => fini());
         // Les navigateurs gardent leurs connexions ouvertes pour la suite : on ne les attend pas.

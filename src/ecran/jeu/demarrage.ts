@@ -21,7 +21,7 @@ import { SCENE_ENTIERE } from '../allegements';
 import { horlogeDuNavigateur } from '../horloge';
 import { animationsReduites, ceQuiManqueAuNavigateur, densiteDeLEcran } from '../navigateur';
 import { policesEmbarquees } from '../polices';
-import { ouvrirLeTelephone, type AGarder } from '../telephone/client';
+import { ouvrirLeTelephone, type AGarder, type Telephone } from '../telephone/client';
 import { memoireDeDepart, type Preparatifs, type Reprise } from '../telephone/memoire';
 import { brancherEnLigne } from '../telephone/websocket';
 import { creerLeVibreur } from '../vibreur';
@@ -115,14 +115,18 @@ function suivreLaFenetre(cadre: HTMLElement): {
  * le permet (Android) ; l'iPhone ne le permet qu'au jeu posé sur l'écran d'accueil, qui s'ouvre alors en plein écran de lui-même.
  * Jamais quand on touche une étiquette où l'on tape : la page qui change de taille fermait le clavier, et le champ ne tapait plus.
  */
-function pleinEcranAuPremierToucher(): void {
+function pleinEcranAuPremierToucher(signaler: Telephone['signaler']): void {
   const page = document.documentElement;
   if (!window.matchMedia('(pointer: coarse)').matches || typeof page.requestFullscreen !== 'function') return;
   const aLaMain = (ev: PointerEvent): void => {
     const cible = ev.target instanceof Element ? ev.target : null;
     if (cible?.closest('button') === null || cible?.closest('input') !== null) return;
     window.removeEventListener('pointerup', aLaMain);
-    if (document.fullscreenElement === null) void page.requestFullscreen({ navigationUI: 'hide' }).catch(() => undefined);
+    if (document.fullscreenElement === null)
+      void page.requestFullscreen({ navigationUI: 'hide' }).then(
+        () => signaler('pleinEcran'),
+        () => undefined,
+      );
   };
   window.addEventListener('pointerup', aLaMain);
 }
@@ -131,7 +135,7 @@ function pleinEcranAuPremierToucher(): void {
  * Le petit tutoriel, en diapositives : il s'ouvre à la première visite sur cet appareil, et quand on touche « Comment on joue ? »
  * en bas de l'accueil. « Passer », la dernière diapositive ou Échap le ferment ; l'appareil se souvient qu'on l'a vu.
  */
-function brancherLeTuto(textes: Textes): void {
+function brancherLeTuto(textes: Textes, signaler: Telephone['signaler']): void {
   const T = textes.tuto;
   const tuto = document.querySelector<HTMLElement>('.tuto');
   const titre = tuto?.querySelector('h2');
@@ -157,18 +161,21 @@ function brancherLeTuto(textes: Textes): void {
     precedent.hidden = rang === 0;
     suivant.textContent = rang === T.diapos.length - 1 ? T.commencer : T.suivant;
   };
-  const ouvrir = (): void => {
+  const ouvrir = (premiereVisite: boolean): void => {
+    signaler(premiereVisite ? 'tutoVu' : 'tutoRevu');
     rang = 0;
     montrer();
     tuto.hidden = false;
     suivant.focus();
   };
-  const fermer = (): void => {
+  /** On le ferme : fini (« Commencer »), ou passé. */
+  const fermer = (fini: boolean): void => {
+    signaler(fini ? 'tutoFini' : 'tutoPasse');
     tuto.hidden = true;
     ecrire(surLAppareil, GARDE.tuto, true);
   };
   suivant.addEventListener('click', () => {
-    if (rang >= T.diapos.length - 1) fermer();
+    if (rang >= T.diapos.length - 1) fermer(true);
     else {
       rang++;
       montrer();
@@ -178,12 +185,12 @@ function brancherLeTuto(textes: Textes): void {
     rang = Math.max(0, rang - 1);
     montrer();
   });
-  passer.addEventListener('click', fermer);
+  passer.addEventListener('click', () => fermer(false));
   tuto.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape') fermer();
+    if (ev.key === 'Escape') fermer(false);
   });
-  document.querySelector('[data-tuto]')?.addEventListener('click', ouvrir);
-  if (lire(surLAppareil, GARDE.tuto) !== true) ouvrir();
+  document.querySelector('[data-tuto]')?.addEventListener('click', () => ouvrir(false));
+  if (lire(surLAppareil, GARDE.tuto) !== true) ouvrir(true);
 }
 
 /** Un nombre que personne d'autre n'a tiré : la graine des pochettes de ce téléphone. */
@@ -245,6 +252,8 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
       typeof (p as PlaylistTrouvee).titre === 'string' &&
       typeof (p as PlaylistTrouvee).total === 'number',
   );
+  // Arrivé par le QR code de la kraft (« #qr »), qu'on lit avant que l'adresse ne s'en défasse.
+  const parLeQr = window.location.hash === '#qr';
   const lien = lienDeConnexion();
   // Un lien de connexion touché alors que la page est déjà ouverte : seule l'ancre change ; la page repart, et le lit.
   window.addEventListener('hashchange', () => {
@@ -295,7 +304,7 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     window.location.reload();
   };
   const fenetre = suivreLaFenetre(cadre);
-  ouvrirLeTelephone(cadre, {
+  const telephone = ouvrirLeTelephone(cadre, {
     brancher: brancherEnLigne(ligne, recharger),
     horloge: horlogeDuNavigateur(),
     ecritoire: { textes, encrier, site: window.location.host },
@@ -313,6 +322,12 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     // Les liens des pages légales, en bas : à l'accueil et au compte, là où rien d'autre ne se touche en bas de l'écran.
     enChangeant: (genre) => document.body.classList.toggle('pied', genre === 'accueil' || genre === 'compte'),
   });
-  brancherLeTuto(textes);
-  pleinEcranAuPremierToucher();
+  // Ce que seule la page voit, pour les statistiques : d'où l'on arrive, et si le jeu est lancé depuis l'écran d'accueil.
+  if (code !== undefined && reprise === undefined) telephone.signaler(parLeQr ? 'arriveeParQr' : 'arriveeParLien');
+  const surLEcranDAccueil =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as Navigator & { readonly standalone?: boolean }).standalone === true;
+  if (surLEcranDAccueil) telephone.signaler('ecranDAccueil');
+  brancherLeTuto(textes, telephone.signaler);
+  pleinEcranAuPremierToucher(telephone.signaler);
 }

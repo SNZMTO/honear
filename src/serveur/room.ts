@@ -11,6 +11,7 @@ import { dureeDeLExtrait, partieA, type EtatDeLaPartie, type EvenementDePartie, 
 import { DUREE_DU_DECOMPTE, finDeLExtrait, jouer, type ActionDePiste, type Piste } from '../regles/piste';
 import type { Pochette } from '../ressources/pochettes';
 import { DEROULE, PARTIE } from '../ressources/reglages';
+import type { FaitDuJeu, FaitSansLaRoom, Raconter } from './faits';
 
 /** De quoi écrire à un téléphone branché. */
 export type Envoyer = (nouvelle: Nouvelle) => void;
@@ -54,6 +55,8 @@ export interface Room {
   changerDePlaylist(id: string, playlist: string, pistes: () => readonly PisteDuMode[], heure: number): void;
   /** L'heure passe : ce qui devait arriver arrive. Rend l'heure du prochain rendez-vous, s'il y en a un. */
   avancer(heure: number): number | undefined;
+  /** La room s'en va (personne n'y est plus, ou elle a trop duré) : elle raconte ce qu'elle a été. */
+  fermer(heure: number): void;
 }
 
 /** Ce que la room sait de la piste en cours : la piste de la playlist, son déroulé, qui est prêt, et si son extrait est parti. */
@@ -63,6 +66,8 @@ interface PisteDeLaRoom {
   readonly seance: ActionDePiste[];
   readonly prets: Set<string>;
   extraitParti: boolean;
+  /** Vrai dès qu'une réponse y a trouvé quelque chose. */
+  trouvee: boolean;
 }
 
 /**
@@ -71,6 +76,7 @@ interface PisteDeLaRoom {
  * @param pistes ses pistes, dans l'ordre où elles se jouent (la face A, puis la face B), telles qu'elles sont à l'instant où on les
  * demande : les liens des extraits expirent, la source les relit avant qu'on lance une piste.
  * @param quandFinie appelé une fois par face, à la révélation de sa dernière piste, avec l'état de la partie finie.
+ * @param raconter ce qui se passe dans la room, pour qu'on le compte (voir faits.ts).
  */
 export function ouvrirUneRoom(
   code: string,
@@ -79,9 +85,18 @@ export function ouvrirUneRoom(
   pistesDeDepart: () => readonly PisteDuMode[],
   heure: number,
   quandFinie?: (etat: EtatDeLaPartie) => void,
+  raconter?: Raconter,
 ): Room {
   let playlist = playlistDeDepart;
   let pistes = pistesDeDepart;
+  const ouverteA = heure;
+  /** Ce que la room raconte d'elle, avec son code, son mode, et la playlist qu'elle joue à cet instant. */
+  const raconterDeLaRoom = (fait: FaitSansLaRoom): void => raconter?.({ room: code, mode: reglages.mode, playlist, ...fait } as FaitDuJeu);
+  /** Ce qu'elle aura été : quand sa face a commencé, combien de pistes elle a jouées, de joueurs au plus, si on y a joué. */
+  let debutDeLaFace: number | undefined;
+  let pistesJouees = 0;
+  let joueursAuPlus = 0;
+  let lancee = false;
   const ouverture = (a: number, face: Face = 'A'): EvenementDePartie => ({
     genre: 'ouverture',
     a,
@@ -104,13 +119,17 @@ export function ouvrirUneRoom(
   const diffuser = (nouvelle: Nouvelle): void => {
     for (const envoyer of branches.values()) envoyer(nouvelle);
   };
-  /** Ce que le journal publié a de nouveau, un événement à la fois, à tous ceux qui sont branchés. */
-  function ajouter(e: EvenementDePartie): void {
+  /** Ce que le journal publié a de nouveau, un événement à la fois, à tous ceux qui sont branchés. Rend ce qui a été publié. */
+  function ajouter(e: EvenementDePartie): EvenementDePartie[] {
     journal.push(e);
     const publie = publier(journal);
-    for (const evenement of publie.slice(publies)) diffuser({ genre: 'evenement', heure: e.a, evenement });
+    const nouveaux = publie.slice(publies);
+    for (const evenement of nouveaux) diffuser({ genre: 'evenement', heure: e.a, evenement });
     publies = publie.length;
+    return nouveaux;
   }
+  /** Les joueurs qui jouent, sans ceux qui regardent. */
+  const quiJouent = (e: EtatDeLaPartie): number => e.joueurs.filter((j) => !j.spectateur).length;
   const etatComplet = (toi: string, heure: number): Nouvelle => ({
     genre: 'etat',
     heure,
@@ -143,9 +162,13 @@ export function ouvrirUneRoom(
     const libre = enCours === undefined || enCours.piste?.revelation !== undefined;
     if (!estLHote(id) || !libre || attendue === undefined || e.phase === 'fin' || e.joueurs.length < PARTIE.joueurs.auMoins) return;
     prochaine++;
-    const p: PisteDeLaRoom = { attendue, piste: undefined, seance: [], prets: new Set(), extraitParti: false };
+    const p: PisteDeLaRoom = { attendue, piste: undefined, seance: [], prets: new Set(), extraitParti: false, trouvee: false };
     enCours = p;
     jouerLaPiste(p, { genre: 'lancer', a: heure, duree: dureeDeLExtrait(MODES[reglages.mode], reglages.extrait) });
+    const numero = e.pistesJouees + 1;
+    if (numero === 1) debutDeLaFace = heure;
+    lancee = true;
+    raconterDeLaRoom({ genre: 'lancer', numero, face: e.face });
   }
 
   function pret(id: string, heure: number): void {
@@ -174,16 +197,36 @@ export function ouvrirUneRoom(
   function rejouer(id: string, heure: number): void {
     if (!estLHote(id) || etat().phase !== 'fin') return;
     repartir('B', heure);
+    raconterDeLaRoom({ genre: 'rejouer' });
   }
 
   /** La réponse se révèle, à cet instant : à la fin de l'extrait, ou dès que le premier a tout trouvé. */
   function reveler(p: PisteDeLaRoom, a: number): void {
     if (p.piste === undefined || p.piste.revelation !== undefined) return;
+    const avant = etat();
     jouerLaPiste(p, { genre: 'reveler', a, reponse: p.attendue.reponse });
     ajouter({ genre: 'revelation', a });
     // La dernière piste de la face : la partie est finie, ses scores comptent.
     const apres = etat();
-    if (apres.phase === 'fin') quandFinie?.(apres);
+    pistesJouees++;
+    const { titre, artiste } = p.attendue.reponse;
+    raconterDeLaRoom({
+      genre: 'revelation',
+      titre,
+      artiste,
+      trouvee: apres.trouvees[apres.trouvees.length - 1] === true,
+      trouveurs: Object.keys(avant.piste?.trouve ?? {}).length,
+      joueurs: quiJouent(avant),
+    });
+    if (apres.phase !== 'fin') return;
+    quandFinie?.(apres);
+    raconterDeLaRoom({
+      genre: 'faceFinie',
+      face: apres.face,
+      joueurs: quiJouent(apres),
+      duree: a - (debutDeLaFace ?? a),
+      meilleur: Math.max(0, ...apres.joueurs.map((j) => j.points)),
+    });
   }
 
   function avancer(heure: number): number | undefined {
@@ -197,6 +240,7 @@ export function ouvrirUneRoom(
     if (!p.extraitParti && heure >= extraitA) {
       p.extraitParti = true;
       ajouter({ genre: 'extrait', a: extraitA, piste: p.attendue });
+      raconterDeLaRoom({ genre: 'extrait' });
     }
     const fin = finDeLExtrait(p.piste);
     if (fin === undefined) return undefined;
@@ -205,12 +249,13 @@ export function ouvrirUneRoom(
     return p.piste.revelation === undefined ? fin : undefined;
   }
 
+  raconterDeLaRoom({ genre: 'ouverte', pistes: reglages.pistes, extrait: reglages.extrait, son: reglages.son });
   return {
     code,
     get playlist() {
       return playlist;
     },
-    ouverteA: heure,
+    ouverteA,
     get journal() {
       return journal;
     },
@@ -228,12 +273,16 @@ export function ouvrirUneRoom(
       avancer(heure);
       if (etat().joueurs.length >= PARTIE.joueurs.auPlus) {
         envoyer({ genre: 'refus', heure, raison: 'complet' });
+        raconter?.({ genre: 'refus', raison: 'complet' });
         return;
       }
       ajouter({ genre: 'arrivee', a: heure, id, pochette });
       jetons.set(id, jeton);
       branches.set(id, envoyer);
       envoyer(etatComplet(id, heure));
+      const apres = etat();
+      joueursAuPlus = Math.max(joueursAuPlus, apres.joueurs.length);
+      raconterDeLaRoom({ genre: 'arrivee', joueurs: apres.joueurs.length, spectateur: apres.joueurs.some((j) => j.id === id && j.spectateur) });
     },
     revenir(id, envoyer, heure) {
       activite = heure;
@@ -246,12 +295,15 @@ export function ouvrirUneRoom(
       if (!joueur.connecte) ajouter({ genre: 'retour', a: heure, id });
       branches.set(id, envoyer);
       envoyer(etatComplet(id, heure));
+      raconterDeLaRoom({ genre: 'retour' });
     },
     debrancher(id, heure) {
       activite = heure;
       avancer(heure);
       if (!branches.delete(id)) return;
-      if (etat().joueurs.some((j) => j.id === id && j.connecte)) ajouter({ genre: 'deconnexion', a: heure, id });
+      if (!etat().joueurs.some((j) => j.id === id && j.connecte)) return;
+      ajouter({ genre: 'deconnexion', a: heure, id });
+      raconterDeLaRoom({ genre: 'deconnexion' });
     },
     recevoir(id, action, heure) {
       activite = heure;
@@ -265,7 +317,15 @@ export function ouvrirUneRoom(
         case 'repondre': {
           const fin = enCours?.piste !== undefined ? finDeLExtrait(enCours.piste) : undefined;
           if (enCours?.extraitParti === true && fin !== undefined && heure < fin) {
-            ajouter({ genre: 'reponse', a: heure, id, proposition: action.proposition });
+            const jugee = ajouter({ genre: 'reponse', a: heure, id, proposition: action.proposition }).find(
+              (e): e is Extract<EvenementDePartie, { genre: 'jugee' }> => e.genre === 'jugee',
+            );
+            if (jugee !== undefined) {
+              const premiere = jugee.trouve.length > 0 && !enCours.trouvee;
+              if (jugee.trouve.length > 0) enCours.trouvee = true;
+              const { verdict, trouve, points, complet } = jugee;
+              raconterDeLaRoom({ genre: 'reponse', verdict, trouve, points, complet, delai: heure - (enCours.piste?.extraitA ?? heure), premiere });
+            }
             // Un mode où le premier qui a tout trouvé arrête la piste : la réponse se révèle tout de suite.
             const trouve = etat().piste?.trouve[id] ?? [];
             const aTrouver = MODES[reglages.mode].aTrouver(enCours.attendue);
@@ -288,6 +348,7 @@ export function ouvrirUneRoom(
         case 'quitter':
           branches.delete(id);
           ajouter({ genre: 'depart', a: heure, id });
+          raconterDeLaRoom({ genre: 'depart' });
           return;
         case 'creer':
         case 'rejoindre':
@@ -300,8 +361,9 @@ export function ouvrirUneRoom(
         case 'sortirDuCompte':
         case 'effacerLeCompte':
         case 'diagnostic':
-          // On ne crée ni ne rejoint une room de l'intérieur d'une autre ; l'heure, la musique, les comptes et le diagnostic ne sont pas
-          // l'affaire d'une room.
+        case 'statistique':
+          // On ne crée ni ne rejoint une room de l'intérieur d'une autre ; l'heure, la musique, les comptes, le diagnostic et les
+          // statistiques ne sont pas l'affaire d'une room.
           return;
       }
     },
@@ -313,7 +375,11 @@ export function ouvrirUneRoom(
       pistes = nouvelles;
       prochaine = 0;
       repartir('A', heure);
+      raconterDeLaRoom({ genre: 'autrePlaylist' });
     },
     avancer,
+    fermer(heure) {
+      raconterDeLaRoom({ genre: 'fermee', duree: heure - ouverteA, pistes: pistesJouees, joueursAuPlus, lancee });
+    },
   };
 }

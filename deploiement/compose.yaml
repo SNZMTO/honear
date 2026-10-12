@@ -17,10 +17,13 @@ services:
     env_file:
       - path: /etc/honear/courrier.env
         required: false
+      # La clé de la page des statistiques : un fichier que seul root lit, que la mise en ligne crée. Sans lui, la page est fermée.
+      - path: /etc/honear/statistiques.env
+        required: false
     environment:
       ORIGINES: https://${DOMAINE:?}
       SITE: https://${DOMAINE:?}
-    # Les comptes : le seul dossier où le jeu écrit.
+    # Les comptes et les statistiques : le seul dossier où le jeu écrit.
     volumes:
       - /var/lib/honear:/donnees
     read_only: true

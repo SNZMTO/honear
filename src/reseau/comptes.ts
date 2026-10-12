@@ -61,6 +61,8 @@ export interface Comptes {
   faceFinie(code: string, classement: readonly { readonly joueur: string; readonly premier: boolean }[]): void;
   /** Ce que le téléphone voit d'un compte. */
   vu(id: string): CompteVu | undefined;
+  /** Combien de comptes existent : pour les statistiques, rien de plus. */
+  nombre(): number;
   /** Le ménage : efface les comptes qui dorment depuis trop longtemps, et prévient ceux qui vont l'être. */
   entretenir(): Promise<void>;
 }
@@ -269,6 +271,7 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
       const c = comptes.get(id);
       return c !== undefined ? vu(c) : undefined;
     },
+    nombre: () => comptes.size,
     async entretenir() {
       const t = o.monde();
       const I = C.inactif;

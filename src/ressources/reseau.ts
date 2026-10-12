@@ -14,6 +14,24 @@ export const RESEAU = {
   tolerance: { malFormes: 5, codesInconnus: 10 },
   /** Combien de paquets de diagnostic une connexion peut écrire au journal du serveur, au plus. */
   diagnostic: { auPlus: 600 },
+  /**
+   * Les statistiques, pour l'éditeur seul. On range ce qui se passe à l'heure de ce fuseau ; on garde les compteurs jour par jour
+   * tant de jours (treize mois, comme la CNIL le veut d'une mesure d'audience), et on en montre tant à la page ; on les écrit sur
+   * le disque au plus toutes les tant de secondes. Les classements (titres joués, playlists prises, recherches) gardent tant
+   * d'entrées au plus, et la page en montre tant ; un titre « dur » a été joué au moins tant de fois. Ce qu'on cherche se garde
+   * coupé à tant de signes. Un navigateur qui se dit robot n'est pas un visiteur.
+   */
+  statistiques: {
+    fuseau: 'Europe/Paris',
+    jours: 396,
+    montres: 120,
+    ecriture: 60,
+    gardes: { titres: 3000, playlists: 600, recherches: 600 },
+    classes: { titres: 40, durs: 15, playlists: 30, recherches: 40 },
+    durAuMoins: 3,
+    rechercheAuPlus: 40,
+    robots: /bot|crawl|spider|slurp|preview|facebookexternalhit|curl|wget|python|httpclient|monitor|uptime|headless|lighthouse/i,
+  },
   /** Combien de téléphones une même adresse peut brancher à la fois. */
   parAdresse: 30,
   /** La minuterie du serveur ne dort jamais plus longtemps : de quoi voir passer l'expiration des rooms. */
