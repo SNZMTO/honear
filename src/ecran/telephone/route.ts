@@ -122,6 +122,9 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
         ...(b.lien !== '' ? { lien: b.lien } : {}),
         ...(b.importee !== undefined ? { importee: { jouables: b.importee.jouables ?? b.importee.total, total: b.importee.total } } : {}),
         ...(b.refus !== undefined ? { refus: b.refus } : {}),
+        ...(prep.cran === 'laMienne' && m.mesPlaylists.length > 0
+          ? { miennes: m.mesPlaylists.map((r) => ({ titre: r.titre, total: r.jouables ?? r.total })) }
+          : {}),
         ...(etat !== undefined ? { etat } : {}),
         ...(b.choisie !== undefined ? { choisie: { titre: b.choisie.titre, total: b.choisie.jouables ?? b.choisie.total } } : {}),
         ...(p.chercher && p.source !== undefined ? { source: p.source } : {}),

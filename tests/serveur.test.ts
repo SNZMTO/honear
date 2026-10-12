@@ -15,6 +15,7 @@ import { DUREE_DU_DECOMPTE, jouer, memeReponse, type ActionDePiste, type Piste }
 import { DEROULE, REGLAGES, SERVEUR } from '../src/ressources/reglages';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { avecDesChoix } from '../src/serveur/choix';
+import { dansLOrdre, lOrdreDeLaPlaylist, unOrdreAuHasard } from '../src/serveur/ordre';
 import { demarrerLeServeur } from '../src/serveur/serveur';
 import { PISTES_D_ESSAI } from '../src/serveur/sources/essai';
 
@@ -43,6 +44,8 @@ function monde() {
   const serveur = demarrerLeServeur({
     maintenant: () => heure,
     tirage: hasard(37).suivant,
+    // Les pistes dans l'ordre de la playlist : les tests savent laquelle vient.
+    ordre: lOrdreDeLaPlaylist,
     jeton: () => `jeton-${++jetons}`,
     playlist: (lien) => (lien === 'bac' ? PLAYLIST : undefined),
   });
@@ -146,6 +149,45 @@ test('un appareil en retard ne retient pas la piste ; une connexion qui tombe ga
   assert.equal(partieA(revenu.journal, Infinity).joueurs.find((j) => j.id === invite.toi)?.connecte, true);
   assert.equal(piste(revenu)?.extraitA, piste(hote)?.extraitA);
   assert.equal(partieA(revenu.journal, Infinity).joueurs.length, 2, 'sa place, pas une de plus');
+});
+
+test('« First one » : le premier qui trouve l’artiste et le titre gagne la piste, qui se révèle aussitôt ; « 1re note » ne fait entendre qu’une seconde', () => {
+  const m = monde();
+  const [hote, invite] = [m.telephone(), m.telephone()];
+  hote.connexion.envoyer({ ...creer, mode: 'premierArrive' });
+  invite.connexion.envoyer({ genre: 'rejoindre', code: hote.code, pochette: POCHETTE });
+  hote.connexion.envoyer({ genre: 'lancer' });
+  hote.connexion.envoyer({ genre: 'pret' });
+  invite.connexion.envoyer({ genre: 'pret' });
+  const extraitA = piste(hote)?.extraitA ?? 0;
+  m.a(extraitA + 2);
+  invite.connexion.envoyer({ genre: 'repondre', proposition: { genre: 'saisie', texte: 'images' } });
+  assert.equal(
+    invite.journal.find((e) => e.genre === 'revelation'),
+    undefined,
+    'l’artiste seul ne suffit pas',
+  );
+  m.a(extraitA + 3);
+  hote.connexion.envoyer({ genre: 'repondre', proposition: { genre: 'saisie', texte: 'Images, les démons de minuit' } });
+  const revelation = invite.journal.find((e) => e.genre === 'revelation');
+  assert.equal(revelation?.a, extraitA + 3, 'la piste s’arrête au premier qui a tout trouvé');
+  const points = partieA(invite.journal, Infinity).joueurs.map((j) => j.points);
+  assert.deepEqual(points, [3, 0]);
+  assert.equal(MODES.premiereNote.son, DEROULE.premiereNote);
+});
+
+test('une room joue sa playlist dans un ordre tiré au hasard, chaque piste une fois', () => {
+  const ordre = unOrdreAuHasard(20, hasard(5).suivant);
+  assert.deepEqual(
+    [...ordre].sort((a, b) => a - b),
+    Array.from({ length: 20 }, (_, rang) => rang),
+  );
+  assert.notDeepEqual(
+    ordre,
+    Array.from({ length: 20 }, (_, rang) => rang),
+  );
+  assert.deepEqual(dansLOrdre(['a', 'b', 'c', 'd'], [2, 0, 1]), ['c', 'a', 'b', 'd']);
+  assert.deepEqual(dansLOrdre(['a', 'b'], [2, 0, 1]), ['a', 'b']);
 });
 
 test('« Rejouer la face B » : une nouvelle partie, avec les mêmes ; la playlist reprend où elle s’était arrêtée', () => {

@@ -48,6 +48,8 @@ export const TELEPHONE = {
    * redescend en ce temps-là, jusqu'à cette opacité (rien quand on a demandé moins d'animations).
    */
   pouls: { duree: 1.8, eclat: 0.2 },
+  /** Le curseur de ce qu'on tape clignote : allumé ce temps-là, éteint autant. */
+  curseur: { demiPeriode: 0.53 },
   /** Le tutoriel : le voile sombre qu'il pose sur le jeu, de cette opacité. */
   tuto: { voile: 0.9 },
   /**

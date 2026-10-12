@@ -164,7 +164,7 @@ export const PLATINE = {
     boutons: {
       pistes: { x: 168, rayon: 14.5, crans: [-45, 0, 45] },
       extrait: { x: 244, rayon: 14.5, crans: [-45, 0, 45] },
-      mode: { x: 344, rayon: 18, crans: [-72, -36, 0, 36, 72] },
+      mode: { x: 344, rayon: 18, crans: [-60, -40, -20, 0, 20, 40, 60] },
     },
     /** Ce que les boutons ont en commun : épaisseur, chanfrein, et leur index (de son pied à son bout, en parts du rayon ; largeur en px). */
     bouton: { epaisseur: 6, chanfrein: 1.7, index: { de: 0.26, a: 0.82, largeur: 2.6 } },

@@ -61,6 +61,29 @@ export function disqueDePlaylist(
  * Les playlists proposées pour ce genre, une par rang, de haut en bas : « disque-playlist-n » et « etiquette-playlist-n », de 1 à
  * n. Celle de rang `choisie` se soulève, et son nom s'écrit plus appuyé.
  */
+/**
+ * « Mes playlists » : celles qu'on a importées et que l'appareil garde, en rangées comme celles d'un genre (un disque miel, son
+ * papier), sous l'étiquette du lien. « disque-mienne-1 », « etiquette-mienne-1 »… ; celle qu'on a touchée sort du rang.
+ */
+export function mesPlaylists(a: Ecritoire, regard: Regard, miennes: readonly PlaylistProposee[], choisie: number | undefined): Calque[] {
+  const Y = TABLEE.telephone.bac.miennes.y;
+  return miennes.slice(0, Y.length).flatMap((p, rang) => {
+    const y = Y[rang] ?? 0;
+    const elue = rang === choisie;
+    const nom = papier(
+      `etiquette-mienne-${rang + 1}`,
+      regard,
+      [L.papier.x, y],
+      L.papier.largeur,
+      L.angles[rang] ?? 0,
+      [{ contenu: p.titre, role: elue ? 'techniqueFort' : 'technique', auPlus: 'mention' }],
+      a.encrier,
+      { ancre: 'debut', role: 'mobile' },
+    ).calques;
+    return [...disqueDePlaylist(`disque-mienne-${rang + 1}`, regard, [L.disque.x, y], 'miel', elue ? L.leve : 0), ...nom];
+  });
+}
+
 export function playlistsDuGenre(
   a: Ecritoire,
   regard: Regard,

@@ -52,6 +52,8 @@ export interface Textes {
     readonly son: string;
     /** Le nom gravé de chaque mode de jeu, par sa clé. Un mode de plus y ajoute le sien dans chaque langue, sans toucher à cette forme. */
     readonly modes: Readonly<Record<string, string>>;
+    /** Les numéros gravés autour du sélecteur des modes, un par cran. */
+    readonly crans: readonly string[];
     readonly sons: { readonly tous: string; readonly hote: string };
   };
 

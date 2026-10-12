@@ -23,7 +23,7 @@ import { dessinerLaTablee, eventail, placesEnEventail, type JoueurPose } from '.
 import { largeurDeLaTouche } from '../touche';
 import { kraftDuSalon } from './kraft';
 import { ampliDuSalon, bacDesPlaylistsPretes, platineArretee } from './meuble';
-import { disqueDePlaylist, estUnTheme, playlistsDuGenre, type PlaylistProposee } from './choisie';
+import { disqueDePlaylist, estUnTheme, playlistsDuGenre, type PlaylistProposee, mesPlaylists } from './choisie';
 import {
   DENSITE,
   interprete,
@@ -93,6 +93,8 @@ export interface BacOuvert {
   readonly importee?: { readonly jouables: number; readonly total: number };
   /** Ce qui empêche de la choisir : trop peu de titres jouables, un lien que le site ne sait pas lire, un lien qui ne mène à rien. */
   readonly refus?: 'tropCourt' | 'spotify' | 'introuvable';
+  /** « Mes playlists » : celles qu'on a importées et gardées, en disques ; celle qu'on a touchée est `touche`. */
+  readonly miennes?: readonly PlaylistProposee[];
   /** Aux « Prêtes à jouer », le thème touché, et ses playlists, en disques ; celle qu'on a touchée est `touche`. */
   readonly theme?: string;
   readonly proposees?: readonly PlaylistProposee[];
@@ -121,10 +123,12 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
   const P = a.textes.playlists;
   const B = T.bac;
   // Le bac reste rangé : le thème touché se montre devant lui, sa pochette sur le bois et son disque qui en sort.
-  const meuble = dessinerLeBac(bacDesPlaylistsPretes(a.textes), DENSITE, a.encrier.largeur);
+  const auRepos = dessinerLeBac(bacDesPlaylistsPretes(a.textes), DENSITE, a.encrier.largeur);
+  // L'intercalaire du thème touché sort du bac ; le regard, lui, reste celui du bac au repos.
+  const meuble = bac.theme !== undefined ? dessinerLeBac(bacDesPlaylistsPretes(a.textes, undefined, bac.theme), DENSITE, a.encrier.largeur) : auRepos;
   // Le regard monte sur le bac s'il le faut, assez pour qu'on lise l'onglet de chaque intercalaire.
-  const surLeBac = regardSur(meuble, a.encrier);
-  const haut = empriseDe([meuble], a.encrier.largeur)?.y ?? surLeBac.origine[1];
+  const surLeBac = regardSur(auRepos, a.encrier);
+  const haut = empriseDe([auRepos], a.encrier.largeur)?.y ?? surLeBac.origine[1];
   const r: Regard = { ...surLeBac, origine: [surLeBac.origine[0], Math.min(surLeBac.origine[1], haut - B.auDessus)] };
   // Les trois crans, chacun taillé à son libellé, côte à côte et centrés, un écart entre eux : aucun ne mord sur l'autre.
   const largeurs = CRANS_DU_BAC.map((c) => largeurDeLaTouche({ genre: 'cran', libelle: P[c], ajustee: true }, a.encrier.largeur));
@@ -165,7 +169,8 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
         [{ contenu: bac.recherche !== undefined && bac.recherche !== '' ? bac.recherche : P.recherche, role: 'titrage', auPlus: 'titre' }],
         a.encrier,
         {
-          curseur: true,
+          // Rien de tapé : le curseur attend devant ce qu'on peut y chercher.
+          curseur: bac.recherche !== undefined && bac.recherche !== '' ? true : 'debut',
           alignement: 'debut',
         },
       ).calques,
@@ -219,7 +224,7 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
         -1,
         [{ contenu: bac.lien ?? P.coller, role: 'technique', auPlus: 'mention' }],
         a.encrier,
-        { curseur: true, alignement: 'debut' },
+        { curseur: bac.lien !== undefined && bac.lien !== '' ? true : 'debut', alignement: 'debut' },
       ).calques,
     );
     const lue = bac.importee !== undefined ? remplir(P.jouables, bac.importee) : undefined;
@@ -247,6 +252,8 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
               ? [{ contenu: lue, role: 'titrage', auPlus: 'intertitre' }]
               : undefined;
     if (lignes !== undefined) objets.push(...papier('etiquette-message', r, B.message.en, B.message.largeur, 1.5, lignes, a.encrier).calques);
+    // Sinon, « Mes playlists » : celles qu'on a déjà importées, à reprendre d'un toucher.
+    else if (bac.miennes !== undefined) objets.push(...mesPlaylists(a, r, bac.miennes, bac.touche));
   }
   // On choisit ce qu'on a sous les yeux : une playlist prête, ce que la recherche a trouvé, ou ce que le lien a importé.
   const aChoisir =
@@ -255,7 +262,7 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
       ? bac.themeAToucher !== true || bac.choisie !== undefined
       : bac.cran === 'chercher'
         ? resultats.length > 0
-        : bac.importee !== undefined);
+        : bac.importee !== undefined || bac.choisie !== undefined);
   if (aChoisir && bac.refus === undefined) objets.push(toucheAuMilieu('touche-choisir', 'principale', P.choisir, r, B.choisir, a.encrier));
   return { regard: r, objets };
 }

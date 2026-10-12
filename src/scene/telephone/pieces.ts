@@ -90,7 +90,7 @@ export function papier(
   lignes: readonly LigneDePapier[],
   encrier: Encrier,
   options: {
-    readonly curseur?: boolean;
+    readonly curseur?: boolean | 'debut';
     readonly alignement?: 'debut' | 'milieu';
     readonly role?: 'decor' | 'mobile';
     readonly auMoins?: number;

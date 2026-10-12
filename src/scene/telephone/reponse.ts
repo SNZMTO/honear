@@ -53,7 +53,8 @@ export function etiquetteEtSonMot(
     tape === '' ? { contenu: a.textes.partie.taReponse, role: 'technique', auPlus: 'mention' } : { contenu: tape, role: 'titrage', auPlus: 'titre' };
   // Taillée à ce qu'on tape, assez large pour ses trois pastilles ; elle s'allonge vers la droite.
   const etiquette = papier('etiquette-reponse', regard, [R.en[0], y], R.largeur, R.angle, [ligne], a.encrier, {
-    curseur: true,
+    // Rien de tapé : le curseur attend devant ce qu'on peut taper, pas au milieu de l'étiquette.
+    curseur: tape === '' ? 'debut' : true,
     alignement: 'debut',
     auMoins: R.auMoins,
   });

@@ -53,6 +53,8 @@ export const BAC = {
     coin: 3,
     onglet: { largeur: 100, hauteur: 32, coin: 5, places: [8, 110, 212] },
     etiquette: { retrait: 4, lignes: 2, interligne: 3 },
+    /** L'intercalaire du thème qu'on a touché sort du bac de tant de px : on voit d'un coup d'œil lequel est choisi. */
+    choisi: 18,
   },
 } as const;
 

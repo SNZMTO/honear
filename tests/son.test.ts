@@ -20,6 +20,7 @@ import { REGLAGES } from '../src/ressources/reglages';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { demarrerLeServeur } from '../src/serveur/serveur';
 import { PISTES_D_ESSAI } from '../src/serveur/sources/essai';
+import { lOrdreDeLaPlaylist } from '../src/serveur/ordre';
 
 const POCHETTE = pochetteDExemple(TEXTES);
 /** La playlist d'essai, chaque piste avec son extrait, comme Deezer les donne. */
@@ -43,6 +44,7 @@ function uneRoom(son: SonDeLaRoom, pistes: readonly PisteDuMode[] = AVEC_EXTRAIT
   const serveur = demarrerLeServeur({
     maintenant: () => horloge.t,
     tirage: hasard(3).suivant,
+    ordre: lOrdreDeLaPlaylist,
     jeton: (() => {
       let n = 0;
       return () => `jeton-${++n}`;

@@ -25,6 +25,7 @@ import { joueursDExemple } from '../etape5/scenes';
 import { LEGENDES_DU_PROTOTYPE as L } from './legendes.fr';
 import { inviterLesPotes, type Potes } from './potes';
 import { PLAYLIST_DU_PROTOTYPE, SCENARIO, type Pote } from './scenario';
+import { lOrdreDeLaPlaylist } from '../../serveur/ordre';
 
 /** Les polices du site, en base 64, par nom de fichier. */
 type Polices = Readonly<Record<string, string>>;
@@ -71,6 +72,7 @@ function unePartie(
   const serveur = demarrerLeServeur({
     maintenant: horloge.maintenant,
     tirage: hasard(L.graines.codes).suivant,
+    ordre: lOrdreDeLaPlaylist,
     // Dans la page, personne d'autre ne peut se brancher : un jeton n'a pas besoin d'y être secret.
     jeton: () => `jeton-${++jetons}`,
     playlist: (lien) => (lien === SCENARIO.playlist ? PLAYLIST_DU_PROTOTYPE : undefined),

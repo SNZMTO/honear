@@ -23,7 +23,7 @@ const ANNEE_PRESQUE = 2;
  */
 export const ANNEE: ModeDeJeu = {
   cle: 'annee',
-  cran: 2,
+  cran: 4,
   reglages: {},
   phases: ['decompte', 'extrait', 'revelation'],
   sousLePouce: 'etiquetteVierge',
@@ -53,9 +53,9 @@ export const ANNEE: ModeDeJeu = {
 };
 
 /** « Intro express » : la saisie libre, sur 3 secondes d'extrait, quel que soit le réglage du bouton « Extrait ». */
-export const INTRO_EXPRESS: ModeDeJeu = { ...LIBRE, cle: 'introExpress', cran: 3, extrait: 3 };
+export const INTRO_EXPRESS: ModeDeJeu = { ...LIBRE, cle: 'introExpress', cran: 5, extrait: 3 };
 
 /** « Équipes » : la saisie libre, les joueurs répartis en deux équipes ; les points se mettent en commun, la tablée en deux piles. */
-export const EQUIPES: ModeDeJeu = { ...LIBRE, cle: 'equipes', cran: 4, equipes: 2 };
+export const EQUIPES: ModeDeJeu = { ...LIBRE, cle: 'equipes', cran: 6, equipes: 2 };
 
 export const MODES_D_EXEMPLE: readonly ModeDeJeu[] = [ANNEE, INTRO_EXPRESS, EQUIPES];

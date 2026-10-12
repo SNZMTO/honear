@@ -87,12 +87,13 @@ export function meubleAutour(
   regard: Regard,
   platine = true,
   aiguilles?: readonly [number, number],
+  echelles?: readonly [readonly string[], readonly string[]],
 ): Calque[] {
   const deja = new Set(objets.map((objet) => objet.nom));
   const candidats = [
     ...(deja.has('bac') ? [] : [dessinerLeBac(bacDesPlaylistsPretes(a.textes), DENSITE, a.encrier.largeur)]),
     ...(deja.has('platine') || !platine ? [] : [platineArretee(a)]),
-    ...(deja.has('ampli') ? [] : [dessinerLAmpli(ampliDuSalon(a.textes, true, aiguilles), DENSITE)]),
+    ...(deja.has('ampli') ? [] : [dessinerLAmpli(ampliDuSalon(a.textes, true, aiguilles, echelles), DENSITE)]),
   ];
   // Ce que le regard ne voit pas ne se dessine pas : une fenêtre de téléphone ne voit ni le bac ni l'ampli.
   return candidats.filter((c) => {

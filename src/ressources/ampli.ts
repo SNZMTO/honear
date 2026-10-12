@@ -43,10 +43,16 @@ export const AMPLI = {
   },
 
   /**
-   * Le gros bouton du volume, à l'avant gauche : moleté, un cran tous les 15 degrés, de -135 à +135 ; un nombre gravé
-   * tous les trois crans ; son titre, à tant de px de son centre.
+   * Le gros bouton du volume, à l'avant gauche : moleté, vingt et un crans de -135 à +135 degrés ; un nombre gravé tous les deux
+   * crans, de 0 à 10 ; son titre, à tant de px de son centre.
    */
-  volume: { centre: [94, 232], rayon: 36, de: -135, a: 135, pas: 15, ecritTousLes: 3, titre: 72 },
+  /**
+   * Les cadrans de l'ampli, en jeu : la gauche compte les titres de la face, de tant en tant ; la droite, les secondes de l'extrait.
+   * Hors d'une face, ils montrent les plus longues qu'on puisse régler.
+   */
+  cadrans: { titres: { pas: 5, auPlus: 20 }, secondes: { pas: 10, pasCourt: 5, auPlus: 30 } },
+
+  volume: { centre: [94, 232], rayon: 36, de: -135, a: 135, pas: 13.5, ecritTousLes: 2, titre: 72 },
 
   /**
    * L'interrupteur « Allume l'ampli », et son voyant juste à sa droite : une bague sombre, puis la lentille, en part de son rayon,

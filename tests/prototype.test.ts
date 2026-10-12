@@ -16,6 +16,7 @@ import { mouvementsDuClassement, partieA, type EvenementDePartie } from '../src/
 import { jouer, type ActionDePiste } from '../src/regles/piste';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { demarrerLeServeur } from '../src/serveur/serveur';
+import { lOrdreDeLaPlaylist } from '../src/serveur/ordre';
 
 const PAS = 0.1;
 /** Ce que toi met entre deux réponses, et après le départ de l'extrait avant la première ; ce que dure le hit-parade avant la suivante. */
@@ -26,6 +27,7 @@ function jouerLaPartie(mode: 'libre' | 'quatreChoix') {
   const serveur = demarrerLeServeur({
     maintenant: () => heure,
     tirage: hasard(1987).suivant,
+    ordre: lOrdreDeLaPlaylist,
     jeton: (() => {
       let n = 0;
       return () => `jeton-${++n}`;

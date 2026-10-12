@@ -1,6 +1,7 @@
 /** Les gestes de l'étape 5 : la tablée et le meuble, tenus aux temps et aux ampleurs du brief. */
 
 import assert from 'node:assert/strict';
+import { AMPLI } from '../src/ressources/ampli';
 import { test } from 'node:test';
 import { glisser } from '../src/mouvement/glissade';
 import { GESTES, MATIERES, TOUCHES } from '../src/ressources/mouvement';
@@ -160,13 +161,13 @@ test('« Allume l’ampli » : l’interrupteur bascule en deux temps, le voyant
   assert.ok(depart('droite') - depart('gauche') >= 0.03 - 1e-9, 'rien ne part en même temps');
 });
 
-test('le gros bouton suit le doigt de cran en cran, un tous les 15 degrés, une vibration à chaque cran ; un sélecteur dépasse de 2 degrés et revient', () => {
+test('le gros bouton suit le doigt de cran en cran, une vibration à chaque cran ; un sélecteur dépasse de 2 degrés et revient', () => {
   const de = CRANS_DU_VOLUME[3] ?? 0;
-  const doigt = Array.from({ length: 31 }, (_, i) => ({ a: i / 60, angle: de + i * 1.5 }));
+  const doigt = Array.from({ length: 31 }, (_, i) => ({ a: i / 60, angle: de + (i * 3 * AMPLI.volume.pas) / 30 }));
   const g = volumeAuDoigt(doigt, CRANS_DU_VOLUME);
   assert.equal(g.vibrations?.length, 3);
   const fin = aLInstant(g, 2).volume;
-  assert.ok(CRANS_DU_VOLUME.some((c) => proche(c, fin, 0.01)) && proche(fin - de, 45, 0.01), `${fin}`);
+  assert.ok(CRANS_DU_VOLUME.some((c) => proche(c, fin, 0.01)) && proche(fin - de, 3 * AMPLI.volume.pas, 0.01), `${fin}`);
   const crans = [-72, -36, 0, 36, 72];
   const s = deCranEnCran(crans, 0, 2, 0);
   const angles = suivre(s, 0, 1).map((v) => v.angle);

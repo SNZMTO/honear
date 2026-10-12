@@ -61,7 +61,8 @@ export const TEXTES: Textes = {
     extrait: 'Secondes',
     mode: 'Mode',
     son: 'Son',
-    modes: { libre: 'Libre', quatreChoix: '4 choix' },
+    modes: { libre: 'Libre', quatreChoix: '4 choix', premierArrive: 'First one', premiereNote: '1re note' },
+    crans: ['1', '2', '3', '4', '5', '6', '7'],
     sons: { tous: 'Tous', hote: 'Hôte' },
   },
 
@@ -224,6 +225,8 @@ export const TEXTES: Textes = {
     bareme: {
       libre: 'Libre : 1 point l’artiste, 1 le titre, 1 le feat.',
       quatreChoix: '4 choix : 1 point, 1 de plus au plus rapide.',
+      premierArrive: 'First one : le premier qui trouve l’artiste et le titre gagne 3 points, la piste s’arrête.',
+      premiereNote: '1re note : une seconde de son, puis on cherche. 1 point par partie.',
     },
     titresJoues: 'Face A, ce soir',
     titreJoue: '{numero}. {titre} – {artiste}',
@@ -247,7 +250,7 @@ export const TEXTES: Textes = {
   playlists: {
     pretes: 'Prêtes à jouer',
     chercher: 'Chercher',
-    laMienne: 'La mienne',
+    laMienne: 'Mes playlists',
     recherche: 'années 90',
     coller: 'Un lien de playlist Deezer ou Spotify',
     jouables: '{jouables} titres jouables sur {total}',
@@ -356,7 +359,7 @@ export const TEXTES: Textes = {
         {
           titre: 'Ce que le site garde sur ton téléphone',
           paragraphes: [
-            'Ni cookie, ni traceur, ni outil tiers. Le site garde dans le stockage local de ton navigateur seulement ce qu’il faut pour marcher : ta pochette, la room où tu joues (pour y revenir si la page se recharge), le secret de ta session si tu as un compte, et le fait que tu as vu le petit tutoriel.',
+            'Ni cookie, ni traceur, ni outil tiers. Le site garde dans le stockage local de ton navigateur seulement ce qu’il faut pour marcher : ta pochette, la room où tu joues (pour y revenir si la page se recharge), le secret de ta session si tu as un compte, le fait que tu as vu le petit tutoriel, et les playlists que tu as importées (« Mes playlists »).',
             'Ces informations, strictement nécessaires au jeu que tu demandes, ne demandent pas ton consentement (article 82 de la loi Informatique et Libertés). Tu peux les effacer quand tu veux, en effaçant les données du site dans ton navigateur.',
           ],
         },
