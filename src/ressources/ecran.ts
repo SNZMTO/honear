@@ -43,11 +43,6 @@ export const TELEPHONE = {
   boisAuDessus: 28,
   /** Un bouton rond qu'on tourne d'un cran (Pistes, Extrait, Mode, le volume) y va en ce temps-là, en ralentissant. */
   tourne: 0.25,
-  /**
-   * La touche principale d'un écran, celle qui le fait avancer, respire pour qu'on la voie : une lueur crème monte sur elle et
-   * redescend en ce temps-là, jusqu'à cette opacité (rien quand on a demandé moins d'animations).
-   */
-  pouls: { duree: 1.8, eclat: 0.2 },
   /** Le curseur de ce qu'on tape clignote : allumé ce temps-là, éteint autant. */
   curseur: { demiPeriode: 0.53 },
   /** Le tutoriel : le voile sombre qu'il pose sur le jeu, de cette opacité. */

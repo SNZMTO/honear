@@ -201,12 +201,14 @@ export const TEXTES: Textes = {
     auHasard: 'Au hasard',
     autreAlbum: 'Un autre album',
     tonNom: 'Ton nom d’artiste',
+    nomDAbord: 'Ton nom d’abord : c’est lui qu’on lira au classement.',
     maPochette: 'Ma pochette',
     laisser: 'Retour',
   },
 
   partie: {
     quitter: 'Quitter',
+    autrePlaylist: 'Autre playlist',
     quitterVraiment: 'Quitter la partie ? Tu pourras la rejoindre avec son code.',
     code: 'Le code',
     autourDuMeuble: '{nombre} joueurs',

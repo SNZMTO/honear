@@ -16,7 +16,8 @@ import { PARTIE } from '../src/ressources/reglages';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { demarrerLeServeur } from '../src/serveur/serveur';
 
-const POCHETTE = pochetteDExemple(TEXTES);
+// Une pochette au nom tapé : un nom tiré au sort ne se garde pas.
+const POCHETTE = { ...pochetteDExemple(TEXTES), artiste: 'Tonton Mateo' };
 const vignette = { vignette: { fond: 'lilasFume', motif: 'rayons' } } as const;
 
 const P: Preparatifs = {
@@ -53,7 +54,7 @@ test('un nom tapé : sans pictogramme ni caractère de commande, les espaces res
   assert.equal(nomTape(`${'a'.repeat(NOM_AU_PLUS - 1)}𝒜`), 'a'.repeat(NOM_AU_PLUS - 1));
 });
 
-test('« Fais ta pochette » : on tape son nom, « Au hasard » le laisse ; sans nom, « C’est moi » garde celui du hasard', () => {
+test('« Fais ta pochette » : on tape son nom, « Au hasard » le laisse ; sans nom, « C’est moi » le réclame', () => {
   let m = toucher(memoireDeDepart(P, {}), { genre: 'poser' }, 0, P).memoire;
   m = saisir(m, 'MC Mateo');
   assert.equal(pochetteDe(m)?.artiste, 'MC Mateo');
@@ -62,14 +63,23 @@ test('« Fais ta pochette » : on tape son nom, « Au hasard » le laisse ; sans
   m = toucher(m, { genre: 'auHasard' }, 0, P).memoire;
   assert.equal(pochetteDe(m)?.artiste, 'MC Mateo');
   assert.notDeepEqual(pochetteDe(m), avant, 'le reste a changé');
-  // Un nom tiré au sort, lui, se tire de nouveau.
+  // Le hasard ne donne pas de nom : la pochette tirée arrive sans, et le reste.
   const tire = toucher(memoireDeDepart(P, {}), { genre: 'poser' }, 0, P).memoire;
+  assert.equal(pochetteDe(tire)?.artiste, '');
   const retire = toucher(tire, { genre: 'auHasard' }, 0, P).memoire;
-  assert.ok(TEXTES.pochette.artistes.includes(pochetteDe(retire)?.artiste ?? ''));
-  // Un nom effacé : la pochette garde celui que le hasard avait donné.
+  assert.equal(pochetteDe(retire)?.artiste, '');
+  // Sans nom (ou effacé), « C’est moi » ne fait rien partir : l’écran le réclame, jusqu’à ce qu’on en tape un.
   const vide = saisir(tire, '   ');
-  const hote = toucher(vide, { genre: 'cEstMoi' }, 0, P).memoire;
-  assert.ok(hote.pochette !== undefined && TEXTES.pochette.artistes.includes(hote.pochette.artiste));
+  const reclame = toucher(vide, { genre: 'cEstMoi' }, 0, P);
+  assert.deepEqual(reclame.actions, []);
+  assert.equal(reclame.memoire.pochette, undefined);
+  const e1 = ecranDuTelephone(reclame.memoire, 0, P, TEXTES);
+  assert.equal(e1.genre === 'pochette' && e1.sansNom, true);
+  const e2 = ecranDuTelephone(saisir(reclame.memoire, 'M'), 0, P, TEXTES);
+  assert.equal(e2.genre === 'pochette' && e2.sansNom, false);
+  // Un nom tiré au sort, gardé d’une autre fois, ne dit pas qui joue : il faut écrire le sien.
+  const ancien = toucher(memoireDeDepart(P, { pochette: { ...POCHETTE, artiste: TEXTES.pochette.artistes[0] ?? '' } }), { genre: 'poser' }, 0, P);
+  assert.equal(pochetteDe(ancien.memoire)?.artiste, '');
   // Le nom part sans ses espaces du bout.
   const mien = toucher(saisir(tire, 'Tata Mateo '), { genre: 'cEstMoi' }, 0, P).memoire;
   assert.equal(mien.pochette?.artiste, 'Tata Mateo');

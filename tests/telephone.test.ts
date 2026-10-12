@@ -53,6 +53,7 @@ function preparatifs(mode: 'libre' | 'quatreChoix'): Preparatifs {
     graine: 2026,
     clavier: {
       code: () => 'FUNK',
+      nom: () => 'MC Test',
       reponse: ({ face, numero }, deja) => SCENARIO.pistes[(face === 'B' ? SCENARIO.reglages.pistes : 0) + numero - 1]?.toi[deja]?.libre,
     },
   };
@@ -120,7 +121,14 @@ function jouerAuTelephone(mode: 'libre' | 'quatreChoix') {
         quand(0.5, { genre: 'poser' });
         break;
       case 'pochette':
-        quand(0.5, e.choisi === 'dessus' ? { genre: 'ouvrirLeChoix', choix: 'tete' } : { genre: 'cEstMoi' });
+        quand(
+          0.5,
+          e.choisi === 'dessus'
+            ? { genre: 'ouvrirLeChoix', choix: 'tete' }
+            : e.pochette.artiste === ''
+              ? { genre: 'taperLeNom' }
+              : { genre: 'cEstMoi' },
+        );
         break;
       case 'bac':
         quand(0.5, { genre: 'choisir' });
@@ -253,7 +261,7 @@ test('ce qu’on touche sur un écran est une touche qu’il montre, et chaque z
 test('aux réglages, les commandes de la platine tournent : le bouton « Pistes » passe de cran en cran, le sélecteur de mode aussi, et la room s’ouvre réglée ainsi', () => {
   const p = { ...preparatifs('libre'), commandes: true, pistes: 15 };
   let m = memoireDeDepart(p, {});
-  for (const t of [{ genre: 'poser' }, { genre: 'cEstMoi' }, { genre: 'choisir' }] as const) m = toucher(m, t, 0, p).memoire;
+  for (const t of [{ genre: 'poser' }, { genre: 'taperLeNom' }, { genre: 'cEstMoi' }, { genre: 'choisir' }] as const) m = toucher(m, t, 0, p).memoire;
   const reglages = () => (m.preparation.ecran === 'reglages' ? m.preparation : undefined);
   assert.equal(reglages()?.pistes, 15);
   m = toucher(m, { genre: 'tournerLeBouton', bouton: 'pistes' }, 0, p).memoire;
@@ -282,9 +290,10 @@ test('au clavier du téléphone : le code s’écrit en capitales sans les lettr
   assert.deepEqual(m.preparation, { ecran: 'saisie', tape: 'FUNK' });
   const entree = valider(m, 0, p);
   assert.equal(entree.memoire.preparation.ecran, 'pochette');
-  // Arrivé par l'adresse d'une room : droit à sa pochette, celle qu'on avait faite.
-  const pochette = joueursDExemple(TEXTES)[1]?.pochette;
-  assert.ok(pochette !== undefined);
+  // Arrivé par l'adresse d'une room : droit à sa pochette, celle qu'on avait faite (avec son nom à soi).
+  const exemple = joueursDExemple(TEXTES)[1]?.pochette;
+  assert.ok(exemple !== undefined);
+  const pochette = { ...exemple, artiste: 'Lady Mateo' };
   const venu = memoireDeDepart(p, { code: 'AENV', pochette });
   assert.deepEqual(venu.preparation.ecran === 'pochette' ? [venu.preparation.venue, venu.preparation.pochette] : [], [
     { genre: 'rejoindre', code: 'AENV' },
@@ -308,4 +317,27 @@ test('à la saisie du code, « Retour » ramène à l’accueil, même après un
   assert.equal(refuse.preparation.ecran, 'saisie');
   const revenu = toucher(refuse, { genre: 'laisserLeCode' }, 0, p);
   assert.deepEqual([revenu.memoire.preparation, revenu.memoire.refus, revenu.actions], [{ ecran: 'accueil' }, undefined, []]);
+});
+
+test('dans la room, l’hôte ouvre le bac et en prend une autre : la room en change ; « Retour » le referme ; l’invité ne l’ouvre pas', () => {
+  const p = preparatifs('libre');
+  const pochette = joueursDExemple(TEXTES)[0]?.pochette;
+  assert.ok(pochette !== undefined);
+  const journal = [
+    { genre: 'ouverture', a: 0, mode: 'libre', pistes: 3 },
+    { genre: 'arrivee', a: 0, id: 'h', pochette },
+    { genre: 'arrivee', a: 1, id: 'i', pochette },
+  ] as const;
+  const dans = (toi: string): Memoire =>
+    recevoir(memoireDeDepart(p, {}), { genre: 'etat', heure: 1, code: 'AENV', toi, jeton: 'j', journal: [...journal], seance: [] });
+  assert.equal(toucher(dans('i'), { genre: 'autrePlaylist' }, 2, p).memoire.preparation.ecran, 'accueil', 'l’invité ne l’ouvre pas');
+  const ouvert = toucher(dans('h'), { genre: 'autrePlaylist' }, 2, p).memoire;
+  assert.equal(ecranDuTelephone(ouvert, 2, p, TEXTES).genre, 'bac');
+  assert.equal(toucher(ouvert, { genre: 'fermerLeBac' }, 2, p).memoire.preparation.ecran, 'accueil');
+  const prise = toucher(ouvert, { genre: 'choisir' }, 2, p);
+  assert.deepEqual(prise.actions, [{ genre: 'changerDePlaylist', playlist: SCENARIO.playlist }]);
+  assert.equal(ecranDuTelephone(prise.memoire, 2, p, TEXTES).genre, 'salon');
+  // Trop courte pour la face : l'hôte revient au bac, qui le dit.
+  const refusee = recevoir(prise.memoire, { genre: 'refus', heure: 3, raison: 'tropCourt' });
+  assert.equal(refusee.preparation.ecran === 'bac' && refusee.preparation.bac.refus, 'tropCourt');
 });

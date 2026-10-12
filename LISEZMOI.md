@@ -839,6 +839,17 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   caisse est vert. Intercalaires et disques dépassent moins de la caisse (78 et 72 px) ; au téléphone, le regard sur le bac
   ne bouge pas (`auDessus`).
 - **La saisie du code** a sa touche « Retour », sous « On rejoint », qui ramène à l'accueil (`laisserLeCode`).
+- **Le classement** (`scene/classement.ts`) : une feuille crème, une ligne par joueur (rang, pochette en petit, nom, pastilles de ce
+  que la piste lui vaut, points). Au téléphone, pendant la piste, sous la platine (les six premiers, ou les cinq premiers et soi) ;
+  le clavier ouvert garde l'éventail. Le hit-parade est ce classement, sur toute la largeur. Sur un grand écran, en colonne sous le
+  bac, en piste et au salon (`classementSousLeBac`). L'étiquette de réponse et les 4 choix sont descendus d'autant.
+- **Le nom d'artiste est obligatoire** : le hasard n'en donne plus (et un nom tiré au sort gardé d'avant s'efface) ; « C'est moi »
+  sans nom le réclame (`sansNom`).
+- **L'hôte change de playlist en pleine partie** : « Autre playlist », à côté de « Quitter », ouvre le bac (même en pleine piste) ;
+  « Celle-là » envoie `changerDePlaylist`, et la room repart sur la face A de la nouvelle, avec les mêmes, points à zéro (trop
+  courte : refusée, retour au bac). Dans le bac, la même touche dit « Retour ». Le bac répond à l'hôte dans la room.
+- **Le plein écran au premier toucher** (Android) ne part plus que d'une touche, jamais d'une étiquette où l'on tape : la page qui
+  changeait de taille fermait le clavier, et le champ ne tapait plus.
 - **L'ampli et la saisie** : les cadrans comptent les titres de la face et les secondes de l'extrait ; le volume va de 0 à 10. Le
   curseur de ce qu'on tape clignote, et attend au début d'une étiquette vide. Les touches sont un peu plus grandes.
 - **Les versions** : la page porte sa version (l'empreinte de son contenu, `META_DE_LA_VERSION`) et la donne en se branchant ;
@@ -859,8 +870,8 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **En jeu** : « Quitter », en haut à gauche, sur tous les écrans d'une room (le serveur détache la ligne, qui peut rouvrir une
   room) ; les points de chacun sous sa pochette ; en 4 choix, deux colonnes de deux étiquettes, la choisie enfoncée en kraft ; sur
   un grand écran, l'aiguille gauche de l'ampli dit où en est la face, la droite, l'extrait.
-- **Ce qui bouge** : un bouton rond tourne d'un cran à l'autre (`TELEPHONE.tourne`) ; la touche principale de chaque écran respire
-  (`TELEPHONE.pouls`) ; rien de cela en version sobre.
+- **Ce qui bouge** : un bouton rond tourne d'un cran à l'autre (`TELEPHONE.tourne`) ; rien en version sobre. La touche principale
+  ne respire plus, et l'étiquette où l'on tape n'a plus de contour au focus : seul son curseur clignote.
 - **Le tutoriel** : cinq diapositives à la première visite sur un appareil, et « Comment on joue ? » en bas de l'accueil pour les
   revoir (`brancherLeTuto`, `textes.tuto`).
 - **Le RGPD** : `/confidentialite` et `/mentions-legales`, fabriquées par `npm run construire` (`ecran/jeu/legal.ts`), servies sans

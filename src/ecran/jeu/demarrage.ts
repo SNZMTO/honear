@@ -96,16 +96,20 @@ function suivreLaFenetre(cadre: HTMLElement): () => number {
 }
 
 /**
- * Sur un écran tactile (un téléphone, une tablette), le premier toucher met le jeu en plein écran, là où le navigateur le permet
- * (Android) ; l'iPhone ne le permet qu'au jeu posé sur l'écran d'accueil, qui s'ouvre alors en plein écran de lui-même.
+ * Sur un écran tactile (un téléphone, une tablette), la première touche qu'on enfonce met le jeu en plein écran, là où le navigateur
+ * le permet (Android) ; l'iPhone ne le permet qu'au jeu posé sur l'écran d'accueil, qui s'ouvre alors en plein écran de lui-même.
+ * Jamais quand on touche une étiquette où l'on tape : la page qui change de taille fermait le clavier, et le champ ne tapait plus.
  */
 function pleinEcranAuPremierToucher(): void {
   const page = document.documentElement;
   if (!window.matchMedia('(pointer: coarse)').matches || typeof page.requestFullscreen !== 'function') return;
-  const aLaMain = (): void => {
+  const aLaMain = (ev: PointerEvent): void => {
+    const cible = ev.target instanceof Element ? ev.target : null;
+    if (cible?.closest('button') === null || cible?.closest('input') !== null) return;
+    window.removeEventListener('pointerup', aLaMain);
     if (document.fullscreenElement === null) void page.requestFullscreen({ navigationUI: 'hide' }).catch(() => undefined);
   };
-  window.addEventListener('pointerup', aLaMain, { once: true });
+  window.addEventListener('pointerup', aLaMain);
 }
 
 /**

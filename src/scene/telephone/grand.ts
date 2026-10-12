@@ -6,10 +6,14 @@
  * ce qu'on y touche se range sous le vinyle.
  */
 
+import { surLEcran } from '../../lowpoly/projection';
+import { BAC } from '../../ressources/bac';
+import { TELEPHONE } from '../../ressources/ecran';
+import { TABLEE } from '../../ressources/tablee';
 import { dessinerLAmpli } from '../ampli';
 import { dessinerLeBac } from '../bac';
 import type { Calque } from '../calque';
-import { TELEPHONE } from '../../ressources/ecran';
+import type { PlaceDuClassement } from '../classement';
 import { regardSurLeMeuble, type Regard } from '../meuble';
 import { CENTRE_DU_PLATEAU } from '../platine';
 import { empriseDe } from '../rendu/emprise';
@@ -58,6 +62,21 @@ export function regardPourLaFenetre(proportion: number, ecran: Regard = SUR_LA_P
   const milieu = milieuDeLEcran + t * (MEUBLE.origine[0] + MEUBLE.largeur / 2 - milieuDeLEcran);
   const bas = ecran.origine[1] + ecran.hauteur;
   return { origine: [milieu - largeur / 2, bas - hauteur], largeur, hauteur };
+}
+
+/**
+ * Sur un grand écran, la place du classement : en colonne sous le bac, là où le bois est libre pendant la partie, en px dans ce
+ * regard ; rien s'il ne la montre pas tout entière (le classement reste alors avec ce qu'on touche).
+ */
+export function classementSousLeBac(regard: Regard): PlaceDuClassement | undefined {
+  const G = TABLEE.telephone.classement.grand;
+  const [x, devant] = surLEcran([BAC.position[0], BAC.position[1] + BAC.caisse.profondeur]);
+  const gauche = x - regard.origine[0];
+  const haut = devant + G.sousLeBac - regard.origine[1];
+  const hauteur = regard.hauteur - G.bas - haut;
+  const largeur = BAC.caisse.largeur;
+  if (gauche < 0 || gauche + largeur > regard.largeur || hauteur < G.ligne * G.auMoins) return undefined;
+  return { gauche, haut, largeur, hauteur, parColonne: G.parColonne, ligne: G.ligne };
 }
 
 /** Ce qui, sur un écran du téléphone, est le meuble lui-même : il ne bouge pas quand on range ce qu'on y touche. */

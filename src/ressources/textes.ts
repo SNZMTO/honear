@@ -135,6 +135,8 @@ export interface Textes {
     readonly autreAlbum: string;
     /** Ce que dit l'étiquette du nom tant qu'on n'y a rien tapé. */
     readonly tonNom: string;
+    /** Ce que dit le papier qui réclame le nom, quand on a touché « C'est moi » sans l'avoir écrit. */
+    readonly nomDAbord: string;
     /** La touche qui rouvre sa pochette, à l'accueil et dans la room ; celle qui la laisse comme elle était. */
     readonly maPochette: string;
     readonly laisser: string;
@@ -149,6 +151,8 @@ export interface Textes {
   readonly partie: {
     /** La touche pour quitter la partie, en haut à gauche, et ce qu'on demande avant. */
     readonly quitter: string;
+    /** La touche de l'hôte, à côté de « Quitter » : ouvrir le bac pour changer de playlist, en pleine partie. */
+    readonly autrePlaylist: string;
     readonly quitterVraiment: string;
     readonly code: string;
     readonly autourDuMeuble: string;

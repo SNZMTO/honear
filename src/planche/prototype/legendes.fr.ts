@@ -34,6 +34,8 @@ export const LEGENDES_DU_PROTOTYPE = {
   },
   /** Ce que tape le clavier du prototype sur l'étiquette du code : une room que personne n'a ouverte. */
   codeTape: 'FUNK',
+  /** Le nom d'artiste que le clavier du prototype tape sur « Fais ta pochette ». */
+  nomTape: 'MC Prototype',
   /** La graine des pochettes tirées au sort sur le téléphone, et celle des codes de room du serveur. */
   graines: { pochettes: 2026, codes: 1987 },
 } as const;

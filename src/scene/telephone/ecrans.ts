@@ -19,6 +19,7 @@ import { surLeBois, type Regard } from '../meuble';
 import { remplir } from '../phrases';
 import { dessinerUnDisqueDeRecompense } from '../recompense';
 import { empriseDe } from '../rendu/emprise';
+import { dessinerLeClassement, type LigneDuClassement } from '../classement';
 import { dessinerLaTablee, eventail, placesEnEventail, type JoueurPose } from '../tablee';
 import { largeurDeLaTouche } from '../touche';
 import { kraftDuSalon } from './kraft';
@@ -376,21 +377,27 @@ export function vueDeLaSaisie(a: Ecritoire, tape: string, refus?: 'codeInconnu' 
 }
 
 /**
- * Le hit-parade entre deux pistes : les pochettes du premier au dernier, et une pastille sur chacune qui a bougé. L'hôte y a la touche
- * qui lance la piste suivante.
+ * Le hit-parade entre deux pistes : le classement, du premier au dernier, chacun avec son nom et ses points, et ce qui a bougé
+ * (« Entrée », « +2 », « –1 »). L'hôte y a la touche qui lance la piste suivante.
  */
 export function vueDuHitParade(a: Ecritoire, avant: EtatDeLaPartie, apres: EtatDeLaPartie, hote = false, maPochette = false): VueDuTelephone {
   const r = SUR_LA_PLATINE;
   const H = T.hitParade;
   const mouvements = mouvementsDuClassement(avant, apres);
   const P = a.textes.pastilles;
-  const joueurs = hitParade(apres).map(({ joueur }): JoueurPose => {
+  const lignes = hitParade(apres).map(({ joueur, rang }): LigneDuClassement => {
     const m = mouvements[joueur.id];
-    const texte = m === undefined ? undefined : m.genre === 'entree' ? P.entree : remplir(P[m.genre], { places: m.places });
-    return { pochette: joueur.pochette, expression: joueur.expression, pastilles: texte !== undefined ? [texte] : [], dos: !joueur.connecte };
+    const marque = m === undefined ? undefined : m.genre === 'entree' ? P.entree : remplir(P[m.genre], { places: m.places });
+    return {
+      id: joueur.id,
+      pose: { pochette: joueur.pochette, expression: joueur.expression, dos: !joueur.connecte },
+      rang,
+      nom: joueur.pochette.artiste,
+      points: joueur.points,
+      marques: marque !== undefined ? [marque] : [],
+    };
   });
-  const places = joueurs.map((_, rang) => ({ en: [H.x[rang % 4] ?? 0, H.y[Math.floor(rang / 4)] ?? 0] as const, angle: H.angles[rang % 4] ?? 0 }));
-  const objets = [platineArretee(a), ...dessinerLaTablee(joueurs, places, H.taille, r, T.pastille, a.encrier.largeur, 'hit-parade')];
+  const objets = [platineArretee(a), ...dessinerLeClassement(lignes, T.classement.hitParade, r, a.textes, a.encrier.largeur, 'hit-parade')];
   if (hote) objets.push(toucheAuBord('touche-lancer', 'principale', a.textes.touches.suivante, r, H.suivante, a.encrier));
   // L'invité, qui attend la suivante, peut refaire sa pochette ; l'hôte touche la sienne, sur la tablée.
   else if (maPochette) objets.push(toucheAuBord('touche-ma-pochette', 'secondaire', a.textes.pochette.maPochette, r, H.pochette, a.encrier));

@@ -6,7 +6,7 @@
  */
 
 import type { Action, Brancher, Connexion } from '../regles/messages';
-import type { PisteDuMode } from '../regles/modes';
+import type { CleDeMode, PisteDuMode } from '../regles/modes';
 import { assezLongue, codeDePartie, type EtatDeLaPartie } from '../regles/partie';
 import type { Tirage } from '../regles/pochette';
 import { SERVEUR } from '../ressources/reglages';
@@ -82,6 +82,15 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
     return rendezVous.length > 0 ? Math.min(...rendezVous) : undefined;
   }
 
+  /**
+   * Les pistes d'une playlist, telles qu'une room les joue : elles se relisent à chaque lancer (la source a peut-être renouvelé les
+   * liens de leurs extraits), dans un ordre tiré au hasard quand la room la prend.
+   */
+  function lire(lien: string, pistes: readonly PisteDuMode[], mode: CleDeMode): () => readonly PisteDuMode[] {
+    const ordre = o.ordre?.(pistes.length) ?? unOrdreAuHasard(pistes.length, o.tirage);
+    return () => avecDesChoix(dansLOrdre(o.playlist(lien) ?? pistes, ordre), mode, o.tirage);
+  }
+
   return {
     room: (code) => rooms.get(code),
     get rooms() {
@@ -90,6 +99,16 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
     avancer,
     connecter(recevoir): Connexion {
       let lien: { readonly room: Room; readonly id: string } | undefined;
+      /** L'hôte prend une autre playlist : s'il y a de quoi jouer une face, la room repart dessus ; sinon, elle est trop courte. */
+      const changerDePlaylist = (room: Room, id: string, playlist: string, heure: number): void => {
+        if (room.etat.hote !== id) return;
+        const pistes = o.playlist(playlist);
+        if (pistes === undefined || !assezLongue(pistes.length, room.etat.pistes)) {
+          recevoir({ genre: 'refus', heure, raison: 'tropCourt' });
+          return;
+        }
+        room.changerDePlaylist(id, playlist, lire(playlist, pistes, room.etat.mode), heure);
+      };
       /** Un nouveau joueur dans une room : un identifiant, un jeton, et sa place. */
       const arriver = (room: Room, pochette: Parameters<Room['arriver']>[1], heure: number): void => {
         const id = nouvelId();
@@ -109,6 +128,7 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
             return;
           }
           if (lien !== undefined) {
+            if (action.genre === 'changerDePlaylist') return changerDePlaylist(lien.room, lien.id, action.playlist, heure);
             if (!AFFAIRES_DU_RESEAU.has(action.genre)) lien.room.recevoir(lien.id, action, heure);
             // Il s'en va : sa ligne reste, hors de toute room ; il peut en ouvrir ou en rejoindre une autre.
             if (action.genre === 'quitter') lien = undefined;
@@ -124,12 +144,9 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
               return;
             }
             const { mode, extrait, son } = action;
-            // Les pistes se relisent à chaque lancer : la source a peut-être renouvelé les liens de leurs extraits.
-            // Elles se jouent dans un ordre tiré au hasard à l'ouverture de la room.
-            const ordre = o.ordre?.(pistes.length) ?? unOrdreAuHasard(pistes.length, o.tirage);
-            const lues = (): readonly PisteDuMode[] => avecDesChoix(dansLOrdre(o.playlist(action.playlist) ?? pistes, ordre), mode, o.tirage);
             const code = codeLibre();
             const finie = (etat: EtatDeLaPartie): void => o.quandUneFaceFinit?.(code, etat);
+            const lues = lire(action.playlist, pistes, mode);
             const room = ouvrirUneRoom(code, { mode, pistes: action.pistes, extrait, son }, action.playlist, lues, heure, finie);
             rooms.set(room.code, room);
             arriver(room, action.pochette, heure);

@@ -220,6 +220,51 @@ test('« Rejouer la face B » : une nouvelle partie, avec les mêmes ; la playli
   assert.equal(revelation.reponse?.titre, 'Voyage, voyage', 'la face B commence où la face A s’est arrêtée');
 });
 
+test('l’hôte change de playlist en pleine piste : la room repart sur la face A de la nouvelle, avec les mêmes ; une trop courte est refusée', () => {
+  let heure = 0;
+  const AUTRE: PisteDuMode[] = [
+    { reponse: { titre: 'Tombé pour la France', artiste: 'Étienne Daho', pochette: vignette } },
+    { reponse: { titre: 'Toute première fois', artiste: 'Jeanne Mas', pochette: vignette } },
+    { reponse: { titre: 'Marcia Baïla', artiste: 'Les Rita Mitsouko', pochette: vignette } },
+  ];
+  const serveur = demarrerLeServeur({
+    maintenant: () => heure,
+    tirage: hasard(37).suivant,
+    ordre: lOrdreDeLaPlaylist,
+    jeton: () => 'jeton',
+    playlist: (lien) => (lien === 'bac' ? PLAYLIST : lien === 'autre' ? AUTRE : lien === 'courte' ? AUTRE.slice(0, 1) : undefined),
+  });
+  const recus: Nouvelle[][] = [[], []];
+  const [hote, invite] = recus.map((r) => serveur.connecter((n) => r.push(n)));
+  hote?.envoyer(creer);
+  const code = (recus[0]?.find((n) => n.genre === 'etat') as Extract<Nouvelle, { genre: 'etat' }> | undefined)?.code ?? '';
+  invite?.envoyer({ genre: 'rejoindre', code, pochette: POCHETTE });
+  hote?.envoyer({ genre: 'lancer' });
+  hote?.envoyer({ genre: 'pret' });
+  invite?.envoyer({ genre: 'pret' });
+  heure = 10;
+  serveur.avancer();
+  const room = serveur.room(code);
+  assert.equal(room?.etat.piste?.attendue.reponse.titre, 'Les Démons de minuit', 'la piste joue');
+  // L'invité ne change rien ; une playlist trop courte pour la face est refusée à l'hôte.
+  invite?.envoyer({ genre: 'changerDePlaylist', playlist: 'autre' });
+  hote?.envoyer({ genre: 'changerDePlaylist', playlist: 'courte' });
+  assert.deepEqual(recus[0]?.at(-1), { genre: 'refus', heure: 10, raison: 'tropCourt' });
+  assert.equal(room?.playlist, 'bac');
+  hote?.envoyer({ genre: 'changerDePlaylist', playlist: 'autre' });
+  assert.equal(room?.playlist, 'autre');
+  assert.equal(room?.etat.phase, 'salon', 'la piste s’arrête là');
+  assert.equal(room?.etat.face, 'A');
+  assert.equal(room?.etat.joueurs.length, 2, 'avec les mêmes');
+  assert.equal(recus[1]?.at(-1)?.genre, 'etat', 'chacun reçoit la room qui repart');
+  hote?.envoyer({ genre: 'lancer' });
+  hote?.envoyer({ genre: 'pret' });
+  invite?.envoyer({ genre: 'pret' });
+  heure = 20;
+  serveur.avancer();
+  assert.equal(room?.etat.piste?.attendue.reponse.titre, 'Tombé pour la France', 'la nouvelle playlist, depuis le début');
+});
+
 test('le jeton, et lui seul, rouvre une place : l’identifiant que tous voient ne suffit pas', () => {
   const m = monde();
   const [hote, invite] = [m.telephone(), m.telephone()];

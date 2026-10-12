@@ -55,6 +55,7 @@ const preparatifs = (mode: Mode): Preparatifs => ({
   graine: L.graines.pochettes,
   clavier: {
     code: () => L.codeTape,
+    nom: () => L.nomTape,
     // La face B reprend la playlist où la face A l'a laissée : ses pistes suivent celles de la A dans le scénario.
     reponse: ({ face, numero }, deja) => SCENARIO.pistes[(face === 'B' ? SCENARIO.reglages.pistes : 0) + numero - 1]?.toi[deja]?.libre,
   },

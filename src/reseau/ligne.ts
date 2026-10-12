@@ -138,6 +138,7 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
     const aLire = (action: Action): string | undefined => {
       if (action.genre === 'creer') return code === undefined ? action.playlist : undefined;
       if (action.genre === 'lancer' || action.genre === 'rejouer') return code !== undefined ? o.serveur.room(code)?.playlist : undefined;
+      if (action.genre === 'changerDePlaylist') return code !== undefined ? action.playlist : undefined;
       return undefined;
     };
 
@@ -245,8 +246,9 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       // Qui joue sous un compte y garde la pochette avec laquelle il arrive, et celle qu'il refait.
       if (compte !== undefined && (action.genre === 'creer' || action.genre === 'rejoindre' || action.genre === 'changerDePochette'))
         o.comptes?.garderLaPochette(compte.id, action.pochette);
-      // Le bac ne s'ouvre qu'avant la room.
-      if (action.genre === 'chercher' || action.genre === 'importer') return code === undefined ? demander(action) : undefined;
+      // Le bac s'ouvre avant la room ; dans la room, à l'hôte seul, qui peut changer de playlist.
+      const hote = place !== undefined && o.serveur.room(place.code)?.etat.hote === place.toi;
+      if (action.genre === 'chercher' || action.genre === 'importer') return code === undefined || hote ? demander(action) : undefined;
       const lien = aLire(action);
       enFile(action, lien !== undefined ? o.musique?.preparer(lien) : undefined);
     });

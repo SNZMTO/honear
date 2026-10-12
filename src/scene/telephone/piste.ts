@@ -1,24 +1,23 @@
 /**
- * Ce qu'on pose autour de la piste, au téléphone : l'éventail des pochettes (ce que chacun a trouvé, puis ce que la piste lui a
- * rapporté), l'étiquette vierge où l'on tape ou les quatre étiquettes à toucher, la phrase d'un état, le clavier ouvert ; et la
+ * Ce qu'on pose autour de la piste, au téléphone : le classement (ce que chacun a trouvé, puis ce que la piste lui a rapporté, son
+ * nom et ses points), ou l'éventail des pochettes quand le clavier est ouvert ; l'étiquette vierge où l'on tape ou les quatre étiquettes à toucher, la phrase d'un état, le clavier ouvert ; et la
  * place de la vraie pochette, au milieu du disque retourné. Tout est placé dans le regard : ces objets restent à l'écran pendant
  * que le regard suit la piste.
  */
 
 import { surLEcran } from '../../lowpoly/projection';
-import { TON_DE_BASE } from '../../lowpoly/tons';
 import type { Vec2 } from '../../lowpoly/vecteurs';
-import { hitParade, type EtatDeLaPartie } from '../../regles/partie';
+import type { EtatDeLaPartie } from '../../regles/partie';
 import type { Reponse } from '../../regles/piste';
 import { ETIQUETTE } from '../../ressources/etiquette';
-import { MEUBLE } from '../../ressources/meuble';
 import { PLATINE } from '../../ressources/platine';
-import { TABLEE, type Place } from '../../ressources/tablee';
+import { TABLEE } from '../../ressources/tablee';
+import type { Textes } from '../../ressources/textes';
 import { VERSO } from '../../ressources/verso';
-import { aPlatSurLeMeuble, type Calque, type Texte } from '../calque';
-import { surLeBois, type Regard } from '../meuble';
+import type { Calque } from '../calque';
+import { dessinerLeClassement, lesPremiersEtToi, lignesDuClassement, type LigneDuClassement } from '../classement';
+import type { Regard } from '../meuble';
 import type { PoseDeLaPiste } from '../piste/pose';
-import { remplir } from '../phrases';
 import { regardDeLaPiste } from '../piste/regard';
 import { dessinerLaTablee, eventail, placesEnEventail } from '../tablee';
 import { phrase, type Ecritoire } from './pieces';
@@ -93,42 +92,34 @@ export const dessusDuClavier = (regard: Regard, vrai: number | undefined): numbe
   return vrai === undefined ? ordinaire : Math.max(T.clavier.auPlusHaut, Math.min(ordinaire, vrai));
 };
 
-/** Les objets posés autour de la piste, dans ce regard. */
-/** Les points de chacun, écrits sous sa pochette dans l'éventail, en crème sur le bois : le tableau des scores, en jeu. */
-function scoresSousLEventail(a: Ecritoire, regard: Regard, etat: EtatDeLaPartie, places: readonly Place[]): Calque {
-  const S = T.scores;
-  const textes: Texte[] = hitParade(etat).flatMap(({ joueur }, rang) => {
-    const place = places[rang];
-    if (place === undefined) return [];
-    return [
-      {
-        genre: 'texte',
-        contenu: remplir(a.textes.partie.points, { points: String(joueur.points) }),
-        role: 'techniqueFort',
-        corps: S.corps,
-        en: surLeBois(regard, place.en[0], place.en[1] + T.eventail.taille / 2 + S.sous),
-        ancrage: 'milieu',
-        teinte: 'creme',
-        ton: TON_DE_BASE,
-        fond: { teinte: MEUBLE.noyer.nu },
-      },
-    ];
-  });
-  return { ...aPlatSurLeMeuble('score', 0, textes), role: 'mobile' };
-}
+/** Le classement pendant la piste : ce que chacun a trouvé ; à la révélation, ce qu'elle lui a rapporté. */
+export const lignesDeLaPiste = (textes: Textes, o: AutourDeLaPiste): LigneDuClassement[] =>
+  lignesDuClassement(o.etat, textes, o.revelee !== undefined ? 'points' : 'trouvailles', o.revelee !== undefined ? o.avantLExtrait : undefined);
 
-export function autourDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste): Calque[] {
+/**
+ * Les objets posés autour de la piste, dans ce regard.
+ * @param classementAilleurs vrai quand le classement se lit ailleurs (sous le bac, sur un grand écran) : ici, l'éventail des pochettes.
+ */
+export function autourDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste, classementAilleurs = false): Calque[] {
   const { revelee, repondre } = o;
   const ouvert = repondre.genre === 'saisie' && repondre.clavier;
   // Un vrai clavier plus haut qu'un clavier ordinaire remonte l'éventail et l'étiquette d'autant : ils restent au-dessus de lui.
   const dessus = dessusDuClavier(regard, repondre.genre === 'saisie' ? repondre.dessus : undefined);
   const remonte = dessus - (regard.hauteur - T.clavier.hauteur);
-  const joueurs = eventail(o.etat, a.textes, revelee !== undefined ? 'points' : 'trouvailles', revelee !== undefined ? o.avantLExtrait : undefined);
-  // Le clavier ouvert prend le bas de l'écran : l'éventail remonte au-dessus de l'étiquette, sans la kraft.
-  const places = placesEnEventail(joueurs.length, ouvert).map((p) => (ouvert ? { ...p, en: [p.en[0], T.clavier.eventail + remonte] as const } : p));
-  const objets: Calque[] = [...dessinerLaTablee(joueurs, places, T.eventail.taille, regard, T.trouve, a.encrier.largeur)];
-  // Le tableau des scores, en jeu : sous chaque pochette (rangées au classement), ses points. Le clavier ouvert prend la place.
-  if (!ouvert) objets.push(scoresSousLEventail(a, regard, o.etat, places));
+  const objets: Calque[] = [];
+  if (ouvert || classementAilleurs) {
+    // Le clavier ouvert prend le bas de l'écran : l'éventail remonte au-dessus de l'étiquette, sans la kraft.
+    const joueurs = eventail(o.etat, a.textes, revelee !== undefined ? 'points' : 'trouvailles', revelee !== undefined ? o.avantLExtrait : undefined);
+    const places = placesEnEventail(joueurs.length, ouvert).map((p) => (ouvert ? { ...p, en: [p.en[0], T.clavier.eventail + remonte] as const } : p));
+    objets.push(...dessinerLaTablee(joueurs, places, T.eventail.taille, regard, T.trouve, a.encrier.largeur));
+  }
+  // Le classement, en jeu : chacun sa ligne, son nom et ses points, sous la platine ; à plus de six, les premiers et soi. Le clavier
+  // ouvert prend la place.
+  else {
+    const C = T.classement.piste;
+    const lignes = lesPremiersEtToi(lignesDeLaPiste(a.textes, o), o.toi, C.parColonne);
+    objets.push(...dessinerLeClassement(lignes, C, regard, a.textes, a.encrier.largeur, 'joueur'));
+  }
   if (repondre.genre === 'choix') {
     objets.push(...etiquettesAToucher(a, regard, repondre.proposes, revelee, revelee !== undefined ? undefined : repondre.touchee));
     return objets;
