@@ -545,8 +545,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   const replacer = (images: readonly ImagePosee[], de: Regard, dans: Regard): ImagePosee[] =>
     images.map((i) => ({ ...i, centre: [i.centre[0] + de.origine[0] - dans.origine[0], i.centre[1] + de.origine[1] - dans.origine[1]] as const }));
   /** Ce qui fait un écran posé tel qu'il est : l'écran, la définition de ses toiles, et la proportion de la fenêtre. */
-  const cleDe = (e: EcranDuTelephone, p: number | undefined): string =>
-    JSON.stringify([e, definition(dansLaFenetre(SUR_LA_PLATINE, p)), p, bords()]);
+  const cleDe = (e: EcranDuTelephone, p: number | undefined): string => JSON.stringify([e, definition(dansLaFenetre(SUR_LA_PLATINE, p)), p, bords()]);
 
   /**
    * Monte une scène dans une couche, à la place de ce qu'elle montrait. Chaque touche y est un bloc à elle, qu'on repeint enfoncée :
