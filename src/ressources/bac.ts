@@ -60,6 +60,8 @@ export const BAC = {
 
 /** La couleur de l'intercalaire de chaque thème : une par thème, prise dans la palette des pochettes. */
 export const COULEURS_DES_THEMES = {
+  // La pochette personnalisée : en kraft, faite maison ; elle range « Mes playlists ».
+  mesPlaylists: 'kraft',
   annees80: 'lilasFume',
   annees2000: 'bleuFane',
   rapFrancais: 'olive',
@@ -77,6 +79,7 @@ export type CleDeTheme = keyof typeof COULEURS_DES_THEMES;
  * Chacune n'est qu'une vignette : sa couleur.
  */
 export const PLAYLISTS_PAR_THEME: Readonly<Record<CleDeTheme, number>> = {
+  mesPlaylists: 1,
   annees80: 2,
   annees2000: 2,
   rapFrancais: 1,

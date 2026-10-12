@@ -70,6 +70,8 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     const { cran } = ecran.bac;
     const cle = nom.startsWith('intercalaire-') ? nom.slice('intercalaire-'.length) : undefined;
     const theme = cle !== undefined ? textes.bac.themes[cle] : undefined;
+    // La pochette personnalisée ouvre « Mes playlists » : celles qu'on a importées, et le lien à coller.
+    if (cle === 'mesPlaylists' && theme !== undefined) return de({ genre: 'cranDuBac', cran: 'laMienne' }, theme);
     if (cran === 'pretes' && cle !== undefined && theme !== undefined) return de({ genre: 'theme', cle, recherche: theme }, theme);
     // Les playlists du genre : un disque, ou son papier ; et « Au hasard ».
     const playlist = rangDans(nom, 'disque-playlist-') ?? rangDans(nom, 'etiquette-playlist-');
