@@ -116,6 +116,11 @@ export interface OptionsDuTelephone {
    * (voir `regardPourLaFenetre`). Sans elle, le cadre a la proportion du téléphone.
    */
   readonly fenetre?: () => number;
+  /**
+   * Vrai quand la page a demandé le diagnostic (« ?diagnostic ») : ce que font le son, la fenêtre et le champ où l'on tape part au
+   * serveur, qui l'écrit dans son journal. De quoi comprendre un navigateur qu'on n'a pas sous la main.
+   */
+  readonly diagnostic?: boolean;
 }
 
 /**
@@ -218,6 +223,9 @@ const CLAVIERS: Readonly<Record<SorteDeChamp, { readonly touche: string; readonl
 
 /** Les millisecondes d'une seconde : les animations de la page comptent en millisecondes, nos tables en secondes. */
 const MS_PAR_SECONDE = 1000;
+
+/** Ce qui dit qu'un doigt (ou la souris) s'est levé, ou que le navigateur l'a pris pour lui. */
+const FINS_DU_DOIGT = ['pointerup', 'pointercancel'] as const;
 
 /** Le volume, en pour cent, pour les aides à la lecture. */
 const POUR_CENT = 100;
@@ -398,10 +406,37 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     return adresse !== undefined && place !== undefined ? [{ adresse, ...place }] : [];
   }
 
+  // Le diagnostic : les lignes s'amassent, et partent par paquets, quand la ligne est là, sans gêner les actions du jeu.
+  const aEnvoyer: string[] = [];
+  let enLigne = false;
+  let paquetPrevu = false;
+  const depuisLOuverture = o.horloge.maintenant();
+  function envoyerLeDiagnostic(): void {
+    paquetPrevu = false;
+    if (!enLigne) return;
+    while (aEnvoyer.length > 0) {
+      let texte = '';
+      while (aEnvoyer.length > 0 && texte.length + (aEnvoyer[0]?.length ?? 0) < TELEPHONE.diagnostic.paquet) texte += `${aEnvoyer.shift() ?? ''}\n`;
+      if (texte === '') texte = (aEnvoyer.shift() ?? '').slice(0, TELEPHONE.diagnostic.paquet);
+      connexion?.envoyer({ genre: 'diagnostic', texte });
+    }
+  }
+  const noter =
+    o.diagnostic === true
+      ? (texte: string): void => {
+          aEnvoyer.push(`${(o.horloge.maintenant() - depuisLOuverture).toFixed(2)} ${texte}`);
+          if (aEnvoyer.length > TELEPHONE.diagnostic.enAttente) aEnvoyer.shift();
+          if (paquetPrevu) return;
+          paquetPrevu = true;
+          window.setTimeout(envoyerLeDiagnostic, TELEPHONE.diagnostic.envoi * MS_PAR_SECONDE);
+        }
+      : undefined;
+  noter?.(`page : ${navigator.userAgent} ; fenêtre ${window.innerWidth}×${window.innerHeight}, écran ${window.screen.width}×${window.screen.height}`);
+
   // Le haut-parleur : il joue l'extrait de la piste à l'heure du serveur, et dit quand il l'a chargé ; on le dit alors prêt.
   // Le volume de ce téléphone : à 30 % en arrivant, pour ne pas agresser les oreilles ; le bouton de l'ampli le règle.
   let volume: number = TELEPHONE.volume.depart;
-  const hautParleur = o.son === true ? brancherLeHautParleur(cadre, () => volume) : SANS_SON;
+  const hautParleur = o.son === true ? brancherLeHautParleur(cadre, () => volume, noter) : SANS_SON;
   /** La piste (par son lancer) pour laquelle on s'est dit prêt, l'extrait chargé. */
   let pretPour: number | undefined;
 
@@ -448,7 +483,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     },
     (oui) => {
       changer(horsLigne(memoire, !oui));
+      enLigne = oui;
       if (!oui) return;
+      envoyerLeDiagnostic();
       // La ligne revient : on redemande l'heure, d'affilée ; on rentre dans son compte, et l'on redonne son jeton.
       questions = TELEPHONE.horloge.auDebut;
       prochaineQuestion = 0;
@@ -624,9 +661,27 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     couche.animate([{ opacity: 0 }, { opacity: 1 }], { duration: TELEPHONE.fondu * MS_PAR_SECONDE, easing: 'ease-out' });
   }
 
+  /**
+   * Le doigt posé, pas encore levé ; et les zones de l'écran d'avant qu'il touchait. L'action part dès qu'il se pose, et l'écran
+   * change sous lui : ses zones restent dans la page, inertes et transparentes au toucher, jusqu'au doigt suivant. Sans elles, le
+   * geste qui laisse partir le son (le doigt qui se lève, le clic) n'arrivait nulle part : c'est ce que l'iPhone attend pour jouer.
+   */
+  let doigtPose = false;
+  const retirees: Element[] = [];
+  const retirer = (zone: Element): void => {
+    if (!doigtPose) {
+      zone.remove();
+      return;
+    }
+    zone.removeAttribute('data-zone');
+    zone.setAttribute('aria-hidden', 'true');
+    if (zone instanceof HTMLElement) zone.style.pointerEvents = 'none';
+    retirees.push(zone);
+  };
+
   /** Les zones à toucher de ce qu'on a posé dans ce regard : une par calque qu'on peut toucher sur cet écran, assez grande pour un pouce. */
   function poserLesZones(objets: readonly Calque[], regard: Regard, e: EcranDuTelephone): void {
-    for (const zone of Array.from(zones.querySelectorAll('[data-zone]'))) zone.remove();
+    for (const zone of Array.from(zones.querySelectorAll('[data-zone]'))) retirer(zone);
     choses = [];
     let champPose = false;
     for (const { calque: c, chose } of calquesATouche(objets, e, a)) {
@@ -741,9 +796,28 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     suivreLeClavier();
   });
   champ.addEventListener('blur', () => {
+    noter?.(`champ ${champ.dataset['pour'] ?? ''} lâché ; défilement ${window.scrollY}`);
     if (champ.dataset['pour'] === 'reponse') changer(clavierOuvert(memoire, false));
     suivreLeClavier();
+    window.setTimeout(remettreEnPlace, 0);
   });
+  champ.addEventListener('focus', () => noter?.(`champ ${champ.dataset['pour'] ?? ''} pris`));
+  /**
+   * La page ne défile jamais : l'iPhone la fait glisser pour montrer le champ où l'on tape, et l'y laisse parfois, le clavier fermé ;
+   * tout l'écran paraît alors décalé. Hors d'un champ, on la remet en place.
+   */
+  function remettreEnPlace(): void {
+    if (document.activeElement === champ || (window.scrollX === 0 && window.scrollY === 0)) return;
+    noter?.(`défilement ${window.scrollX},${window.scrollY} : remis en place`);
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('scroll', remettreEnPlace);
+  const noterLaFenetre = (): void =>
+    noter?.(
+      `fenêtre ${window.innerWidth}×${window.innerHeight}, cadre ${cadre.clientWidth}×${cadre.clientHeight}, ` +
+        `vue ${Math.round(vu?.width ?? 0)}×${Math.round(vu?.height ?? 0)} +${Math.round(vu?.offsetTop ?? 0)}, défilement ${window.scrollY}`,
+    );
+  window.addEventListener('resize', noterLaFenetre);
   /** Ce qu'on a tapé part : la réponse, le code, la recherche, le lien. */
   const validerLeChamp = (): void => {
     const suite = valider(memoire, heure(), o.preparatifs);
@@ -1159,17 +1233,31 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   zones.addEventListener('pointerdown', auToucher);
   zones.addEventListener('click', auClic);
   // Le navigateur ne laisse partir le son que dans un geste qui compte : un doigt qui se lève, un clic, une touche du clavier.
-  // Le premier débloque le haut-parleur ; un son refusé attend le suivant.
+  // Le premier débloque le haut-parleur ; un son refusé attend le suivant. On les écoute sur toute la page, avant tout le reste.
   const GESTES = ['pointerup', 'touchend', 'click', 'keydown'] as const;
-  const debloquer = (): void => hautParleur.debloquer();
-  for (const geste of GESTES) zones.addEventListener(geste, debloquer);
+  const debloquer = (ev: Event): void => hautParleur.debloquer(ev.type);
+  for (const geste of GESTES) window.addEventListener(geste, debloquer, true);
+  // Un nouveau doigt : le geste d'avant est passé (le clic suit le doigt qui se lève), ses zones s'en vont.
+  const poser = (): void => {
+    doigtPose = true;
+    for (const zone of retirees.splice(0)) zone.remove();
+  };
+  const lever = (): void => {
+    doigtPose = false;
+  };
+  window.addEventListener('pointerdown', poser, true);
+  for (const fin of FINS_DU_DOIGT) window.addEventListener(fin, lever, true);
   boucle.reveiller();
 
   return {
     fermer() {
       zones.removeEventListener('pointerdown', auToucher);
       zones.removeEventListener('click', auClic);
-      for (const geste of GESTES) zones.removeEventListener(geste, debloquer);
+      for (const geste of GESTES) window.removeEventListener(geste, debloquer, true);
+      window.removeEventListener('pointerdown', poser, true);
+      for (const fin of FINS_DU_DOIGT) window.removeEventListener(fin, lever, true);
+      window.removeEventListener('scroll', remettreEnPlace);
+      window.removeEventListener('resize', noterLaFenetre);
       vu?.removeEventListener('resize', suivreLeClavier);
       vu?.removeEventListener('scroll', suivreLeClavier);
       cadre.style.transform = '';

@@ -68,7 +68,9 @@ export type Action =
   /** Un téléphone qui est déjà entré revient dans le compte, avec le secret de sa session. */
   | { readonly genre: 'reprendreLeCompte'; readonly session: string }
   /** Il sort de son compte, sur ce téléphone ; il efface son compte, et tout ce qu'il gardait. */
-  | { readonly genre: 'sortirDuCompte' | 'effacerLeCompte' };
+  | { readonly genre: 'sortirDuCompte' | 'effacerLeCompte' }
+  /** Le diagnostic d'une page qui l'a demandé : ce que font son son et sa fenêtre, que le serveur écrit dans son journal. */
+  | { readonly genre: 'diagnostic'; readonly texte: string };
 
 /** Ce qu'un compte garde, tel que son téléphone le voit : son adresse, sa pochette, ses scores. */
 export interface CompteVu {
@@ -194,9 +196,10 @@ export function publier(journal: readonly EvenementDePartie[]): EvenementDeParti
 
 /**
  * Ce que peut porter ce qui vient du réseau, au plus : un code de room, un jeton, une saisie, un lien de playlist (en caractères), le
- * rang d'une étiquette touchée, une recherche, une adresse e-mail (la plus longue que permettent les règles du courrier).
+ * rang d'une étiquette touchée, une recherche, une adresse e-mail (la plus longue que permettent les règles du courrier), un paquet de
+ * lignes du diagnostic.
  */
-const BORNES = { code: 8, jeton: 64, saisie: 160, playlist: 300, rang: 15, recherche: 100, email: 254 } as const;
+const BORNES = { code: 8, jeton: 64, saisie: 160, playlist: 300, rang: 15, recherche: 100, email: 254, diagnostic: 3200 } as const;
 
 /** Un secret de compte (celui d'un lien, celui d'une session) : des lettres, des chiffres, des tirets, en base 64 pour les adresses. */
 const SECRET = /^[A-Za-z0-9_-]{20,64}$/;
@@ -252,6 +255,8 @@ export function lireUneAction(x: unknown): Action | undefined {
         : undefined;
     case 'importer':
       return estUnTexte(x['lien'], BORNES.playlist) && x['lien'].trim() !== '' ? { genre: 'importer', lien: x['lien'] } : undefined;
+    case 'diagnostic':
+      return estUnTexte(x['texte'], BORNES.diagnostic) ? { genre: 'diagnostic', texte: x['texte'] } : undefined;
     case 'changerDePlaylist':
       return estUnTexte(x['playlist'], BORNES.playlist) && x['playlist'].trim() !== ''
         ? { genre: 'changerDePlaylist', playlist: x['playlist'] }

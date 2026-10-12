@@ -44,6 +44,10 @@ répond par le frontal.
   comptes sont ouverts (`"comptes":"ouverts"`) ou fermés (le courrier n'est pas réglé).
 - `sudo docker compose --project-directory /srv/honear ps` : l'état du jeu (il dit s'il est en bonne santé).
 - `sudo docker compose --project-directory /srv/honear logs --tail 100` : ce qu'il dit (aussi dans `journalctl -t honear-jeu-1`).
+- Un navigateur qu'on n'a pas sous la main (l'iPhone) : l'ouvrir sur `https://honear.fr/?diagnostic`, jouer, puis lire
+  `sudo docker compose --project-directory /srv/honear logs | grep Diagnostic`. Chaque connexion a son numéro : le navigateur, la
+  fenêtre et ses changements, le champ où l'on tape, chaque essai de jouer le son et ce que le navigateur en a dit. Rien d'autre :
+  ni adresse IP, ni ce qu'on tape.
 - Il repart seul s'il tombe, et au démarrage de la machine.
 
 ## Pourquoi ça ne traîne pas
