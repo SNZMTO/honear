@@ -70,7 +70,32 @@ export type Action =
   /** Il sort de son compte, sur ce téléphone ; il efface son compte, et tout ce qu'il gardait. */
   | { readonly genre: 'sortirDuCompte' | 'effacerLeCompte' }
   /** Le diagnostic d'une page qui l'a demandé : ce que font son son et sa fenêtre, que le serveur écrit dans son journal. */
-  | { readonly genre: 'diagnostic'; readonly texte: string };
+  | { readonly genre: 'diagnostic'; readonly texte: string }
+  /** Ce que seul le téléphone voit, pour les statistiques : un lien partagé, une arrivée par le QR code… (voir `CE_QUE_LE_TELEPHONE_COMPTE`). */
+  | { readonly genre: 'statistique'; readonly quoi: CeQueLeTelephoneCompte };
+
+/**
+ * Ce que seul le téléphone voit, et qu'il dit au serveur pour qu'on le compte : le lien de la room partagé (par le partage du
+ * téléphone) ou copié ; une arrivée par le QR code, par un lien, par un code tapé ; le petit tutoriel vu à la première visite, revu,
+ * fini ou passé ; le jeu lancé depuis l'écran d'accueil, passé en plein écran ; le son que le navigateur bloque ; une playlist tirée
+ * au hasard dans le bac. Rien d'autre : un mot de cette liste, jamais ce qu'on a tapé.
+ */
+export const CE_QUE_LE_TELEPHONE_COMPTE = [
+  'lienPartage',
+  'lienCopie',
+  'arriveeParQr',
+  'arriveeParLien',
+  'codeTape',
+  'tutoVu',
+  'tutoRevu',
+  'tutoFini',
+  'tutoPasse',
+  'ecranDAccueil',
+  'pleinEcran',
+  'sonBloque',
+  'playlistAuHasard',
+] as const;
+export type CeQueLeTelephoneCompte = (typeof CE_QUE_LE_TELEPHONE_COMPTE)[number];
 
 /** Ce qu'un compte garde, tel que son téléphone le voit : son adresse, sa pochette, ses scores. */
 export interface CompteVu {
@@ -257,6 +282,10 @@ export function lireUneAction(x: unknown): Action | undefined {
       return estUnTexte(x['lien'], BORNES.playlist) && x['lien'].trim() !== '' ? { genre: 'importer', lien: x['lien'] } : undefined;
     case 'diagnostic':
       return estUnTexte(x['texte'], BORNES.diagnostic) ? { genre: 'diagnostic', texte: x['texte'] } : undefined;
+    case 'statistique': {
+      const quoi = CE_QUE_LE_TELEPHONE_COMPTE.find((q) => q === x['quoi']);
+      return quoi !== undefined ? { genre: 'statistique', quoi } : undefined;
+    }
     case 'changerDePlaylist':
       return estUnTexte(x['playlist'], BORNES.playlist) && x['playlist'].trim() !== ''
         ? { genre: 'changerDePlaylist', playlist: x['playlist'] }

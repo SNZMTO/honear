@@ -35,6 +35,10 @@ fi
 id honear >/dev/null 2>&1 || useradd --system --user-group --no-create-home --shell /usr/sbin/nologin honear
 install -d -m 0700 -o honear -g honear /var/lib/honear
 install -d -m 0750 /etc/honear
+# La clé de la page des statistiques : tirée au sort une fois, gardée là où seul root lit (sudo sh deploiement/statistiques.sh la donne).
+if [ ! -f /etc/honear/statistiques.env ]; then
+  (umask 077 && printf 'STATISTIQUES_CLE=%s\n' "$(head -c 32 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=\n')" > /etc/honear/statistiques.env)
+fi
 
 printf '== L’image du jeu, version %s\n' "$VERSION"
 docker build -t "honear:$VERSION" "$RACINE"
@@ -58,6 +62,7 @@ for _ in 1 2 3 4 5 6; do
 done
 if [ -n "$SANTE" ]; then
   printf 'En ligne : https://%s (version %s)\n%s\n' "$DOMAINE" "$VERSION" "$SANTE"
+  echo "Les statistiques, pour toi seul : sudo sh deploiement/statistiques.sh donne leur lien."
 else
   echo "Le jeu tourne, mais https://$DOMAINE ne répond pas : le frontal est-il en ligne ? (dépôt « vps », sudo sh frontal/mettre-en-ligne.sh)"
   echo "Ce que dit le jeu : sudo docker compose --project-directory $CIBLE logs --tail 50"

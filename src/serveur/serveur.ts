@@ -12,6 +12,8 @@ import type { Tirage } from '../regles/pochette';
 import { SERVEUR } from '../ressources/reglages';
 import { avecDesChoix } from './choix';
 import { dansLOrdre, unOrdreAuHasard } from './ordre';
+import type { RoomEnDirect } from '../regles/statistiques';
+import type { Raconter } from './faits';
 import { ouvrirUneRoom, type Room } from './room';
 
 export interface Serveur {
@@ -22,6 +24,8 @@ export interface Serveur {
   room(code: string): Room | undefined;
   /** Combien de rooms vivent en mémoire. */
   readonly rooms: number;
+  /** Les rooms en mémoire, telles qu'on les voit d'un coup d'œil : leur mode, où en est la partie, combien y jouent. */
+  apercu(): readonly RoomEnDirect[];
 }
 
 export interface OptionsDuServeur {
@@ -37,6 +41,8 @@ export interface OptionsDuServeur {
   readonly quandUneFaceFinit?: (code: string, etat: EtatDeLaPartie) => void;
   /** L'ordre où une room joue les n pistes de sa playlist ; sans lui, tiré au hasard. */
   readonly ordre?: (n: number) => readonly number[];
+  /** Ce qui se passe dans les rooms, pour qu'on le compte (voir faits.ts). */
+  readonly raconter?: Raconter;
 }
 
 /** Les actions dont le serveur du jeu ne s'occupe pas : la musique et les comptes, que le réseau tient. */
@@ -49,6 +55,7 @@ const AFFAIRES_DU_RESEAU: ReadonlySet<Action['genre']> = new Set([
   'sortirDuCompte',
   'effacerLeCompte',
   'diagnostic',
+  'statistique',
 ]);
 
 export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
@@ -71,6 +78,7 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
     for (const [code, room] of rooms) {
       const vide = room.branches === 0 && heure - room.activite >= SERVEUR.expiration.sansPersonne;
       if (!vide && heure - room.ouverteA < SERVEUR.expiration.auPlus) continue;
+      room.fermer(heure);
       rooms.delete(code);
       for (const [jeton, place] of jetons) if (place.code === code) jetons.delete(jeton);
     }
@@ -97,6 +105,20 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
     get rooms() {
       return rooms.size;
     },
+    apercu: () =>
+      [...rooms.values()].map((room) => {
+        const e = room.etat;
+        return {
+          mode: e.mode,
+          phase: e.phase,
+          face: e.face,
+          joueurs: e.joueurs.length,
+          branches: room.branches,
+          pistesJouees: e.pistesJouees,
+          pistes: e.pistes,
+          age: o.maintenant() - room.ouverteA,
+        };
+      }),
     avancer,
     connecter(recevoir): Connexion {
       let lien: { readonly room: Room; readonly id: string } | undefined;
@@ -106,6 +128,7 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
         const pistes = o.playlist(playlist);
         if (pistes === undefined || !assezLongue(pistes.length, room.etat.pistes)) {
           recevoir({ genre: 'refus', heure, raison: 'tropCourt' });
+          o.raconter?.({ genre: 'refus', raison: 'tropCourt' });
           return;
         }
         room.changerDePlaylist(id, playlist, lire(playlist, pistes, room.etat.mode), heure);
@@ -142,13 +165,14 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
             const pistes = o.playlist(action.playlist);
             if (pistes === undefined || !assezLongue(pistes.length, action.pistes)) {
               recevoir({ genre: 'refus', heure, raison: 'tropCourt' });
+              o.raconter?.({ genre: 'refus', raison: 'tropCourt' });
               return;
             }
             const { mode, extrait, son } = action;
             const code = codeLibre();
             const finie = (etat: EtatDeLaPartie): void => o.quandUneFaceFinit?.(code, etat);
             const lues = lire(action.playlist, pistes, mode);
-            const room = ouvrirUneRoom(code, { mode, pistes: action.pistes, extrait, son }, action.playlist, lues, heure, finie);
+            const room = ouvrirUneRoom(code, { mode, pistes: action.pistes, extrait, son }, action.playlist, lues, heure, finie, o.raconter);
             rooms.set(room.code, room);
             arriver(room, action.pochette, heure);
             return;
@@ -157,6 +181,7 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
             const room = rooms.get(action.code.toUpperCase());
             if (room === undefined) {
               recevoir({ genre: 'refus', heure, raison: 'codeInconnu' });
+              o.raconter?.({ genre: 'refus', raison: 'codeInconnu' });
               return;
             }
             // Il revient, son jeton à la main : il retrouve sa place. Sinon, c'est un nouveau joueur, s'il reste de la place.

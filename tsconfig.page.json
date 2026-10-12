@@ -13,6 +13,7 @@
     "src/planche/etape2/page.ts",
     "src/planche/etape7/page.ts",
     "src/planche/prototype/page.ts",
-    "src/ecran/jeu/page.ts"
+    "src/ecran/jeu/page.ts",
+    "src/ecran/statistiques/page.ts"
   ]
 }

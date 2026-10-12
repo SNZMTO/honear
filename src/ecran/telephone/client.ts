@@ -10,7 +10,7 @@
 
 import type { NomDeCalque } from '../../lexique';
 import { couleur } from '../../lowpoly/tons';
-import type { Action, Brancher, Connexion, PlaylistTrouvee } from '../../regles/messages';
+import type { Action, Brancher, CeQueLeTelephoneCompte, Connexion, PlaylistTrouvee } from '../../regles/messages';
 import { partieA } from '../../regles/partie';
 import { avancementDeLExtrait, type Reponse } from '../../regles/piste';
 import { TELEPHONE } from '../../ressources/ecran';
@@ -73,6 +73,7 @@ import {
   clavierOuvert,
   horsLigne,
   laReponseEstPartie,
+  lienCopie,
   MEMOIRE_VIDE,
   recevoir,
   revenir,
@@ -167,6 +168,8 @@ const SANS_SON: HautParleur = {
 };
 
 export interface Telephone {
+  /** Ce que seule la page voit (le tutoriel, l'écran d'accueil…), pour les statistiques : le téléphone le dit au serveur. */
+  signaler(quoi: CeQueLeTelephoneCompte): void;
   fermer(): void;
 }
 
@@ -199,7 +202,7 @@ function vueDe(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>, a: Ecr
     case 'reglages':
       return vueDesReglages(a, e.mode, { pistes: e.pistes, extrait: e.extrait, son: e.son });
     case 'salon':
-      return vueDuSalon(a, e.etat, e.code, e.qui, true);
+      return vueDuSalon(a, e.etat, e.code, e.qui, true, e.copie);
     case 'ampli':
       return vueDeLAmpli(a, true);
     case 'hitParade':
@@ -468,6 +471,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   const hautParleur = o.son === true ? brancherLeHautParleur(cadre, () => volume, noter) : SANS_SON;
   /** La piste (par son lancer) pour laquelle on s'est dit prêt, l'extrait chargé. */
   let pretPour: number | undefined;
+  /** Vrai une fois qu'on a dit aux statistiques que le navigateur bloquait le son. */
+  let sonBloqueDit = false;
 
   function envoyer(actions: readonly Action[]): void {
     for (const action of actions) connexion?.envoyer(action);
@@ -490,9 +495,22 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     boucle.reveiller();
   }
   function agir(t: Toucher): void {
+    compterLeToucher(t);
     const suite = toucher(memoire, t, heure(), o.preparatifs);
     changer(suite.memoire);
     envoyer(suite.actions);
+  }
+  /** Ce qu'un toucher dit aux statistiques : un code tapé pour entrer, une playlist tirée au hasard. */
+  function compterLeToucher(t: Toucher): void {
+    const prep = memoire.preparation;
+    if (t.genre === 'entrer' && prep.ecran === 'saisie' && prep.tape.length === PARTIE.code.longueur) signaler('codeTape');
+    if (t.genre === 'playlistAuHasard') signaler('playlistAuHasard');
+  }
+  /** Ce qu'on dit aux statistiques, qui attend la ligne si elle n'est pas là. */
+  const aSignaler: CeQueLeTelephoneCompte[] = [];
+  function signaler(quoi: CeQueLeTelephoneCompte): void {
+    if (enLigne && connexion !== undefined) connexion.envoyer({ genre: 'statistique', quoi });
+    else if (!aSignaler.includes(quoi)) aSignaler.push(quoi);
   }
 
   // Les nouvelles changent la mémoire, puis le téléphone envoie ce qu'elles appellent : « prêt » quand une piste est lancée.
@@ -515,6 +533,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       enLigne = oui;
       if (!oui) return;
       envoyerLeDiagnostic();
+      for (const quoi of aSignaler.splice(0)) signaler(quoi);
       // La ligne revient : on redemande l'heure, d'affilée ; on rentre dans son compte, et l'on redonne son jeton.
       questions = TELEPHONE.horloge.auDebut;
       prochaineQuestion = 0;
@@ -891,6 +910,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   };
   /** Ce qu'on a tapé part : la réponse, le code, la recherche, le lien. */
   const validerLeChamp = (): void => {
+    if (champPose() === 'code') compterLeToucher({ genre: 'entrer' });
     const suite = valider(memoire, heure(), o.preparatifs, champPose());
     changer(suite.memoire);
     envoyer(suite.actions);
@@ -1326,6 +1346,11 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   function ecouter(t: number): void {
     const voulu = sonVoulu(memoire);
     hautParleur.suivre(voulu, t);
+    // Le navigateur a bloqué le son : on le compte, une fois.
+    if (hautParleur.bloque && !sonBloqueDit) {
+      sonBloqueDit = true;
+      signaler('sonBloque');
+    }
     if (voulu === undefined || voulu.depuis !== undefined || pretPour === voulu.lanceeA || !hautParleur.pret(voulu.adresse)) return;
     pretPour = voulu.lanceeA;
     envoyer([{ genre: 'pret' }]);
@@ -1367,13 +1392,43 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       o.vibrer?.('touche');
     }
     hautParleur.cliquer(z.nom.startsWith('bouton-') ? 'cran' : 'touche');
+    if (z.toucher.genre === 'partagerLeLien') partagerLeLien();
     agir(z.toucher);
   };
+  /**
+   * Le lien de la room : au téléphone, son partage (WhatsApp, Messages…) ; sur un ordinateur, ou sans partage, copié, et le papier le
+   * dit un instant. Il faut le geste fini pour cela (le doigt levé, le clic) : il part au clic, pas au doigt posé.
+   */
+  function partagerLeLien(): void {
+    const room = memoire.room;
+    if (room === undefined) return;
+    const lien = `${window.location.origin}/${room.code}`;
+    const auDoigt = window.matchMedia('(pointer: coarse)').matches;
+    if (auDoigt && typeof navigator.share === 'function') {
+      navigator.share({ title: a.textes.logo.nom, text: a.textes.partie.viensJouer, url: lien }).then(
+        () => signaler('lienPartage'),
+        () => undefined,
+      );
+      return;
+    }
+    navigator.clipboard?.writeText(lien).then(
+      () => {
+        signaler('lienCopie');
+        changer(lienCopie(memoire, heure()));
+      },
+      () => undefined,
+    );
+  }
   /** Vrai si c'est le bouton du volume qu'on touche : il a ses gestes à lui. */
   const surLeVolume = (cible: EventTarget | null): boolean => cible instanceof HTMLElement && cible.closest('[data-volume]') !== null;
   const auToucher = (ev: PointerEvent): void => {
     if (!ev.isPrimary || ev.button !== 0 || surLeVolume(ev.target)) return;
     const z = zoneDe(ev.target);
+    // Le partage du lien attend le clic : le navigateur ne le permet qu'au geste fini.
+    if (z?.toucher.genre === 'partagerLeLien') {
+      avaler = false;
+      return;
+    }
     avaler = z !== undefined;
     if (z !== undefined) presser(z);
   };
@@ -1407,6 +1462,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   boucle.reveiller();
 
   return {
+    signaler,
     fermer() {
       zones.removeEventListener('pointerdown', auToucher);
       zones.removeEventListener('click', auClic);

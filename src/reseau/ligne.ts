@@ -11,11 +11,12 @@
 import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { lireUneAction, type Action, type Nouvelle, type PlaylistTrouvee } from '../regles/messages';
+import { lireUneAction, type Action, type CeQueLeTelephoneCompte, type Nouvelle, type PlaylistTrouvee } from '../regles/messages';
 import { RESEAU } from '../ressources/reseau';
 import type { Serveur } from '../serveur/serveur';
 import type { Comptes } from './comptes';
 import type { Musique } from './musique';
+import type { Statistiques } from './statistiques';
 
 /** Le chemin où les téléphones se branchent. */
 export const CHEMIN_DE_LA_LIGNE = '/ligne';
@@ -51,7 +52,13 @@ export interface OptionsDeLaLigne {
   readonly comptes?: Comptes;
   /** La version de la page que sert le site : une page d'une autre version qui se branche est priée de se recharger. */
   readonly version?: string;
+  /** Les statistiques du site : ce qui se passe sur la ligne, compté (voir statistiques.ts). */
+  readonly statistiques?: Statistiques;
 }
+
+/** D'où vient un lien de playlist collé dans le bac. */
+const sourceDuLien = (lien: string): 'deezer' | 'spotify' | 'autre' =>
+  /deezer/i.test(lien) ? 'deezer' : /spotify/i.test(lien) ? 'spotify' : 'autre';
 
 /** Ce que l'hôte demande dans le bac. */
 type Demande = Extract<Action, { readonly genre: 'chercher' | 'importer' }>;
@@ -96,6 +103,10 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
     /** Le numéro de cette connexion, pour lire son diagnostic dans le journal, et combien de paquets elle en a déjà envoyé. */
     const numero = ++connexions;
     let diagnostics = 0;
+    /** Ce que ce téléphone a déjà dit, pour les statistiques : chaque chose compte une fois par ligne, pas plus. */
+    const dits = new Set<CeQueLeTelephoneCompte>();
+    const finDeLaLigne = o.statistiques?.ligne();
+    o.statistiques?.telephones(vivants.size);
     const fautes = { malFormes: 0, codesInconnus: 0 };
     const ecrire = (nouvelle: Nouvelle): void => {
       if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(nouvelle));
@@ -171,13 +182,21 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
           // Deezer ne répond pas, ou on lui demande trop : rien dans le bac, pour cette fois.
         }
         ecrire({ genre: 'playlists', heure: o.maintenant(), recherche: d.recherche, playlists });
+        o.statistiques?.recherche(d.recherche, d.theme, playlists.length);
+        o.statistiques?.playlistsNommees(playlists);
         return;
       }
       let lue: Awaited<ReturnType<Musique['importer']>> = 'introuvable';
+      o.statistiques?.compter(`bac.import.${sourceDuLien(d.lien)}`);
       try {
         if (musique !== undefined) lue = await musique.importer(d.lien);
       } catch {
         // Deezer ne répond pas : la playlist est introuvable, pour cette fois.
+      }
+      if (typeof lue === 'string') o.statistiques?.compter(lue === 'spotify' ? 'bac.import.prive' : 'bac.import.introuvable');
+      else {
+        o.statistiques?.compter('bac.import.ok');
+        o.statistiques?.playlistsNommees([lue]);
       }
       // L'hôte a collé un autre lien entre-temps : c'est à celui-là qu'on répondra, le téléphone n'attend plus que lui.
       if (ensuite?.genre === 'importer') return;
@@ -198,17 +217,23 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       };
       switch (action.genre) {
         case 'demanderUnLien': {
+          o.statistiques?.compter('comptes.lienDemande');
           const envoi = comptes !== undefined ? await comptes.demanderUnLien(action.email, adresse) : 'comptesFermes';
+          o.statistiques?.compter(envoi === 'envoye' ? 'comptes.lienEnvoye' : `comptes.refus.${envoi}`);
           if (envoi === 'envoye') ecrire({ genre: 'lienEnvoye', heure: heure(), email: action.email.trim().toLowerCase() });
           else ecrire({ genre: 'refus', heure: heure(), raison: envoi });
           return;
         }
         case 'ouvrirLeCompte': {
+          const avant = comptes?.nombre();
           const ouvert = comptes?.ouvrir(action.lien);
           if (ouvert === undefined) {
+            o.statistiques?.compter('comptes.lienPerime');
             ecrire({ genre: 'refus', heure: heure(), raison: comptes !== undefined ? 'lienPerime' : 'comptesFermes' });
             return;
           }
+          o.statistiques?.compter('comptes.entree');
+          if (comptes !== undefined && avant !== undefined && comptes.nombre() > avant) o.statistiques?.compter('comptes.cree');
           compte = { id: ouvert.id, session: ouvert.session };
           attacher();
           ecrire({ genre: 'compte', heure: heure(), compte: ouvert.compte, session: ouvert.session });
@@ -217,6 +242,7 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
         case 'reprendreLeCompte': {
           const repris = comptes?.reprendre(action.session);
           if (repris === undefined) return horsCompte();
+          o.statistiques?.compter('comptes.reprise');
           compte = { id: repris.id, session: action.session };
           attacher();
           ecrire({ genre: 'compte', heure: heure(), compte: repris.compte });
@@ -224,9 +250,11 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
         }
         case 'sortirDuCompte':
           if (compte !== undefined) comptes?.sortir(compte.session);
+          o.statistiques?.compter('comptes.sortie');
           return horsCompte();
         case 'effacerLeCompte':
           if (compte !== undefined) comptes?.effacer(compte.id);
+          o.statistiques?.compter('comptes.efface');
           return horsCompte();
       }
     }
@@ -246,6 +274,12 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       }
       // L'heure n'attend pas : sa réponse doit partir aussitôt, pour que l'horloge du téléphone se règle juste.
       if (action.genre === 'quelleHeure') return transmettre(action);
+      // Ce que seul le téléphone voit, pour les statistiques : chaque chose une fois par ligne.
+      if (action.genre === 'statistique') {
+        if (!dits.has(action.quoi)) o.statistiques?.telephone(action.quoi);
+        dits.add(action.quoi);
+        return;
+      }
       // Le diagnostic d'une page qui l'a demandé : dans le journal du serveur, une ligne par ligne, sous le numéro de cette connexion.
       if (action.genre === 'diagnostic') {
         if (++diagnostics > RESEAU.diagnostic.auPlus) return;
@@ -265,6 +299,7 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
     });
     socket.on('close', () => {
       coupee = true;
+      finDeLaLigne?.();
       vivants.delete(socket);
       const restants = (parAdresse.get(adresse) ?? 1) - 1;
       if (restants > 0) parAdresse.set(adresse, restants);

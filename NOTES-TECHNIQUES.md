@@ -197,6 +197,16 @@ téléphone, son compte et sa place dans la room ; à la fin d'une face, `quandU
 à chacun, une victoire au premier. Le courrier (`reseau/courrier.ts`) parle SMTP, chiffré d'emblée sur le port 465, avec `AUTH PLAIN`,
 un message en texte et en HTML, en base 64. Les envois sont limités par adresse, par téléphone et par jour (`RESEAU.comptes`).
 
+## Les statistiques
+
+Des compteurs, jamais qui (`reseau/statistiques.ts`) : par jour (heure de Paris, treize mois) et au total, plus quelques classements
+(titres, playlists, recherches) et records. Trois sources : la porte compte les pages (un visiteur par jour : l'empreinte SHA-256 de
+l'IP et du navigateur, salée d'un secret tiré chaque jour, gardée en mémoire), la ligne compte ce qu'elle voit (connexions, comptes,
+bac) et ce que dit le téléphone (`statistique`, un mot d'une liste fermée), et les rooms racontent leurs faits (`serveur/faits.ts` :
+ouverte, arrivée, lancer, réponse, révélation, face finie, fermée…). Le fichier est réécrit d'un coup, chaque minute s'il a changé.
+`/statistiques.json` répond à la clé (`Authorization: Bearer`, comparée en temps constant) ; `/statistiques` est la page, avec sa
+propre politique de contenu.
+
 ## Ajouter un mode
 
 1. Un fichier `src/regles/modes/<cle>.ts` qui exporte un `ModeDeJeu`.
