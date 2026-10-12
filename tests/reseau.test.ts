@@ -13,7 +13,7 @@ import { test } from 'node:test';
 import { WebSocket } from 'ws';
 import { pochetteDExemple } from '../src/planche/exemples';
 import type { Action, Nouvelle } from '../src/regles/messages';
-import { lancerLeSite, type ConfigurationDuSite } from '../src/reseau/index';
+import { configuration, lancerLeSite, type ConfigurationDuSite } from '../src/reseau/index';
 import { CHEMIN_DE_LA_LIGNE } from '../src/reseau/ligne';
 import { RESEAU } from '../src/ressources/reseau';
 import { TEXTES } from '../src/ressources/textes.fr';
@@ -170,6 +170,24 @@ test('les pages légales se servent à leur adresse, avec l’adresse du site et
     assert.equal((await fetch(`${base}/mentions-legales`)).status, 404, 'son fichier manque');
   } finally {
     await site.fermer();
+  }
+});
+
+test('l’adresse où écrire, sur les pages légales : CONTACT, sinon celle qui envoie les liens, sans son nom', () => {
+  const avant = { ...process.env };
+  try {
+    Object.assign(process.env, {
+      COURRIER_HOTE: 'ssl0.ovh.net',
+      COURRIER_UTILISATEUR: 'bonjour@exemple.fr',
+      COURRIER_DE: 'Miel d’oreilles <bonjour@exemple.fr>',
+    });
+    delete process.env['CONTACT'];
+    assert.equal(configuration().contact, 'bonjour@exemple.fr');
+    process.env['CONTACT'] = 'moi@exemple.fr';
+    assert.equal(configuration().contact, 'moi@exemple.fr');
+  } finally {
+    for (const cle of Object.keys(process.env)) if (!(cle in avant)) delete process.env[cle];
+    Object.assign(process.env, avant);
   }
 });
 
