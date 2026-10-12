@@ -42,6 +42,9 @@ export const PAGES_LEGALES = { confidentialite: '/confidentialite', mentions: '/
 /** Le jeu comme une application, posé sur l'écran d'accueil d'un téléphone (il s'ouvre alors en plein écran) : son manifeste, son icône. */
 export const APPLICATION = { manifeste: '/honear.webmanifest', icone: '/icone.svg' } as const;
 
+/** Le nom de l'en-tête où la page porte sa version : son script le lit, le serveur aussi. */
+export const META_DE_LA_VERSION = 'honear-version';
+
 /** Une room : de 2 à 12 pochettes autour du meuble, et le code qui l'ouvre. Ce que rapporte une réponse, c'est le mode qui le dit. */
 export const PARTIE = {
   joueurs: { auMoins: 2, auPlus: 12 },

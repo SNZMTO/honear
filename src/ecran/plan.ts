@@ -23,8 +23,10 @@ export function poserUnPlan(cadre: HTMLElement, taille: { readonly largeur: numb
   return {
     element,
     suivreLeCadre() {
-      // Un cadre qui n'est pas encore dans la page n'a pas de largeur : la scène s'y montre à sa taille.
-      const lue = cadre.clientWidth > 0 ? cadre.clientWidth / taille.largeur : 1;
+      // Un cadre qui n'est pas encore dans la page n'a pas de largeur : la scène s'y montre à sa taille. Sa largeur exacte, pas
+      // arrondie au px : une échelle à peine fausse pose les toiles entre deux px de l'écran, et tout devient flou.
+      const largeur = cadre.getBoundingClientRect().width;
+      const lue = largeur > 0 ? largeur / taille.largeur : 1;
       if (lue !== echelle) {
         echelle = lue;
         element.style.transform = `scale(${lue})`;

@@ -10,9 +10,14 @@ import { TELEPHONE } from '../../ressources/ecran';
 
 /** Le code d'une ligne que le serveur a coupée parce qu'on n'a pas respecté ses règles : on ne se rebranche pas. */
 const HORS_DES_REGLES = 1008;
+/** Le code d'une ligne que le serveur a coupée parce que la page n'est pas de sa version : elle se recharge. */
+const AUTRE_VERSION = 4001;
 
-/** @param adresse celle de la ligne : « wss://honear.fr/ligne ». */
-export function brancherEnLigne(adresse: string): Brancher {
+/**
+ * @param adresse celle de la ligne : « wss://honear.fr/ligne?v=… », avec la version de la page.
+ * @param recharger ce qu'on fait quand le serveur dit que la page est d'une autre version que la sienne.
+ */
+export function brancherEnLigne(adresse: string, recharger?: () => void): Brancher {
   return (recevoir, enLigne) => {
     let socket: WebSocket | undefined;
     let attente: number | undefined;
@@ -41,6 +46,11 @@ export function brancherEnLigne(adresse: string): Brancher {
       s.onclose = (evenement) => {
         if (socket === s) socket = undefined;
         if (coupee) return;
+        if (evenement.code === AUTRE_VERSION && recharger !== undefined) {
+          coupee = true;
+          recharger();
+          return;
+        }
         enLigne?.(false);
         if (evenement.code !== HORS_DES_REGLES) plusTard();
       };

@@ -447,8 +447,10 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   }
 
   /** La définition des toiles, à l'échelle où le cadre montre la scène. */
+  /** La largeur exacte du cadre, en px de la page (pas arrondie : voir le plan). */
+  const largeurDuCadre = (): number => cadre.getBoundingClientRect().width;
   const definition = (regard: Regard): number =>
-    factureVoulue(o.options.allegements, cadre.clientWidth > 0 ? cadre.clientWidth / regard.largeur : 1, o.densiteDeLEcran()).definition;
+    factureVoulue(o.options.allegements, largeurDuCadre() > 0 ? largeurDuCadre() / regard.largeur : 1, o.densiteDeLEcran()).definition;
 
   /** La proportion de la fenêtre, à cette image ; rien : le cadre a celle du téléphone. */
   const proportion = (): number | undefined => o.fenetre?.();
@@ -683,7 +685,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     }
     // Le dessus du clavier, en px depuis le haut du regard du téléphone (celui du grand écran commence plus haut). S'il est sous le
     // bas du regard, il n'y a pas de clavier à l'écran (un ordinateur, son clavier à lui) : rien ne bouge.
-    const echelle = cadre.clientWidth / regardMonte.largeur;
+    const echelle = largeurDuCadre() / regardMonte.largeur;
     if (echelle <= 0) return;
     const dessus = Math.round((vu.height - haut()) / echelle - (SUR_LA_PLATINE.origine[1] - regardMonte.origine[1]));
     const ouvert = dessus < SUR_LA_PLATINE.hauteur;
