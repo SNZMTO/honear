@@ -831,6 +831,9 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   audio du navigateur : les extraits de Deezer le permettent.
 - **Le bac** : un thème peut épingler ses playlists avant la recherche (`PLAYLISTS_EPINGLEES`) ; les génériques proposent
   « Anime Essentials », les vrais génériques d'animés. Une piste hors de l'alphabet latin n'est pas jouable.
+- **Les versions** : la page porte sa version (l'empreinte de son contenu, `META_DE_LA_VERSION`) et la donne en se branchant ;
+  une page restée ouverte quand le site a changé est priée de se recharger (code 4001), une fois par version. La largeur du
+  cadre se mesure exacte, pas arrondie, pour que les toiles tombent sur les px de l'écran.
 - **La platine** : ses commandes s'appellent Titres (combien de chansons) et Secondes (la durée de l'extrait).
 - **La table** : d'une seule teinte (`noyer`), sans nappe de lumière ; seules les veines la nuancent.
 - **Les couleurs** : un crème plus chaud ; la caisse du bac en vert sapin, comme la platine et l'ampli, sa fente sur le premier rang ;

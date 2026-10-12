@@ -5,6 +5,7 @@
  *   npm run construire      puis      node dist/serveur.mjs
  */
 
+import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,7 +36,9 @@ const script = await build({
 });
 const [sortie] = script.outputFiles;
 if (sortie === undefined) throw new Error("Le script de la page n'a pas été assemblé.");
-const page = pageDuJeu(TEXTES, pourUnePage(sortie.text));
+// La version de la page : l'empreinte de son contenu. Une page restée ouverte d'une version plus ancienne se recharge.
+const sansVersion = pageDuJeu(TEXTES, pourUnePage(sortie.text));
+const page = pageDuJeu(TEXTES, pourUnePage(sortie.text), createHash('sha256').update(sansVersion).digest('base64url').slice(0, 12));
 writeFileSync(join(DIST, 'index.html'), page);
 
 // Le jeu comme une application : son manifeste et son icône, que le serveur sert à leur adresse.

@@ -8,7 +8,7 @@
 
 import { couleur } from '../../lowpoly/tons';
 import { TELEPHONE } from '../../ressources/ecran';
-import { APPLICATION, PAGES_LEGALES } from '../../ressources/reglages';
+import { APPLICATION, META_DE_LA_VERSION, PAGES_LEGALES } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
 import { enXml } from '../../scene/rendu/balisage';
 
@@ -52,15 +52,19 @@ body.pied .legal,body.grand .legal{display:flex}
 .tuto button:focus-visible{outline:2px solid var(--expresso);outline-offset:2px}
 `;
 
-/** Une page en HTML entier : le serveur la sert telle quelle, à l'adresse du site et à celle de chaque room. */
-export function pageDuJeu(textes: Textes, script: string): string {
+/**
+ * Une page en HTML entier : le serveur la sert telle quelle, à l'adresse du site et à celle de chaque room.
+ * @param version celle de la page (l'empreinte de son contenu), qu'elle donne en se branchant : une page restée ouverte quand le
+ * site a changé se recharge d'elle-même.
+ */
+export function pageDuJeu(textes: Textes, script: string, version = ''): string {
   const N = textes.navigateur;
   return `<!doctype html>
 <html lang="${textes.langue}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual">
-<meta name="theme-color" content="${couleur('laque')}">
+<meta name="theme-color" content="${couleur('laque')}">${version !== '' ? `\n<meta name="${META_DE_LA_VERSION}" content="${enXml(version)}">` : ''}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">

@@ -22,6 +22,8 @@ export const CHEMIN_DE_LA_LIGNE = '/ligne';
 
 /** Le code de fermeture d'un WebSocket qui n'a pas respecté les règles : le téléphone ne se rebranche pas tout seul. */
 const HORS_DES_REGLES = 1008;
+/** Le code d'une ligne qu'on coupe parce que la page n'est pas de la version du site : elle se recharge, et revient avec la bonne. */
+const AUTRE_VERSION = 4001;
 /** Le code de fermeture d'un serveur qui s'arrête (une mise en ligne) : le téléphone se rebranchera. */
 const PARTI = 1001;
 
@@ -47,6 +49,8 @@ export interface OptionsDeLaLigne {
   readonly musique?: Musique;
   /** Les comptes des joueurs. Sans eux, on ne peut pas entrer dans un compte : le site le dit. */
   readonly comptes?: Comptes;
+  /** La version de la page que sert le site : une page d'une autre version qui se branche est priée de se recharger. */
+  readonly version?: string;
 }
 
 /** Ce que l'hôte demande dans le bac. */
@@ -286,7 +290,12 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       if ((requete.url ?? '').split('?')[0] !== CHEMIN_DE_LA_LIGNE) return refuser('404 Not Found');
       if (o.origines.length > 0 && !o.origines.includes(origine)) return refuser('403 Forbidden');
       if ((parAdresse.get(adresse) ?? 0) >= RESEAU.parAdresse) return refuser('429 Too Many Requests');
-      ws.handleUpgrade(requete, prise, debut, (socket) => brancher(socket, adresse));
+      const sienne = new URL(requete.url ?? '/', 'http://ligne').searchParams.get('v');
+      ws.handleUpgrade(requete, prise, debut, (socket) => {
+        // Une page restée ouverte quand le site a changé : elle se recharge.
+        if (o.version !== undefined && sienne !== null && sienne !== o.version) socket.close(AUTRE_VERSION);
+        else brancher(socket, adresse);
+      });
     },
     fermer() {
       clearInterval(minuterie);
