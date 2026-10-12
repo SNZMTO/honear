@@ -34,7 +34,7 @@ export const SERVEUR = {
 } as const;
 
 /** L'adresse du site, telle que les planches l'écrivent sur le lien d'une room ; en ligne, c'est celle de la page. */
-export const SITE = { adresse: 'miel-doreilles.fr' } as const;
+export const SITE = { adresse: 'honear.fr' } as const;
 
 /** Les pages légales du site, par leur adresse : la confidentialité et les mentions légales. */
 export const PAGES_LEGALES = { confidentialite: '/confidentialite', mentions: '/mentions-legales' } as const;

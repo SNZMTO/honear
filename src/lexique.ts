@@ -49,7 +49,7 @@ export const LEXIQUE = {
   bouton: 'Un bouton à crans gravés, qu’on tourne : un réglage. Son index dit le cran choisi.',
   cran: 'L’une des positions d’un réglage, dont une seule est choisie : gravée autour d’un bouton de la platine, ou touche d’un groupe de l’atelier.',
   interrupteur: 'Un interrupteur à bascule : un réglage à deux positions.',
-  logo: 'L’étiquette de disque couleur miel, « Miel d’oreilles » écrit en arc.',
+  logo: 'L’étiquette de disque couleur miel, « Honear » écrit en arc.',
 
   // L'avatar.
   avatar: 'Le joueur dessiné, en attendant de vrais personnages : une tête taillée en quelques facettes, un visage, ce qu’il porte sur la tête.',

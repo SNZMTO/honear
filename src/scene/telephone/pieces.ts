@@ -26,7 +26,7 @@ const T = TABLEE.telephone;
 export interface Ecritoire {
   readonly textes: Textes;
   readonly encrier: Encrier;
-  /** L'adresse du site, comme le lien d'une room l'écrit (« miel-doreilles.fr ») ; sans elle, celle des planches. */
+  /** L'adresse du site, comme le lien d'une room l'écrit (« honear.fr ») ; sans elle, celle des planches. */
   readonly site?: string;
 }
 

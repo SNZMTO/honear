@@ -6,7 +6,7 @@
 export const LEGENDES_DE_LA_POCHETTE = {
   nom: 'Fais ta pochette',
   titre: 'Fais ta pochette',
-  sousTitre: 'Étape 4 de Miel d’oreilles : l’avatar en attendant les personnages, ses choix, ses expressions, les motifs, le hasard',
+  sousTitre: 'Étape 4 de Honear : l’avatar en attendant les personnages, ses choix, ses expressions, les motifs, le hasard',
 
   /** Les tailles des pochettes de la planche, en px : celles des choix, des expressions, des tirages au sort, des exemples. */
   tailles: { calque: 150, expression: 132, ecran: 228, exemple: 210 },

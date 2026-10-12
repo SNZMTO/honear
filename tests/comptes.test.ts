@@ -20,7 +20,7 @@ import { unFauxServeurDEnvoi } from './faux-courrier';
 
 const C = RESEAU.comptes;
 const POCHETTE = pochetteDExemple(TEXTES);
-const LETTRE = lettreDuLien(TEXTES.compte.courrier, 'https://miel-doreilles.fr');
+const LETTRE = lettreDuLien(TEXTES.compte.courrier, 'https://honear.fr');
 
 /** Des comptes contre une horloge qu'on avance, des secrets qu'on lit, et un courrier qui garde ses lettres au lieu de les envoyer. */
 function desComptes(autres: Partial<OptionsDesComptes> = {}) {
@@ -65,7 +65,7 @@ test('une adresse e-mail : sans espace autour, en minuscules ; rien de ce qui n�
 
 test('un compte qui dort deux ans s’efface, avec ses sessions ; un mois avant, une lettre prévient ; y revenir le garde', async () => {
   const { comptes, horloge, lettres, dernierLien, garde } = desComptes({
-    avertissement: lettreDAvertissement(TEXTES.compte.courrier, 'https://miel-doreilles.fr'),
+    avertissement: lettreDAvertissement(TEXTES.compte.courrier, 'https://honear.fr'),
   });
   const I = C.inactif;
   await comptes.demanderUnLien('dort@example.com', '1.2.3.4');
@@ -99,8 +99,8 @@ test('on entre par un lien envoyé à son adresse : il ne sert qu’une fois, un
   assert.equal(await comptes.demanderUnLien('Mateo@Example.com', '1.2.3.4'), 'envoye');
   assert.equal(lettres[0]?.a, 'mateo@example.com');
   assert.equal(lettres[0]?.sujet, TEXTES.compte.courrier.sujet);
-  assert.match(lettres[0]?.texte ?? '', /^https:\/\/miel-doreilles\.fr\/#connexion=[A-Za-z0-9_-]+$/m);
-  assert.match(lettres[0]?.html ?? '', /href="https:\/\/miel-doreilles\.fr\/#connexion=/);
+  assert.match(lettres[0]?.texte ?? '', /^https:\/\/honear\.fr\/#connexion=[A-Za-z0-9_-]+$/m);
+  assert.match(lettres[0]?.html ?? '', /href="https:\/\/honear\.fr\/#connexion=/);
   const lien = dernierLien();
   const ouvert = comptes.ouvrir(lien);
   assert.ok(ouvert !== undefined);
@@ -180,9 +180,18 @@ test('une face finie compte une partie à chacun de ceux qui y jouaient sous un 
 
 test('le courrier : le message tel qu’il part, et ce qu’en reçoit un serveur d’envoi', async () => {
   const lettre = LETTRE('mateo@example.com', 'abcdefghijklmnopqrstuvwxyz012345');
-  const message = composer('Miel d’oreilles <bonjour@miel-doreilles.fr>', lettre, 'Sun, 11 Oct 2026 22:30:00 +0000', '0123abcd');
-  assert.match(message, /^From: =\?UTF-8\?B\?[A-Za-z0-9+/=]+\?= <bonjour@miel-doreilles\.fr>\r\n/);
-  assert.match(message, /\r\nSubject: =\?UTF-8\?B\?/);
+  const message = composer('Honear <bonjour@honear.fr>', lettre, 'Sun, 11 Oct 2026 22:30:00 +0000', '0123abcd');
+  // Un nom et un sujet en ASCII s'écrivent tels quels ; avec des accents, ils sont encodés.
+  assert.match(message, /^From: Honear <bonjour@honear\.fr>\r\n/);
+  assert.match(message, /\r\nSubject: Ton lien pour entrer dans Honear\r\n/);
+  const accentue = composer(
+    'Hônear <bonjour@honear.fr>',
+    { ...lettre, sujet: 'Ton compte va être effacé' },
+    'Sun, 11 Oct 2026 22:30:00 +0000',
+    '0123abcd',
+  );
+  assert.match(accentue, /^From: =\?UTF-8\?B\?[A-Za-z0-9+/=]+\?= <bonjour@honear\.fr>\r\n/);
+  assert.match(accentue, /\r\nSubject: =\?UTF-8\?B\?/);
   assert.ok(
     message.split('\r\n').every((ligne) => ligne.length <= 998 && !ligne.startsWith('.')),
     'des lignes que le courrier accepte',
@@ -194,9 +203,9 @@ test('le courrier : le message tel qu’il part, et ce qu’en reçoit un serveu
       {
         hote: '127.0.0.1',
         port: faux.port,
-        utilisateur: 'bonjour@miel-doreilles.fr',
+        utilisateur: 'bonjour@honear.fr',
         motDePasse: 'mot de passe',
-        de: 'Miel d’oreilles <bonjour@miel-doreilles.fr>',
+        de: 'Honear <bonjour@honear.fr>',
         chiffre: false,
         patience: 2000,
       },
@@ -204,12 +213,12 @@ test('le courrier : le message tel qu’il part, et ce qu’en reçoit un serveu
     );
     await poster(lettre);
     const recue = faux.lettres[0];
-    assert.equal(recue?.de, 'bonjour@miel-doreilles.fr');
+    assert.equal(recue?.de, 'bonjour@honear.fr');
     assert.equal(recue?.a, 'mateo@example.com');
     assert.equal(recue?.texte, lettre.texte);
     assert.equal(recue?.html, lettre.html);
     const auth = faux.dialogues[0]?.find((l) => l.startsWith('AUTH PLAIN ')) ?? '';
-    assert.equal(Buffer.from(auth.slice('AUTH PLAIN '.length), 'base64').toString('utf8'), '\u0000bonjour@miel-doreilles.fr\u0000mot de passe');
+    assert.equal(Buffer.from(auth.slice('AUTH PLAIN '.length), 'base64').toString('utf8'), '\u0000bonjour@honear.fr\u0000mot de passe');
     await assert.rejects(poster({ ...lettre, a: 'x@y.z\r\nRCPT TO:<autre@y.z>' }), /illisible/);
   } finally {
     await faux.fermer();

@@ -16,7 +16,7 @@ import { vueDuCompte } from '../src/scene/telephone/compte';
 import { vueDeLAccueil } from '../src/scene/telephone/ecrans';
 import { ENCRIER } from './planche';
 
-const A = { textes: TEXTES, encrier: ENCRIER, site: 'miel-doreilles.fr' };
+const A = { textes: TEXTES, encrier: ENCRIER, site: 'honear.fr' };
 const POCHETTE = pochetteDExemple(TEXTES);
 const EN_LIGNE: Preparatifs = {
   mode: 'libre',

@@ -1,4 +1,4 @@
-# Miel d'oreilles — notes techniques
+# Honear — notes techniques
 
 Ce qu'il faut savoir pour continuer le code : la pile, les couches, l'arborescence, le contrat d'un mode, les messages, et la marche
 à suivre pour ajouter un mode, une source de musique ou une pièce de personnage. À la fin, trois modes ajoutés sans toucher au socle,

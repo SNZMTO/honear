@@ -309,7 +309,7 @@ export const enHtml = (texte: string): string => texte.replace(/&/g, '&amp;').re
  * La lettre qui porte un lien de connexion : le lien mène à la page du site, qui garde le secret dans son ancre (`#connexion=…`) :
  * il ne passe dans aucun journal de serveur, et la page attend qu'on touche « Entrer » (un robot qui ouvre les liens d'un e-mail
  * pour les vérifier ne le consomme pas).
- * @param site l'adresse publique du site : « https://miel-doreilles.fr ».
+ * @param site l'adresse publique du site : « https://honear.fr ».
  */
 export function lettreDuLien(textes: Textes['compte']['courrier'], site: string): (email: string, lien: string) => Lettre {
   const T = textes;
@@ -335,7 +335,7 @@ export function lettreDuLien(textes: Textes['compte']['courrier'], site: string)
 
 /**
  * La lettre qui prévient un compte qui dort : dans un mois, il sera effacé ; pour le garder, il suffit d'y revenir.
- * @param site l'adresse publique du site : « https://miel-doreilles.fr ».
+ * @param site l'adresse publique du site : « https://honear.fr ».
  */
 export function lettreDAvertissement(textes: Textes['compte']['courrier'], site: string): (email: string) => Lettre {
   const T = textes;

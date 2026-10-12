@@ -26,7 +26,7 @@ import { brancherEnLigne } from '../telephone/websocket';
 import { creerLeVibreur } from '../vibreur';
 
 /** Les noms sous lesquels le navigateur garde la room de cet onglet, la pochette de cet appareil, et la session de son compte. */
-const GARDE = { room: 'miel.room', pochette: 'miel.pochette', session: 'miel.session' } as const;
+const GARDE = { room: 'honear.room', pochette: 'honear.pochette', session: 'honear.session' } as const;
 
 /** Un secret de compte, tel que le serveur les donne (voir `regles/messages.ts`). */
 const SECRET = /^[A-Za-z0-9_-]{20,64}$/;

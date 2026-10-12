@@ -6,7 +6,7 @@
 export const LEGENDES_DES_ECRANS = {
   nom: 'Les écrans du téléphone',
   titre: 'Tous les écrans du téléphone',
-  sousTitre: 'Étape 5 de Miel d’oreilles : une partie de l’accueil à la finale, le chemin de l’invité, chaque état avec sa phrase',
+  sousTitre: 'Étape 5 de Honear : une partie de l’accueil à la finale, le chemin de l’invité, chaque état avec sa phrase',
 
   /**
    * La partie d'exemple : le nombre de pistes réglé, la graine du code, les cinq potes (leur clé, la graine de leur pochette, le rang

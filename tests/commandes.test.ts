@@ -121,7 +121,7 @@ test('les commandes sont rangées dans l’ordre où elles se dessinent : chaque
     },
     interrupteurs: { son: SON },
   };
-  const { decor, mobiles } = dessinerLesCommandes(etat, 'Miel d’oreilles', DENSITE);
+  const { decor, mobiles } = dessinerLesCommandes(etat, 'Honear', DENSITE);
   assert.deepEqual(
     mobiles.map((c) => c.nom),
     [
@@ -141,7 +141,7 @@ test('les commandes sont rangées dans l’ordre où elles se dessinent : chaque
   const ecrits = textes(gravures.contenu);
   assert.equal(ecrits.length, 3 + 3 + 2 + 4 + 2 + 1, 'les inscriptions des crans occupés, les quatre titres, les deux positions, la marque');
   const marque = ecrits.at(-1);
-  assert.deepEqual([marque?.contenu, marque?.role, marque?.corps], ['Miel d’oreilles', 'titrage', CORPS.mention]);
+  assert.deepEqual([marque?.contenu, marque?.role, marque?.corps], ['Honear', 'titrage', CORPS.mention]);
   // Aucune commande ne chevauche sa voisine : entre deux boutons, il reste de la laque pour leurs inscriptions.
   const places = [
     ...Object.values(C.boutons).map((b) => [b.x - b.rayon, b.x + b.rayon]),
@@ -160,7 +160,7 @@ function emprises(): { cle: string; de: number; a: number }[] {
     },
     interrupteurs: { son: SON },
   };
-  const [gravures] = dessinerLesCommandes(etat, 'Miel d’oreilles', DENSITE).decor;
+  const [gravures] = dessinerLesCommandes(etat, 'Honear', DENSITE).decor;
   assert.ok(gravures?.genre === 'calque');
   const centres = [
     ...Object.entries(C.boutons).map(([cle, b]) => ({ cle, x: surLeSocle([b.x, C.ligne])[0], demi: b.rayon + C.trait.a })),

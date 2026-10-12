@@ -57,9 +57,9 @@ test('les budgets tiennent : 2 500 polygones de décor au plus, et moins de 150 
     const { nom, poids } = controle.plusLourdCalqueMobile;
     assert.ok(poids < LIMITES.mobile, `${i.fichier} : ${nom} pèse ${poids}`);
   }
-  // L'étiquette, qui tourne, pèse ses polygones et les lettres de son texte.
+  // L'étiquette, qui tourne, pèse ses polygones et les lettres de son texte (« Honear », ses mentions) : bien plus de lettres que de polygones.
   const etiquette = inventaire(image('platine-fine').scene).find((ligne) => ligne.nom === 'etiquette');
-  assert.ok(etiquette !== undefined && etiquette.lettres > 40 && etiquette.polygones < 10, JSON.stringify(etiquette));
+  assert.ok(etiquette !== undefined && etiquette.lettres > 30 && etiquette.polygones < 10, JSON.stringify(etiquette));
 });
 
 test('chaque dessin est sous un calque qui a un rôle : rien n’échappe aux budgets', () => {
@@ -410,7 +410,7 @@ test('rien n’est écrit sur le meuble qui ne vienne du fichier de textes ou de
   assert.ok(!modeles.some((modele) => modele.test('Piste trois')), 'un trou ne se remplit que d’un nombre');
 });
 
-test('le logo est une étiquette couleur miel, « Miel d’oreilles » écrit en arc, à l’endroit en haut, entier sur la platine comme en grand', () => {
+test('le logo est une étiquette couleur miel, « Honear » écrit en arc, à l’endroit en haut, entier sur la platine comme en grand', () => {
   for (const fichier of ['logo', 'platine-fine', 'platine-sobre']) {
     const { scene } = image(fichier);
     const etiquette = calque(scene, fichier.startsWith('logo') ? 'logo/etiquette' : 'etiquette');

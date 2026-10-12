@@ -1,20 +1,19 @@
 #!/bin/sh
-# Met le jeu en ligne sur ce VPS, depuis ce dépôt : construit l'image, étiquetée à son commit, pose compose.yaml et le Caddyfile
-# dans /srv/miel-doreilles, relance les conteneurs, et vérifie que le site répond. Ce qui est en ligne est toujours un commit : il
-# refuse un dépôt qui a des changements. Les rooms en cours s'arrêtent (les comptes restent) : il refuse tant qu'un téléphone est
-# branché, sauf avec --maintenant.
+# Met Honear en ligne sur le VPS, depuis ce dépôt : construit l'image, étiquetée à son commit, pose compose.yaml dans /srv/honear
+# et relance le jeu, puis vérifie qu'il répond par le frontal. Ce qui est en ligne est toujours un commit : il refuse un dépôt qui
+# a des changements. Les rooms en cours s'arrêtent (les comptes restent) : il refuse tant qu'un téléphone est branché, sauf avec
+# --maintenant. La première fois, il crée l'utilisateur honear et le dossier des comptes. Le frontal (dépôt « vps ») doit suivre.
 #
 #   sudo sh deploiement/mettre-en-ligne.sh [--maintenant]
 #
-# Revenir à la version d'avant : sudo sh deploiement/mettre-en-ligne.sh, depuis le commit d'avant (git checkout), ou, sans
-# reconstruire, changer VERSION dans /srv/miel-doreilles/.env (les trois dernières images sont gardées), puis
-# sudo docker compose --project-directory /srv/miel-doreilles up -d
+# Revenir à la version d'avant sans reconstruire : changer VERSION dans /srv/honear/.env (les trois dernières images sont
+# gardées : sudo docker image ls honear), puis sudo docker compose --project-directory /srv/honear up -d
 set -eu
 RACINE="$(cd "$(dirname "$0")/.." && pwd)"
-CIBLE=/srv/miel-doreilles
+CIBLE=/srv/honear
+DOMAINE=honear.fr
 [ "$(id -u)" = 0 ] || { echo "Lance-le avec sudo."; exit 1; }
-[ -f /etc/miel-doreilles/site.env ] || { echo "Le VPS n'est pas prêt : sudo sh deploiement/preparer-le-vps.sh honear.fr mateosan.fr"; exit 1; }
-. /etc/miel-doreilles/site.env
+command -v docker >/dev/null || { echo "Docker n'est pas là : prépare d'abord le VPS (dépôt « vps », sudo sh preparer.sh)."; exit 1; }
 git() { command git -c safe.directory="$RACINE" -C "$RACINE" "$@"; }
 
 if [ -n "$(git status --porcelain)" ]; then
@@ -32,24 +31,27 @@ if [ "${1:-}" != --maintenant ]; then
   fi
 fi
 
+# L'utilisateur à qui appartiennent les comptes, sans shell ni droits, et leur dossier, que lui seul lit.
+id honear >/dev/null 2>&1 || useradd --system --user-group --no-create-home --shell /usr/sbin/nologin honear
+install -d -m 0700 -o honear -g honear /var/lib/honear
+install -d -m 0750 /etc/honear
+
 printf '== L’image du jeu, version %s\n' "$VERSION"
-docker build -t "miel-doreilles:$VERSION" "$RACINE"
+docker build -t "honear:$VERSION" "$RACINE"
 
-printf '== Les conteneurs\n'
+printf '== Le conteneur\n'
 install -d -m 0755 "$CIBLE"
-install -m 0644 "$RACINE/deploiement/compose.yaml" "$RACINE/deploiement/Caddyfile" "$CIBLE/"
-printf 'VERSION=%s\nUID_DU_JEU=%s\nGID_DU_JEU=%s\nDOMAINE=%s\nAUTRE_DOMAINE=%s\n' \
-  "$VERSION" "$(id -u miel)" "$(id -g miel)" "$DOMAINE" "$AUTRE_DOMAINE" > "$CIBLE/.env"
+install -m 0644 "$RACINE/deploiement/compose.yaml" "$CIBLE/"
+printf 'VERSION=%s\nUID_DU_JEU=%s\nGID_DU_JEU=%s\nDOMAINE=%s\n' "$VERSION" "$(id -u honear)" "$(id -g honear)" "$DOMAINE" > "$CIBLE/.env"
 docker compose --project-directory "$CIBLE" up -d --wait --remove-orphans
-# Caddy relit son Caddyfile s'il a changé, sans couper une connexion.
-docker compose --project-directory "$CIBLE" exec -T caddy caddy reload --config /etc/caddy/Caddyfile
 
-printf '== Le ménage : les trois dernières images du jeu restent, de quoi revenir en arrière\n'
-docker image ls miel-doreilles --format '{{.Repository}}:{{.Tag}}' | tail -n +4 | xargs -r docker image rm || true
+printf '== Le ménage : les trois dernières images restent, de quoi revenir en arrière\n'
+docker image ls honear --format '{{.Repository}}:{{.Tag}}' | tail -n +4 | xargs -r docker image rm || true
 docker builder prune -f --filter until=168h >/dev/null
 
 printf '== Vérifications\n'
-for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
+SANTE=''
+for _ in 1 2 3 4 5 6; do
   if SANTE="$(curl -fsS --max-time 5 "https://$DOMAINE/sante" 2>/dev/null)"; then break; fi
   SANTE=''
   sleep 5
@@ -57,7 +59,7 @@ done
 if [ -n "$SANTE" ]; then
   printf 'En ligne : https://%s (version %s)\n%s\n' "$DOMAINE" "$VERSION" "$SANTE"
 else
-  echo "https://$DOMAINE ne répond pas encore. Le certificat peut prendre quelques minutes, ou le domaine ne pointe pas encore ici."
-  echo "Ce qu'ils disent : sudo docker compose --project-directory $CIBLE logs --tail 50"
+  echo "Le jeu tourne, mais https://$DOMAINE ne répond pas : le frontal est-il en ligne ? (dépôt « vps », sudo sh frontal/mettre-en-ligne.sh)"
+  echo "Ce que dit le jeu : sudo docker compose --project-directory $CIBLE logs --tail 50"
   exit 1
 fi

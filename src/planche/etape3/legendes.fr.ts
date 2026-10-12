@@ -5,8 +5,8 @@
 
 export const LEGENDES_DU_SYSTEME = {
   /** Le nom de la page, dans un onglet ou une galerie ; puis son titre, en tête. */
-  nom: 'Système visuel Miel d’oreilles',
-  titre: 'Miel d’oreilles, le système visuel',
+  nom: 'Système visuel Honear',
+  titre: 'Honear, le système visuel',
   sousTitre: 'Étape 3 : chaque pièce du meuble, ses couleurs, ses caractères',
 
   /** Marge autour d'un objet cadré seul, son ombre comprise, en px. */
@@ -18,7 +18,7 @@ export const LEGENDES_DU_SYSTEME = {
 
   images: {
     meuble: 'Le meuble entier, comme l’écran de l’hôte le montrera : le bac à gauche, la platine au centre, l’ampli à droite',
-    logo: 'Le logo : une étiquette miel, « Miel d’oreilles » en arc (étape 1)',
+    logo: 'Le logo : une étiquette miel, « Honear » en arc (étape 1)',
     platine: 'La platine au téléphone, densité fine (étape 1)',
     bras: 'Le bras de près, deux fois : la tête et son diamant, le contrepoids, le levier',
     ampliEteint: 'L’ampli éteint : aiguilles au repos, voyant sombre, bascule à gauche',
@@ -52,7 +52,7 @@ export const LEGENDES_DU_SYSTEME = {
       titrage: 'Titrage · Caprasimo',
       technique: 'Technique · Barlow Condensed, 500 et 600',
       echantillons: {
-        titrage: ['Miel d’oreilles', 'On pose un disque ?', 'Personne. Même pas honte ?'],
+        titrage: ['Honear', 'On pose un disque ?', 'Personne. Même pas honte ?'],
         technique: ['Piste 3 sur 15', 'Code KZRT', '0123456789', '1 111 · 4 444 · 7 070'],
       },
       echelle: 'L’échelle : huit échelons, chacun 1,2 fois le précédent',

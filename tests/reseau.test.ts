@@ -156,7 +156,7 @@ test('les pages légales se servent à leur adresse, avec l’adresse du site et
   const site = lancerLeSite({
     port: 0,
     hote: '127.0.0.1',
-    origines: ['https://miel-doreilles.fr'],
+    origines: ['https://honear.fr'],
     page,
     deezer: undefined,
     contact: 'moi@exemple.fr',
@@ -165,7 +165,7 @@ test('les pages légales se servent à leur adresse, avec l’adresse du site et
     const base = `http://127.0.0.1:${await site.pret}`;
     const r = await fetch(`${base}/confidentialite`);
     assert.equal(r.status, 200);
-    assert.equal(await r.text(), '<p>Le site miel-doreilles.fr, le contact moi@exemple.fr.</p>');
+    assert.equal(await r.text(), '<p>Le site honear.fr, le contact moi@exemple.fr.</p>');
     assert.match(r.headers.get('content-security-policy') ?? '', /default-src 'none'/);
     assert.equal((await fetch(`${base}/mentions-legales`)).status, 404, 'son fichier manque');
   } finally {
@@ -179,7 +179,7 @@ test('l’adresse où écrire, sur les pages légales : CONTACT, sinon celle qui
     Object.assign(process.env, {
       COURRIER_HOTE: 'ssl0.ovh.net',
       COURRIER_UTILISATEUR: 'bonjour@exemple.fr',
-      COURRIER_DE: 'Miel d’oreilles <bonjour@exemple.fr>',
+      COURRIER_DE: 'Honear <bonjour@exemple.fr>',
     });
     delete process.env['CONTACT'];
     assert.equal(configuration().contact, 'bonjour@exemple.fr');
@@ -310,13 +310,13 @@ test('un compte par la ligne : le lien part par le serveur d’envoi, on entre, 
   const fichier = join(mkdtempSync(join(tmpdir(), 'miel-comptes-')), 'comptes.json');
   const comptes = {
     fichier,
-    site: 'https://miel-doreilles.fr',
+    site: 'https://honear.fr',
     courrier: {
       hote: '127.0.0.1',
       port: courrier.port,
       utilisateur: 'u',
       motDePasse: 'p',
-      de: 'Miel <bonjour@miel-doreilles.fr>',
+      de: 'Miel <bonjour@honear.fr>',
       chiffre: false,
       patience: 2000,
     },
@@ -379,7 +379,7 @@ test('un site sans courrier dit que ses comptes sont fermés', async () => {
 });
 
 test('la ligne coupe qui insiste avec des messages mal formés, et refuse une page venue d’ailleurs', async () => {
-  const site = unSite(['https://miel-doreilles.fr']);
+  const site = unSite(['https://honear.fr']);
   try {
     const port = await site.pret;
     const venuDAilleurs = new WebSocket(`ws://127.0.0.1:${port}${CHEMIN_DE_LA_LIGNE}`, { origin: 'https://ailleurs.example' });
@@ -394,7 +394,7 @@ test('la ligne coupe qui insiste avec des messages mal formés, et refuse une pa
     });
     assert.equal(refus, '403');
 
-    const tricheur = await unTelephone(port, 'https://miel-doreilles.fr');
+    const tricheur = await unTelephone(port, 'https://honear.fr');
     const fermeture = new Promise<number>((fini) => tricheur.socket.once('close', (code) => fini(code)));
     for (let n = 0; n <= RESEAU.tolerance.malFormes; n++) tricheur.envoyer(n % 2 === 0 ? '{pas du json' : { genre: 'creer', mode: 'triche' });
     assert.equal(await fermeture, 1008);
