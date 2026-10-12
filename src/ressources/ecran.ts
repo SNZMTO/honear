@@ -39,6 +39,8 @@ export const TELEPHONE = {
   tenue: 0.07,
   /** D'un écran à l'autre, le nouveau se fond sur l'ancien en ce temps-là (rien, quand on a demandé moins d'animations). */
   fondu: 0.22,
+  /** Un bouton rond qu'on tourne d'un cran (Pistes, Extrait, Mode, le volume) y va en ce temps-là, en ralentissant. */
+  tourne: 0.25,
   /**
    * Le son : un extrait qui s'écarte de plus que ce temps de là où il devrait en être, à l'heure du serveur, y est remis ;
    * il se tait en ce temps-là, là où le téléphone laisse baisser le volume.
