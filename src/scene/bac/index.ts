@@ -80,8 +80,8 @@ function surLaFaceAvant(contour: Polygone, teinte: NomDeTeinte): Facette {
   return { sommets: contour.map(([x, h]): Vec3 => [BAC.position[0] + x, y, hauteurPour(h)]).reverse(), teinte, nuance: -1 };
 }
 
-/** La paroi avant : ses trois lattes, leurs joints, et la fente de la poignée, au milieu de la latte du haut. */
-function paroiAvant(densite: Densite): Dessin[] {
+/** La paroi avant : ses trois lattes, leurs joints, et la fente de la poignée, au milieu de la latte du haut : on y voit le premier rang. */
+function paroiAvant(densite: Densite, auPremierRang: NomDeTeinte): Dessin[] {
   const { joints, joint, poignee } = C;
   const traits = joints.map((h) =>
     surLaFaceAvant(rectangleArrondi(C.chanfrein, h - joint / 2, C.largeur - 2 * C.chanfrein, joint, 0, 1), C.teinteDesJoints),
@@ -95,7 +95,7 @@ function paroiAvant(densite: Densite): Dessin[] {
     (poignee.haut - poignee.bas) / 2,
     4,
   );
-  return [paroi(0, C.profondeur - C.paroi, C.largeur, C.paroi, densite), peinture(peindre([...traits, surLaFaceAvant(fente, C.teinteDesJoints)]))];
+  return [paroi(0, C.profondeur - C.paroi, C.largeur, C.paroi, densite), peinture(peindre([...traits, surLaFaceAvant(fente, auPremierRang)]))];
 }
 
 /** Le contour d'une pochette, dans le plan de sa face, centré sur la largeur de la caisse. */
@@ -223,7 +223,8 @@ export function dessinerLeBac(etat: EtatDuBac, densite: Densite, mesurer: Mesure
       { role: 'decor' },
     ),
     ...rangees.reverse(),
-    calque('bac/devant', paroiAvant(densite), { role: 'decor' }),
+    // Par la fente de la poignée, on voit ce qui se tient au premier rang, contre la paroi avant.
+    calque('bac/devant', paroiAvant(densite, etat.rangees[0]?.teinte ?? C.teinteDesJoints), { role: 'decor' }),
   ]);
 }
 

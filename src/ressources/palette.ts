@@ -16,7 +16,7 @@ export const PALETTE = {
   miel: '#E2A72E', // la signature : lampe, feutrine, pastilles, étiquette
 
   // Papier et encre.
-  creme: '#F3E7CF', // étiquettes, papier, texte sur fond sombre
+  creme: '#F1E0BD', // étiquettes, papier, touches claires, la caisse du bac, texte sur fond sombre : un crème chaud, jamais blanc
   expresso: '#2A1E17', // texte sur fond clair
   kraft: '#CBA772', // la pochette du disque mystère : le crème tiré vers le noyer clair
 
