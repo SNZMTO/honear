@@ -10,6 +10,8 @@ import { test } from 'node:test';
 import {
   aLaNouvelle,
   avancer,
+  BAC_VIDE,
+  laReponseEstPartie,
   MEMOIRE_VIDE,
   memoireDeDepart,
   recevoir,
@@ -194,6 +196,8 @@ test('le téléphone montre ce que le serveur juge : « Presque. », « Rayé. �
   );
   // Le clavier tape, lettre après lettre, avant que la réponse ne parte.
   assert.ok(pistes.some((e) => e.autour.repondre.genre === 'saisie' && e.autour.repondre.clavier && e.autour.repondre.tape.length > 0));
+  // Le clavier qui tape tout seul envoie sa réponse comme le pouce : l'étiquette s'enfonce un instant.
+  assert.ok(pistes.some((e) => e.autour.repondre.genre === 'saisie' && e.autour.repondre.enfoncee === true));
 });
 
 test('le téléphone ne sait jamais la réponse avant sa révélation, et finit sur le classement du serveur', () => {
@@ -383,4 +387,48 @@ test('la réponse validée part : son étiquette s’enfonce un instant, puis re
   assert.equal(etiquette(6.05)?.enfoncee, true);
   assert.equal(etiquette(7)?.enfoncee, undefined);
   assert.equal(etiquette(7)?.tape, 'images');
+});
+
+test('ce qu’on tape va au champ que l’écran a posé : la réponse quand une piste passe avant la pochette qu’on refaisait, la recherche dans le bac de l’hôte', () => {
+  const { clavier: _scripte, ...p } = { ...preparatifs('libre'), chercher: true };
+  const exemple = joueursDExemple(TEXTES)[0]?.pochette;
+  assert.ok(exemple !== undefined);
+  const pochette = { ...exemple, artiste: 'Tata Mateo' };
+  const piste = {
+    reponse: { titre: 'Les Démons de minuit', artiste: 'Images', pochette: { vignette: { fond: 'lilasFume', motif: 'rayons' } } },
+  } as const;
+  const journal = [
+    { genre: 'ouverture', a: 0, mode: 'libre', pistes: 3 },
+    { genre: 'arrivee', a: 0, id: 'toi', pochette },
+    { genre: 'arrivee', a: 0, id: 'lui', pochette },
+    { genre: 'extrait', a: 5, piste },
+  ] as const;
+  const seance = [
+    { genre: 'lancer', a: 1, duree: 20 },
+    { genre: 'prets', a: 2 },
+  ] as const;
+  let m = recevoir(memoireDeDepart(p, {}), {
+    genre: 'etat',
+    heure: 6,
+    code: 'AENV',
+    toi: 'toi',
+    jeton: 'j',
+    journal: [...journal],
+    seance: [...seance],
+  });
+  // Toi refaisait sa pochette entre deux pistes ; la suivante est lancée, et passe avant.
+  m = { ...m, preparation: { ecran: 'pochette', venue: { genre: 'retoucher' }, pochette, choisi: 'dessus', tirages: 0 } };
+  assert.equal(ecranDuTelephone(m, 6, p, TEXTES).genre, 'piste');
+  m = saisir(m, 'images', 'reponse');
+  assert.equal(m.preparation.ecran === 'pochette' ? m.preparation.pochette.artiste : '', 'Tata Mateo', 'son nom ne bouge pas');
+  const partie = valider(m, 6, p, 'reponse');
+  assert.deepEqual(partie.actions, [{ genre: 'repondre', proposition: { genre: 'saisie', texte: 'images' } }]);
+  // La réponse partie : y revenir la vide ; un brouillon, lui, reste.
+  assert.equal(laReponseEstPartie(partie.memoire), true);
+  assert.equal(laReponseEstPartie(saisir(partie.memoire, 'imag', 'reponse')), false);
+  // Dans la room, l'hôte a ouvert le bac : ce qu'il tape cherche une playlist, ce n'est pas une réponse.
+  let bac: Memoire = { ...m, preparation: { ecran: 'bac', pochette, cran: 'chercher', bac: BAC_VIDE } };
+  bac = saisir(bac, 'abba', 'recherche');
+  assert.equal(bac.preparation.ecran === 'bac' ? bac.preparation.bac.recherche : '', 'abba');
+  assert.deepEqual(valider(bac, 7, p, 'recherche').actions, [{ genre: 'chercher', recherche: 'abba' }]);
 });

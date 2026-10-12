@@ -312,21 +312,45 @@ export function numeroDeLaPiste(etat: EtatDeLaPartie, decompte = false): { reado
   return { numero: Math.min(numero, Math.max(1, etat.pistes)), sur: etat.pistes };
 }
 
+/** Un état rejoué, et les événements du journal tels qu'ils étaient quand on l'a rejoué. */
+interface Rejoue {
+  readonly evenements: readonly EvenementDePartie[];
+  readonly etat: EtatDeLaPartie;
+}
+
+/** Vrai si le journal a encore exactement ces événements : ni rallongé, ni changé en place (le serveur, lui, le rallonge en place). */
+const memesEvenements = (gardes: readonly EvenementDePartie[], journal: readonly EvenementDePartie[]): boolean =>
+  gardes.length === journal.length && gardes.every((e, rang) => e === journal[rang]);
+
 /**
- * Le dernier état de chaque journal, rejoué jusqu'au bout, et sa longueur d'alors : un journal ne fait que s'allonger (ou on en
- * prend un autre). L'écran le demande à chaque image ; rejoué à chaque fois, il pesait de plus en plus lourd vers la fin d'une partie.
+ * Le dernier état de chaque journal rejoué jusqu'au bout, et celui d'avant le dernier instant qu'on a demandé. L'écran les demande
+ * à chaque image ; rejoués à chaque fois, ils pesaient de plus en plus lourd vers la fin d'une partie. On ne les reprend que si le
+ * journal a toujours les mêmes événements.
  */
-const AU_BOUT = new WeakMap<readonly EvenementDePartie[], { readonly longueur: number; readonly etat: EtatDeLaPartie }>();
+const AU_BOUT = new WeakMap<readonly EvenementDePartie[], Rejoue>();
+const AVANT = new WeakMap<readonly EvenementDePartie[], Rejoue & { readonly a: number }>();
+
+const rejouer = (journal: readonly EvenementDePartie[], garde: (e: EvenementDePartie) => boolean): EtatDeLaPartie =>
+  journal
+    .filter(garde)
+    .sort((x, y) => x.a - y.a)
+    .reduce(suivre, ROOM_VIDE);
 
 /** L'état de la room à l'instant t : le journal rejoué, dans l'ordre de ses instants, jusqu'à t compris. */
 export function partieA(journal: readonly EvenementDePartie[], t: number): EtatDeLaPartie {
   const deja = t === Infinity ? AU_BOUT.get(journal) : undefined;
-  if (deja !== undefined && deja.longueur === journal.length) return deja.etat;
-  const etat = [...journal]
-    .filter((e) => e.a <= t)
-    .sort((x, y) => x.a - y.a)
-    .reduce(suivre, ROOM_VIDE);
-  if (t === Infinity) AU_BOUT.set(journal, { longueur: journal.length, etat });
+  if (deja !== undefined && memesEvenements(deja.evenements, journal)) return deja.etat;
+  const etat = rejouer(journal, (e) => e.a <= t);
+  if (t === Infinity) AU_BOUT.set(journal, { evenements: [...journal], etat });
+  return etat;
+}
+
+/** L'état de la room juste avant l'instant a : le journal rejoué, sans ce qui arrive à cet instant ni après. */
+export function partieAvant(journal: readonly EvenementDePartie[], a: number): EtatDeLaPartie {
+  const deja = AVANT.get(journal);
+  if (deja !== undefined && deja.a === a && memesEvenements(deja.evenements, journal)) return deja.etat;
+  const etat = rejouer(journal, (e) => e.a < a);
+  AVANT.set(journal, { a, evenements: [...journal], etat });
   return etat;
 }
 
