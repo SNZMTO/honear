@@ -50,6 +50,11 @@ export type Action =
   | { readonly genre: 'repondre'; readonly proposition: Proposition }
   /** « Rejouer la face B » : une nouvelle partie, avec les mêmes. */
   | { readonly genre: 'rejouer' }
+  /**
+   * L'hôte change de playlist quand il veut, même en pleine partie : il en choisit une autre dans le bac, et la room repart sur sa
+   * face A, avec les mêmes, aux mêmes places.
+   */
+  | { readonly genre: 'changerDePlaylist'; readonly playlist: string }
   /** Il s'en va pour de bon. */
   | { readonly genre: 'quitter' }
   /** L'hôte cherche une playlist, dans le bac : parmi les playlists publiques de la source de musique. */
@@ -247,6 +252,10 @@ export function lireUneAction(x: unknown): Action | undefined {
         : undefined;
     case 'importer':
       return estUnTexte(x['lien'], BORNES.playlist) && x['lien'].trim() !== '' ? { genre: 'importer', lien: x['lien'] } : undefined;
+    case 'changerDePlaylist':
+      return estUnTexte(x['playlist'], BORNES.playlist) && x['playlist'].trim() !== ''
+        ? { genre: 'changerDePlaylist', playlist: x['playlist'] }
+        : undefined;
     case 'demanderUnLien':
       return estUnTexte(x['email'], BORNES.email) && x['email'].trim() !== '' ? { genre: 'demanderUnLien', email: x['email'] } : undefined;
     case 'ouvrirLeCompte':

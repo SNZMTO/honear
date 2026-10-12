@@ -28,7 +28,8 @@ export const LEXIQUE = {
   pochette: 'Un joueur : son avatar imprimé, son nom d’artiste, le titre de son album.',
   miniature: 'Une pochette en petit, comme en jeu (48 px) : plus de texte, l’avatar recadré plus serré.',
   pastille: 'Une pastille de disquaire : un message court, ou un point marqué.',
-  score: 'Les points d’un joueur, écrits sous sa pochette pendant la piste : le tableau des scores, en jeu.',
+  classement:
+    'Le tableau des scores qu’on lit : une feuille crème où chacun a sa ligne, du premier au dernier (son rang, sa pochette en petit, son nom, ses points).',
   kraft: 'La pochette en papier kraft du disque mystère, posée à côté de la platine : le disque en sort au décompte.',
   vignette: 'Ce qui tient lieu de vraie pochette dans les maquettes : une couleur et un motif, jamais la copie d’une vraie.',
 

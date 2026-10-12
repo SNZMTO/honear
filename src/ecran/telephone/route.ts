@@ -24,8 +24,17 @@ export type EcranDuTelephone =
   | { readonly genre: 'accueil'; readonly compte: boolean }
   | { readonly genre: 'compte'; readonly compte: CompteOuvertAuTelephone }
   | { readonly genre: 'saisie'; readonly tape: string; readonly refus: 'codeInconnu' | 'complet' | undefined }
-  /** « Fais ta pochette » ; quand on la refait (à l'accueil, dans la room), on peut la laisser comme elle était. */
-  | { readonly genre: 'pochette'; readonly pochette: Pochette; readonly choisi: ChoixDeLAvatar; readonly retouche: boolean }
+  /**
+   * « Fais ta pochette » ; quand on la refait (à l'accueil, dans la room), on peut la laisser comme elle était. `sansNom` : on a touché
+   * « C'est moi » sans avoir écrit son nom, l'écran le réclame.
+   */
+  | {
+      readonly genre: 'pochette';
+      readonly pochette: Pochette;
+      readonly choisi: ChoixDeLAvatar;
+      readonly retouche: boolean;
+      readonly sansNom: boolean;
+    }
   | {
       readonly genre: 'bac';
       readonly bac: BacOuvert;
@@ -106,7 +115,13 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
     case 'saisie':
       return { genre: 'saisie', tape: prep.tape, refus: m.refus === 'codeInconnu' || m.refus === 'complet' ? m.refus : undefined };
     case 'pochette':
-      return { genre: 'pochette', pochette: prep.pochette, choisi: prep.choisi, retouche: prep.venue.genre === 'retoucher' };
+      return {
+        genre: 'pochette',
+        pochette: prep.pochette,
+        choisi: prep.choisi,
+        retouche: prep.venue.genre === 'retoucher',
+        sansNom: prep.sansNom === true,
+      };
     case 'bac': {
       const b = prep.bac;
       const etat = b.enAttente !== undefined ? 'fouille' : b.resultats !== undefined && b.resultats.length === 0 ? 'rien' : undefined;
@@ -221,12 +236,14 @@ export function ecranDuTelephone(m: Memoire, heure: number, p: Preparatifs, text
   const room = m.room;
   if (room === undefined) return ecranDeLaPreparation(m, p);
   const etat = partieA(room.journal, Infinity);
+  // L'hôte a ouvert le bac pour changer de playlist, même en pleine piste : il y choisit la suivante.
+  if (m.preparation.ecran === 'bac' && etat.hote === room.toi) return ecranDeLaPreparation(m, p);
   const piste = ecranDeLaPiste(m, room, etat, heure, textes);
   if (piste !== undefined) return piste;
   // Entre deux pistes, on refait sa pochette ; la piste suivante passe avant, et l'on y revient après.
   const prep = m.preparation;
   if (prep.ecran === 'pochette' && prep.venue.genre === 'retoucher')
-    return { genre: 'pochette', pochette: prep.pochette, choisi: prep.choisi, retouche: true };
+    return { genre: 'pochette', pochette: prep.pochette, choisi: prep.choisi, retouche: true, sansNom: prep.sansNom === true };
   const hote = etat.hote === room.toi;
   const toi = room.toi;
   if (etat.phase === 'fin') {

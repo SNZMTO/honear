@@ -26,7 +26,7 @@ export interface ReglagesDeLaRoom {
 
 export interface Room {
   readonly code: string;
-  /** Le lien de sa playlist : la source la relit à chaque partie, ses extraits expirant. */
+  /** Le lien de sa playlist : la source la relit à chaque partie, ses extraits expirant. L'hôte peut en changer. */
   readonly playlist: string;
   /** L'heure où l'hôte l'a ouverte. */
   readonly ouverteA: number;
@@ -46,6 +46,12 @@ export interface Room {
   /** Sa connexion tombe : sa place est gardée, sa pochette se retourne. */
   debrancher(id: string, heure: number): void;
   recevoir(id: string, action: Action, heure: number): void;
+  /**
+   * L'hôte change de playlist, quand il veut, même en pleine piste : celle-ci s'arrête là, et la partie repart sur la face A de la
+   * nouvelle, avec les mêmes, aux mêmes places, leurs points remis à zéro. Ce qui n'est pas l'hôte ne change rien.
+   * @param pistes ses pistes, dans l'ordre où elles se joueront, comme à l'ouverture.
+   */
+  changerDePlaylist(id: string, playlist: string, pistes: () => readonly PisteDuMode[], heure: number): void;
   /** L'heure passe : ce qui devait arriver arrive. Rend l'heure du prochain rendez-vous, s'il y en a un. */
   avancer(heure: number): number | undefined;
 }
@@ -69,11 +75,13 @@ interface PisteDeLaRoom {
 export function ouvrirUneRoom(
   code: string,
   reglages: ReglagesDeLaRoom,
-  playlist: string,
-  pistes: () => readonly PisteDuMode[],
+  playlistDeDepart: string,
+  pistesDeDepart: () => readonly PisteDuMode[],
   heure: number,
   quandFinie?: (etat: EtatDeLaPartie) => void,
 ): Room {
+  let playlist = playlistDeDepart;
+  let pistes = pistesDeDepart;
   const ouverture = (a: number, face: Face = 'A'): EvenementDePartie => ({
     genre: 'ouverture',
     a,
@@ -147,12 +155,11 @@ export function ouvrirUneRoom(
     if (attendus().every((attendu) => p.prets.has(attendu))) jouerLaPiste(p, { genre: 'prets', a: heure });
   }
 
-  /** « Rejouer la face B » : une nouvelle partie, avec les mêmes, aux mêmes places ; la playlist reprend où elle s'est arrêtée. */
-  function rejouer(id: string, heure: number): void {
+  /** Une nouvelle partie, sur cette face, avec les mêmes, aux mêmes places : chacun reçoit l'état complet de la room qui repart. */
+  function repartir(face: Face, heure: number): void {
     const e = etat();
-    if (!estLHote(id) || e.phase !== 'fin') return;
     journal = [
-      ouverture(heure, 'B'),
+      ouverture(heure, face),
       ...e.joueurs.flatMap((j): EvenementDePartie[] => [
         { genre: 'arrivee', a: heure, id: j.id, pochette: j.pochette },
         ...(j.connecte ? [] : [{ genre: 'deconnexion' as const, a: heure, id: j.id }]),
@@ -161,6 +168,12 @@ export function ouvrirUneRoom(
     enCours = undefined;
     publies = publier(journal).length;
     for (const [qui, envoyer] of branches) envoyer(etatComplet(qui, heure));
+  }
+
+  /** « Rejouer la face B » : la playlist reprend où elle s'est arrêtée. */
+  function rejouer(id: string, heure: number): void {
+    if (!estLHote(id) || etat().phase !== 'fin') return;
+    repartir('B', heure);
   }
 
   /** La réponse se révèle, à cet instant : à la fin de l'extrait, ou dès que le premier a tout trouvé. */
@@ -194,7 +207,9 @@ export function ouvrirUneRoom(
 
   return {
     code,
-    playlist,
+    get playlist() {
+      return playlist;
+    },
     ouverteA: heure,
     get journal() {
       return journal;
@@ -267,6 +282,9 @@ export function ouvrirUneRoom(
         }
         case 'rejouer':
           return rejouer(id, heure);
+        case 'changerDePlaylist':
+          // Il faut lire la nouvelle playlist d'abord : c'est le serveur qui la donne, par `changerDePlaylist`.
+          return;
         case 'quitter':
           branches.delete(id);
           ajouter({ genre: 'depart', a: heure, id });
@@ -284,6 +302,15 @@ export function ouvrirUneRoom(
           // On ne crée ni ne rejoint une room de l'intérieur d'une autre ; l'heure, la musique et les comptes ne sont pas l'affaire d'une room.
           return;
       }
+    },
+    changerDePlaylist(id, lien, nouvelles, heure) {
+      activite = heure;
+      avancer(heure);
+      if (!branches.has(id) || !estLHote(id)) return;
+      playlist = lien;
+      pistes = nouvelles;
+      prochaine = 0;
+      repartir('A', heure);
     },
     avancer,
   };

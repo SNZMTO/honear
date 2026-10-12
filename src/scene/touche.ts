@@ -54,13 +54,6 @@ const { socle: S, puits: P, capuchon: K } = TOUCHE;
 export const calquesDeLaTouche = (nom: Touche['nom']) =>
   ({ capuchon: `${nom}/capuchon`, ombreAuRepos: `${nom}/capuchon/ombre-repos`, ombreEnfoncee: `${nom}/capuchon/ombre-enfoncee` }) as const;
 
-/** Vrai si cette touche dessinée est une principale (celle qui fait avancer l'écran) : son capuchon a la teinte des principales. */
-export function estPrincipale(touche: Calque): boolean {
-  const nom = calquesDeLaTouche(touche.nom as Touche['nom']).capuchon;
-  const capuchon = touche.contenu.find((d): d is Calque => d.genre === 'calque' && d.nom === nom);
-  return capuchon?.contenu.some((d) => d.genre === 'peinture' && d.facettes.some((f) => f.teinte === FORMES_DES_TOUCHES.principale.teinte)) ?? false;
-}
-
 /** Un rectangle arrondi autour d'un point du meuble. */
 const autourDe = (centre: Vec2, largeur: number, profondeur: number, rayon: number, pans: number): Vec2[] =>
   contourDeBoite({ x: centre[0] - largeur / 2, y: centre[1] - profondeur / 2, largeur, profondeur, rayon, pansParCoin: pans });

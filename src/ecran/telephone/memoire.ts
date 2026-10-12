@@ -50,6 +50,8 @@ export type Preparation =
       readonly choisi: ChoixDeLAvatar;
       /** Combien de fois on a tiré au sort : chaque tirage a sa graine. */
       readonly tirages: number;
+      /** Vrai si l'on a touché « C'est moi » sans avoir écrit son nom : l'écran le réclame. */
+      readonly sansNom?: boolean;
     }
   | { readonly ecran: 'bac'; readonly pochette: Pochette; readonly cran: CranDuBac; readonly bac: BacEnCours }
   | {
@@ -186,11 +188,12 @@ export interface Preparatifs extends ReglagesDeLaPlatine {
   /** La graine des pochettes tirées au sort sur ce téléphone. */
   readonly graine: number;
   /**
-   * Un clavier qui tape tout seul (celui du prototype) : le code d'une room, ou une réponse à la piste de ce numéro, sur cette face,
-   * quand on en a déjà tapé tant ; rien, on n'a plus rien à dire. Sans lui, c'est le clavier du téléphone qui tape.
+   * Un clavier qui tape tout seul (celui du prototype) : le code d'une room, son nom d'artiste, ou une réponse à la piste de ce
+   * numéro, sur cette face, quand on en a déjà tapé tant ; rien, on n'a plus rien à dire. Sans lui, c'est le clavier du téléphone qui tape.
    */
   readonly clavier?: {
     readonly code: () => string;
+    readonly nom: () => string;
     readonly reponse: (piste: { readonly face: Face; readonly numero: number }, deja: number) => string | undefined;
   };
 }
@@ -210,6 +213,8 @@ export type Toucher =
   | { readonly genre: 'allumer' | 'lancer' | 'rejouer' | 'taper' }
   /** Quitter la partie : on revient à l'accueil, la room oubliée. */
   | { readonly genre: 'quitter' }
+  /** L'hôte, dans la room : ouvrir le bac pour changer de playlist, ou le refermer sans en changer. */
+  | { readonly genre: 'autrePlaylist' | 'fermerLeBac' }
   | { readonly genre: 'toucherLEtiquette'; readonly rang: number }
   | { readonly genre: 'tournerLeBouton'; readonly bouton: 'pistes' | 'extrait' | 'mode' }
   | { readonly genre: 'basculerLeSon' }
@@ -248,8 +253,14 @@ export interface Suite {
 /** La pochette tirée au sort pour la n-ième fois sur ce téléphone. */
 const pochetteTiree = (p: Preparatifs, tirages: number): Pochette => pochetteAuHasard(hasard(p.graine + tirages).suivant, p.listes);
 
-/** La pochette qu'on retrouve en arrivant : celle qu'on avait faite, sinon la première tirée au sort. */
-const pochetteDeDepart = (m: Memoire, p: Preparatifs): Pochette => m.pochette ?? pochetteTiree(p, 0);
+/**
+ * La pochette qu'on retrouve en arrivant : celle qu'on avait faite, sinon la première tirée au sort. Son nom, seulement s'il est à
+ * soi : un nom tiré au sort (« DJ Raclette ») ne dit pas qui joue, on écrit le sien.
+ */
+function pochetteDeDepart(m: Memoire, p: Preparatifs): Pochette {
+  const pochette = m.pochette ?? pochetteTiree(p, 0);
+  return nomAMoi(pochette.artiste, p) ? pochette : { ...pochette, artiste: '' };
+}
 
 /** La pochette qu'on porte dans la room, telle que tous la voient : la dernière qu'on y a faite. */
 function pochetteDansLaRoom(room: RoomConnue): Pochette | undefined {
@@ -370,12 +381,20 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
         return p.ecran === 'bac'
           ? { ...m, preparation: { ...p, bac: { ...p.bac, enAttente: undefined, importee: undefined, choisie: undefined, refus: n.raison } } }
           : m;
-      if (n.raison === 'tropCourt')
+      if (n.raison === 'tropCourt') {
+        // La playlist que l'hôte a prise dans la room est trop courte pour la face : il revient au bac, qui le dit.
+        const sienne = m.room !== undefined ? pochetteDansLaRoom(m.room) : undefined;
         return {
           ...m,
           refus: n.raison,
-          preparation: p.ecran === 'reglages' ? { ecran: 'bac', pochette: p.pochette, cran: 'pretes', bac: { ...p.bac, refus: 'tropCourt' } } : p,
+          preparation:
+            p.ecran === 'reglages'
+              ? { ecran: 'bac', pochette: p.pochette, cran: 'pretes', bac: { ...p.bac, refus: 'tropCourt' } }
+              : sienne !== undefined && p.ecran === 'accueil'
+                ? { ecran: 'bac', pochette: sienne, cran: 'pretes', bac: { ...BAC_VIDE, refus: 'tropCourt' } }
+                : p,
         };
+      }
       // Un code inconnu, une room pleine : on revient à la saisie du code, avec ce qu'on avait tapé.
       const code = p.ecran === 'pochette' && p.venue.genre === 'rejoindre' ? p.venue.code : '';
       return { ...m, room: undefined, reprise: undefined, refus: n.raison, preparation: { ecran: 'saisie', tape: m.reprise?.code ?? code } };
@@ -475,8 +494,7 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
     case 'auHasard': {
       if (prep.ecran !== 'pochette') return rien;
       // Le nom qu'on a tapé est à soi : le hasard tire tout le reste.
-      const tiree = pochetteTiree(p, prep.tirages + 1);
-      const pochette = nomAMoi(prep.pochette.artiste, p) ? { ...tiree, artiste: prep.pochette.artiste.trim() } : tiree;
+      const pochette = { ...pochetteTiree(p, prep.tirages + 1), artiste: prep.pochette.artiste.trim() };
       return seul({ ...m, preparation: { ...prep, pochette, tirages: prep.tirages + 1 } });
     }
     case 'maPochette': {
@@ -491,8 +509,8 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
     case 'laisserLaPochette':
       return prep.ecran === 'pochette' && prep.venue.genre === 'retoucher' ? seul({ ...m, preparation: { ecran: 'accueil' } }) : rien;
     case 'taperLeNom':
-      // C'est le clavier du téléphone qui tape : le champ posé sur l'étiquette s'en charge.
-      return rien;
+      // C'est le clavier du téléphone qui tape : le champ posé sur l'étiquette s'en charge ; celui du prototype tape tout seul.
+      return prep.ecran === 'pochette' && p.clavier !== undefined ? seul(saisir(m, p.clavier.nom())) : rien;
     case 'revoirLesTitres':
       return m.room !== undefined ? seul({ ...m, preparation: { ecran: 'titres' } }) : rien;
     case 'fermerLesTitres':
@@ -509,9 +527,10 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       });
     case 'cEstMoi': {
       if (prep.ecran !== 'pochette') return rien;
-      // Sans nom tapé, on garde celui que le hasard avait donné.
+      // Le nom est obligatoire : c'est lui qu'on lit au classement. Sans lui, l'écran le réclame.
       const nom = prep.pochette.artiste.trim();
-      const pochette = nom !== '' ? { ...prep.pochette, artiste: nom } : { ...prep.pochette, artiste: pochetteTiree(p, prep.tirages).artiste };
+      if (nom === '') return seul({ ...m, preparation: { ...prep, sansNom: true } });
+      const pochette = { ...prep.pochette, artiste: nom };
       // Refaite : la room la voit changer, le compte la garde ; on revient où l'on était.
       if (prep.venue.genre === 'retoucher') {
         const dire = m.room !== undefined || m.compte !== undefined;
@@ -577,6 +596,9 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       const choisie = prep.bac.choisie ?? (prep.cran === 'chercher' ? prep.bac.resultats?.[0] : undefined);
       if (choisie === undefined && p.chercher) return rien;
       const playlist = choisie?.lien ?? p.playlist;
+      // Dans la room, l'hôte change de playlist : la room repart dessus, réglée comme elle l'était ; le serveur dira si elle est trop courte.
+      if (m.room !== undefined)
+        return { memoire: { ...m, refus: undefined, preparation: { ecran: 'accueil' } }, actions: [{ genre: 'changerDePlaylist', playlist }] };
       return seul({
         ...m,
         refus: undefined,
@@ -611,6 +633,14 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       return { memoire: m, actions: [{ genre: 'lancer' }] };
     case 'rejouer':
       return { memoire: m, actions: [{ genre: 'rejouer' }] };
+    case 'autrePlaylist': {
+      const room = m.room;
+      if (room === undefined || partieA(room.journal, Infinity).hote !== room.toi) return rien;
+      const pochette = pochetteDansLaRoom(room) ?? pochetteDeDepart(m, p);
+      return seul({ ...m, refus: undefined, preparation: { ecran: 'bac', pochette, cran: 'pretes', bac: BAC_VIDE } });
+    }
+    case 'fermerLeBac':
+      return prep.ecran === 'bac' ? seul({ ...m, refus: undefined, preparation: { ecran: 'accueil' } }) : rien;
     case 'quitter':
       if (m.room === undefined) return rien;
       return {
@@ -744,7 +774,10 @@ export function clavierOuvert(m: Memoire, ouvert: boolean, dessus?: number): Mem
 export function saisir(m: Memoire, texte: string): Memoire {
   const prep = m.preparation;
   // Le nom d'artiste, sur l'étiquette de « Fais ta pochette » : avant la room, ou dedans, quand on la refait.
-  if (prep.ecran === 'pochette') return { ...m, preparation: { ...prep, pochette: { ...prep.pochette, artiste: nomTape(texte) } } };
+  if (prep.ecran === 'pochette') {
+    const { sansNom: _reclame, ...reste } = prep;
+    return { ...m, preparation: { ...reste, pochette: { ...prep.pochette, artiste: nomTape(texte) } } };
+  }
   if (m.room === undefined && prep.ecran === 'saisie') {
     const lettres = [...texte.toUpperCase()].filter((l) => PARTIE.code.lettres.includes(l)).slice(0, PARTIE.code.longueur);
     return { ...m, refus: undefined, preparation: { ...prep, tape: lettres.join('') } };

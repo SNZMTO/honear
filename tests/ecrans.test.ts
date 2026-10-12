@@ -116,7 +116,7 @@ test('l’hôte choisit le mode au sélecteur : Libre ou 4 choix, chacun son bar
     assert.ok(toutCeQuOnLit(fichier).includes(TEXTES.partie.bareme[cle] ?? '?'), fichier);
 });
 
-test('une piste avec un feat : l’étiquette porte les trois pastilles, et l’éventail le F de qui l’a trouvé', () => {
+test('une piste avec un feat : l’étiquette porte les trois pastilles, et le classement le F de qui l’a trouvé', () => {
   const lu = textesDe('libre-feat').map((t) => t.contenu);
   for (const nom of [TEXTES.partie.artiste, TEXTES.partie.titre, TEXTES.partie.feat]) assert.ok(lu.includes(nom), nom);
   assert.ok(lu.includes(TEXTES.partie.aTrouveLeFeat));
