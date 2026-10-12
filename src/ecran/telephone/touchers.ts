@@ -110,6 +110,23 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
       return de({ genre: 'compte' }, textes.compte.touche);
     case 'etiquette-email':
       return de({ genre: 'taperLAdresse' }, textes.compte.adresse);
+    case 'etiquette-mot-de-passe':
+      return de(
+        { genre: 'taperLeMotDePasse' },
+        ecran.genre === 'compte' && ecran.compte.etape === 'nouveauMotDePasse'
+          ? textes.compte.motDePasse.nouveau
+          : textes.compte.motDePasse.etiquette,
+      );
+    case 'touche-avec-mot-de-passe':
+      return de({ genre: 'avecUnMotDePasse' }, textes.compte.avecUnMotDePasse);
+    case 'touche-entrer-mot-de-passe':
+      return de({ genre: 'entrerAvecLeMotDePasse' }, textes.compte.entrer);
+    case 'touche-oublie':
+      return de({ genre: 'motDePasseOublie' }, textes.compte.motDePasse.oublie);
+    case 'touche-choisir-mot-de-passe':
+      return de({ genre: 'nouveauMotDePasse' }, textes.compte.motDePasse.touche);
+    case 'touche-garder-mot-de-passe':
+      return de({ genre: 'garderLeMotDePasse' }, textes.compte.motDePasse.garder);
     case 'touche-envoyer':
       return de({ genre: 'envoyerLeLien' }, textes.compte.envoyer);
     case 'touche-autre-adresse':
