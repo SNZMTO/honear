@@ -6,3 +6,6 @@ dist/
 comptes.json*
 .env
 *.env
+
+# Les réglages locaux de Claude Code (les permissions de cette machine)
+.claude/settings.local.json
