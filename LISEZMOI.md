@@ -836,7 +836,9 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   crans numérotés ; le nom du mode choisi s'écrit dessous.
 - **Les playlists** : jouées dans un ordre tiré au hasard à l'ouverture de la room (`serveur/ordre.ts`). « Mes playlists » (une pochette personnalisée en kraft, au premier rang du bac, et le cran
   « La mienne ») garde sur l'appareil les trois dernières importées. L'intercalaire du genre choisi sort du bac ; le fond de la
-  caisse est vert.
+  caisse est vert. Intercalaires et disques dépassent moins de la caisse (78 et 72 px) ; au téléphone, le regard sur le bac
+  ne bouge pas (`auDessus`).
+- **La saisie du code** a sa touche « Retour », sous « On rejoint », qui ramène à l'accueil (`laisserLeCode`).
 - **L'ampli et la saisie** : les cadrans comptent les titres de la face et les secondes de l'extrait ; le volume va de 0 à 10. Le
   curseur de ce qu'on tape clignote, et attend au début d'une étiquette vide. Les touches sont un peu plus grandes.
 - **Les versions** : la page porte sa version (l'empreinte de son contenu, `META_DE_LA_VERSION`) et la donne en se branchant ;

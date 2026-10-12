@@ -123,6 +123,8 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
       return de({ genre: 'taperLeCode' }, textes.partie.saisie);
     case 'touche-rejoindre':
       return de({ genre: 'entrer' }, textes.partie.rejoindre);
+    case 'touche-laisser-code':
+      return de({ genre: 'laisserLeCode' }, textes.partie.retour);
     case 'touche-choix-tete':
       return de({ genre: 'ouvrirLeChoix', choix: 'tete' }, P.choix.tete);
     case 'touche-choix-dessus':

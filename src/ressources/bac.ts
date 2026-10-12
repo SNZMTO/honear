@@ -38,7 +38,7 @@ export const BAC = {
    * Tous penchent en arrière de tant de degrés.
    */
   rangement: { avant: 7, pas: 10.5, penche: 12 },
-  pochette: { largeur: 312, hauteur: 92, epaisseur: 3, chanfrein: 1.1, coin: 3 },
+  pochette: { largeur: 312, hauteur: 72, epaisseur: 3, chanfrein: 1.1, coin: 3 },
 
   /**
    * Un intercalaire : un carton un peu plus haut qu'une pochette, avec un onglet sur son bord du haut. Les onglets de trois
@@ -47,7 +47,7 @@ export const BAC = {
    */
   intercalaire: {
     largeur: 318,
-    hauteur: 98,
+    hauteur: 78,
     epaisseur: 2,
     chanfrein: 1,
     coin: 3,

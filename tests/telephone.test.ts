@@ -31,7 +31,7 @@ import { REPONSE_MASQUEE, type Action, type Nouvelle } from '../src/regles/messa
 import { hitParade } from '../src/regles/partie';
 import type { Pochette } from '../src/ressources/pochettes';
 import { TEXTES } from '../src/ressources/textes.fr';
-import { vueDeLAccueil, vueDuHitParade, vueDuSalon } from '../src/scene/telephone/ecrans';
+import { vueDeLAccueil, vueDeLaSaisie, vueDuHitParade, vueDuSalon } from '../src/scene/telephone/ecrans';
 import { demarrerLeServeur } from '../src/serveur/serveur';
 import { ENCRIER } from './planche';
 import { lOrdreDeLaPlaylist } from '../src/serveur/ordre';
@@ -293,4 +293,19 @@ test('au clavier du téléphone : le code s’écrit en capitales sans les lettr
   // Rechargé en pleine partie : il revient avec son jeton.
   const reprise = { code: 'AENV', jeton: 'secret', pochette };
   assert.deepEqual(revenir(memoireDeDepart(p, { reprise, pochette })), { genre: 'rejoindre', code: 'AENV', pochette, jeton: 'secret' });
+});
+
+test('à la saisie du code, « Retour » ramène à l’accueil, même après un code refusé', () => {
+  const p = preparatifs('libre');
+  const m = toucher(memoireDeDepart(p, {}), { genre: 'code' }, 0, p).memoire;
+  const ecran = ecranDuTelephone(m, 0, p, TEXTES);
+  const touches = vueDeLaSaisie(A, '').objets.flatMap((o) => {
+    const chose = choseATouche(o.nom as Parameters<typeof choseATouche>[0], ecran, TEXTES);
+    return chose !== undefined ? [chose.toucher.genre] : [];
+  });
+  assert.deepEqual(touches, ['taperLeCode', 'entrer', 'laisserLeCode']);
+  const refuse = recevoir(m, { genre: 'refus', heure: 0, raison: 'codeInconnu' });
+  assert.equal(refuse.preparation.ecran, 'saisie');
+  const revenu = toucher(refuse, { genre: 'laisserLeCode' }, 0, p);
+  assert.deepEqual([revenu.memoire.preparation, revenu.memoire.refus, revenu.actions], [{ ecran: 'accueil' }, undefined, []]);
 });
