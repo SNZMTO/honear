@@ -867,6 +867,13 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   changeait de taille fermait le clavier, et le champ ne tapait plus.
 - **L'ampli et la saisie** : les cadrans comptent les titres de la face et les secondes de l'extrait ; le volume va de 0 à 10. Le
   curseur de ce qu'on tape clignote, et attend au début d'une étiquette vide. Les touches sont un peu plus grandes.
+- **Les saisons** : un thème de quelques jours, tant que `SAISON` le dit (`src/ressources/saison.ts`). Halloween, en grosses pièces
+  low-poly éclairées par la lampe (`src/scene/saison/`, et trois formes : `ellipsoide.ts`, arrondi pour la citrouille, `tige.ts`,
+  `os.ts`) : une grande toile dans un coin du haut et son araignée ; une citrouille ronde et taillée. Sur ordinateur, la plus grosse
+  qui tient, là où rien n'est écrit, plus une main de squelette agrippée en haut à gauche et une chauve-souris qui vole au-dessus de
+  la platine. Au téléphone, seulement la toile, et la citrouille dans un coin du bas, sous les touches, là où son visage se voit le
+  mieux. Rien ne se pose sur un texte ni sur une touche (`placement.ts`) ; la flamme vacille, la chauve-souris bat des ailes,
+  l'araignée monte et descend. Pour l'enlever : `SAISON = undefined`.
 - **Les versions** : la page porte sa version (l'empreinte de son contenu, `META_DE_LA_VERSION`) et la donne en se branchant ;
   une page restée ouverte quand le site a changé est priée de se recharger (code 4001), une fois par version. La largeur du
   cadre se mesure exacte, pas arrondie, pour que les toiles tombent sur les px de l'écran.

@@ -41,6 +41,8 @@ import { decorDeLaPiste } from '../../scene/telephone/meuble';
 import { dessinerLeClassement, lignesDuClassement } from '../../scene/classement';
 import { classementSousLeBac, meubleAutour, rangerSousLeDisque, regardPourLaFenetre } from '../../scene/telephone/grand';
 import { echellesDeLAmpli } from '../../scene/telephone/meuble';
+import { decorDeLaSaison, DECOR_QUI_BOUGE, reglerLeDecorDeLaSaison } from '../../scene/saison';
+import { kraftAuRepos } from '../../scene/telephone/kraft';
 import { toucheDeLHote, toucheQuitter } from '../../scene/telephone/quitter';
 import { angleDuVolume, boutonDuVolume, cranDuVolume, INDEX_DU_VOLUME, type PlaceDuVolume } from '../../scene/telephone/volume';
 import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
@@ -167,6 +169,8 @@ interface Montee {
   readonly touches: ReadonlyMap<NomDeCalque, Calque>;
   /** Les curseurs de ce qu'on y tape : ils clignotent. */
   readonly curseurs: readonly NomDeCalque[];
+  /** Ce qui bouge du décor de saison qu'on y a posé : des chauves-souris qui battent des ailes, un fantôme qui flotte. */
+  readonly babioles: readonly NomDeCalque[];
 }
 
 /** La vue d'un écran posé sur le meuble. */
@@ -565,9 +569,10 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     plan.suivreLeCadre();
     const boutons = indexDesBoutons(arbre);
     const curseurs = calquesNommes(arbre, CURSEUR);
+    const babioles = calquesNommes(arbre, DECOR_QUI_BOUGE);
     const montage = monter(arbre, {
       etendue: regard,
-      reglables: new Set([...boutons.map((b) => b.nom), ...curseurs]),
+      reglables: new Set([...boutons.map((b) => b.nom), ...curseurs, ...babioles]),
       remplacables: new Set(touches.keys()),
       definition: d,
       mesurer: a.encrier.largeur,
@@ -576,11 +581,11 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     plan.element.append(montage.element);
     montage.regarder(regard.origine);
     faireTourner(montage, boutons);
-    if (fondre && fondreSur(dans, plan.element, avant)) return { cle, plan, montage, touches, curseurs };
+    if (fondre && fondreSur(dans, plan.element, avant)) return { cle, plan, montage, touches, curseurs, babioles };
     if (dans === scene) finirLeFondu();
     avant?.montage.demonter();
     vider(dans).append(plan.element);
-    return { cle, plan, montage, touches, curseurs };
+    return { cle, plan, montage, touches, curseurs, babioles };
   }
 
   /**
@@ -634,6 +639,32 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
         m.montage.regler(m.curseurs.map((nom) => opacite(nom, allume ? 1 : 0)));
       } catch {
         // Un montage qui s'en va : rien à faire clignoter.
+      }
+    }
+  }
+
+  /**
+   * Les touches du coin, telles qu'elles se posent dans ce regard quand on est dans une room (« Quitter », et celle de l'hôte), sous
+   * l'encoche s'il y en a une : le décor de saison ne va pas dessous.
+   */
+  function touchesDuCoin(r: Regard): Calque[] {
+    const room = memoire.room;
+    if (room === undefined) return [];
+    const sur = bords().sur * r.largeur;
+    const hote = partieA(room.journal, Infinity).hote === room.toi;
+    return [toucheQuitter(a, r, sur), ...(hote ? [toucheDeLHote(a, r, memoire.preparation.ecran === 'bac', sur)] : [])];
+  }
+
+  /** Ce qui bouge du décor de saison bouge, à chaque image (rien en version sobre). */
+  function animerLeDecor(): void {
+    if (o.options.sobre) return;
+    const t = o.horloge.maintenant();
+    for (const m of [ecranMonte, posees]) {
+      if (m === undefined || m.babioles.length === 0) continue;
+      try {
+        m.montage.regler(reglerLeDecorDeLaSaison(m.babioles, t));
+      } catch {
+        // Un montage qui s'en va : rien à faire bouger.
       }
     }
   }
@@ -901,11 +932,13 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const touches = new Map(vue.objets.filter((objet) => objet.nom.startsWith('touche-')).map((objet) => [objet.nom, objet] as const));
     // Un autre écran se fond sur l'ancien ; le même, qui change (une lettre tapée, un cran tourné), se repose tel quel.
     const fondre = e.genre !== genre;
+    // Le décor de saison, s'il y en a un : sous ce que l'écran montre, ou par-dessus, là où rien ne se tient (ni les touches du coin).
+    const saison = decorDeLaSaison(regard, [...objets, ...touchesDuCoin(regard)], a.encrier.largeur);
     ecranMonte = monterDans(
       scene,
       ecranMonte,
       cle,
-      dessinerLeMeuble({ regard, densite: DENSITE, objets }),
+      dessinerLeMeuble({ regard, densite: DENSITE, objets: [...saison.dessous, ...objets, ...saison.dessus] }),
       regard,
       definition(regard),
       touches,
@@ -975,7 +1008,14 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       ...(p !== undefined ? rangerSousLeDisque(autourDuTelephone, SUR_LA_PLATINE, p, a.encrier.largeur) : autourDuTelephone),
       ...(sousLeBac !== undefined ? dessinerLeClassement(lignesDeLaPiste(a.textes, e.autour), sousLeBac, regard, a.textes, a.encrier.largeur) : []),
     ];
-    posees = monterDans(autour, posees, cle, calque('regard-autour', objets), regard, d, new Map());
+    // Le décor de saison : pendant la piste, le regard glisse sous ce qu'on pose ; rien de posé sur le bois, loin du meuble et de la kraft.
+    const saison = decorDeLaSaison(
+      regard,
+      [...objets, ...meubleAutour(a, [], regard), ...kraftAuRepos(a), ...touchesDuCoin(regard)],
+      a.encrier.largeur,
+      false,
+    );
+    posees = monterDans(autour, posees, cle, calque('regard-autour', [...saison.dessous, ...objets, ...saison.dessus]), regard, d, new Map());
     poserLesZones(objets, regard, e);
   }
 
@@ -1209,6 +1249,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     poserLeVolume();
     tournerLesBoutons();
     clignoter();
+    animerLeDecor();
     if (e.genre !== genre) {
       genre = e.genre;
       o.enChangeant?.(genre);

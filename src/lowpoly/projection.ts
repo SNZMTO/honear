@@ -30,6 +30,9 @@ export const projeter = (p: Vec3): Vec2 => surLEcran([p[0], p[1]], REDRESSEMENT 
  */
 export const hauteurPour = (pxVisibles: number): number => pxVisibles / REDRESSEMENT;
 
+/** La profondeur d'un point de l'espace, comptée vers l'œil : plus elle est grande, plus il est près. Elle range ce qui se recouvre. */
+export const versLOeil = (p: Vec3): number => scalaire3(p, VERS_L_OEIL);
+
 /** Vrai si une facette de cette normale est tournée vers l'œil. */
 export const estVisible = (normale: Vec3): boolean => scalaire3(normale, VERS_L_OEIL) > 1e-6;
 

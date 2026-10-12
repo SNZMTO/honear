@@ -30,6 +30,7 @@ export const LEXIQUE = {
   pastille: 'Une pastille de disquaire : un message court, ou un point marqué.',
   classement:
     'Le tableau des scores qu’on lit : une feuille crème où chacun a sa ligne, du premier au dernier (son rang, sa pochette en petit, son nom, ses points).',
+  babiole: 'Une décoration de saison, posée sur le meuble ou qui vole au-dessus : une citrouille, une toile, une chauve-souris.',
   kraft: 'La pochette en papier kraft du disque mystère, posée à côté de la platine : le disque en sort au décompte.',
   vignette: 'Ce qui tient lieu de vraie pochette dans les maquettes : une couleur et un motif, jamais la copie d’une vraie.',
 

@@ -11,7 +11,7 @@ import type { NomDeFini } from '../ressources/finis';
 import type { NomDeTeinte } from '../ressources/palette';
 import { tonDeFacette, type Nuance } from './ombrage';
 import { aireSignee, orienter, plusPetitAngle, type Polygone } from './polygones';
-import { estVisible, hauteurPour, projeter } from './projection';
+import { estVisible, hauteurPour, projeter, versLOeil } from './projection';
 import type { IndiceDeTon } from './tons';
 import { normaleDeNewell, plusPetitAngleDansLEspace, scalaire, tourner, type Vec2, type Vec3 } from './vecteurs';
 
@@ -82,6 +82,15 @@ export function peindre(maille: Maille, vue: Vue = VUE_DU_MEUBLE): FacettePeinte
     });
   }
   return peintes;
+}
+
+/**
+ * Des facettes qui se recouvrent à l'écran (une forme creusée, des morceaux qui se croisent), rangées du fond vers l'œil :
+ * dessinées dans cet ordre, les plus proches couvrent les autres.
+ */
+export function duFondVersLOeil(facettes: readonly Facette[]): Facette[] {
+  const profondeur = (f: Facette): number => versLOeil(f.sommets.reduce<Vec3>((s, p) => [s[0] + p[0], s[1] + p[1], s[2] + p[2]], [0, 0, 0]));
+  return [...facettes].sort((a, b) => profondeur(a) / a.sommets.length - profondeur(b) / b.sommets.length);
 }
 
 /** Une facette posée à plat à une hauteur donnée (en px visibles au-dessus du bois). */
