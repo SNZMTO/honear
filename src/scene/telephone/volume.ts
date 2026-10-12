@@ -30,15 +30,15 @@ export const angleDuVolume = (volume: number): number => AMPLI.volume.de + Math.
 export const INDEX_DU_VOLUME = 'bouton-volume/index/trait/tourne';
 
 /** Le bouton du volume, à ce volume (de 0 à 1), à sa place dans ce regard. Il s'appelle « bouton-volume ». */
-export function boutonDuVolume(a: Ecritoire, regard: Regard, volume: number, ou: PlaceDuVolume): Calque[] {
+export function boutonDuVolume(a: Ecritoire, regard: Regard, volume: number, ou: PlaceDuVolume, sousLEncoche = 0): Calque[] {
   const crans = CRANS_DU_VOLUME.map(() => '');
   const surLAmpliMeme = ou === 'ampli';
   const support = surLAmpliMeme ? DESSUS_DE_L_AMPLI : PLATINE.socle.epaisseur;
   // Sur la platine, à sa place sur le meuble ; au coin, à la même distance du bord droit du cadre, quelle que soit sa largeur.
   const [x, y] =
     ou === 'platine'
-      ? [SUR_LA_PLATINE.origine[0] + V.en[0], SUR_LA_PLATINE.origine[1] + V.en[1]]
-      : [regard.origine[0] + regard.largeur - (SUR_LA_PLATINE.largeur - V.en[0]), regard.origine[1] + V.en[1]];
+      ? [SUR_LA_PLATINE.origine[0] + V.en[0], SUR_LA_PLATINE.origine[1] + V.en[1] + sousLEncoche]
+      : [regard.origine[0] + regard.largeur - (SUR_LA_PLATINE.largeur - V.en[0]), regard.origine[1] + V.en[1] + sousLEncoche];
   const place: PlaceDeCommande = surLAmpliMeme
     ? { centre: surLAmpli(AMPLI.volume.centre), support, porteur: 'ampli' }
     : { centre: depuisLEcran([x, y], support), support, porteur: 'platine' };

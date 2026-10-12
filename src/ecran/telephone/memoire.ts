@@ -217,7 +217,8 @@ export type Toucher =
   | { readonly genre: 'autrePlaylist' | 'fermerLeBac' }
   | { readonly genre: 'toucherLEtiquette'; readonly rang: number }
   | { readonly genre: 'tournerLeBouton'; readonly bouton: 'pistes' | 'extrait' | 'mode' }
-  | { readonly genre: 'basculerLeSon' }
+  /** Un nom gravé autour de la manette, touché : ce mode-là. */
+  | { readonly genre: 'choisirLeMode'; readonly mode: CleDeMode }
   /** Aux « Prêtes à jouer », un thème touché : on cherche ses playlists, et la première sort du bac. */
   | { readonly genre: 'theme'; readonly cle: string; readonly recherche: string }
   /** Aux « Prêtes à jouer » : une des playlists du genre, tirée au sort. */
@@ -613,8 +614,8 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       }
       return seul({ ...m, preparation: { ...prep, [t.bouton]: suivant(REGLAGES[t.bouton].choix, prep[t.bouton]) } });
     }
-    case 'basculerLeSon':
-      return prep.ecran === 'reglages' && p.commandes ? seul({ ...m, preparation: { ...prep, son: prep.son === 'tous' ? 'hote' : 'tous' } }) : rien;
+    case 'choisirLeMode':
+      return prep.ecran === 'reglages' && p.commandes ? seul({ ...m, preparation: { ...prep, mode: t.mode } }) : rien;
     case 'ouvrir': {
       if (prep.ecran !== 'reglages') return rien;
       const { mode, pistes, extrait, son, pochette, playlist } = prep;

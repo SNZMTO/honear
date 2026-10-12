@@ -61,7 +61,11 @@ export function regardPourLaFenetre(proportion: number, ecran: Regard = SUR_LA_P
   const milieuDeLEcran = ecran.origine[0] + ecran.largeur / 2;
   const milieu = milieuDeLEcran + t * (MEUBLE.origine[0] + MEUBLE.largeur / 2 - milieuDeLEcran);
   const bas = ecran.origine[1] + ecran.hauteur;
-  return { origine: [milieu - largeur / 2, bas - hauteur], largeur, hauteur };
+  // Son haut reste celui de l'écran (au téléphone, le bord de la platine), et le bas descend d'autant : pas de bois au-dessus de la
+  // platine, que Safari prendrait pour la couleur de sa barre. Il ne s'en détache qu'à mesure qu'il s'ouvre sur le meuble entier.
+  const haut = ecran.origine[1] + rogne;
+  const tire = bas - hauteur;
+  return { origine: [milieu - largeur / 2, tire + (1 - t) * Math.max(0, haut - tire)], largeur, hauteur };
 }
 
 /**

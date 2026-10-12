@@ -49,7 +49,8 @@ export const LEXIQUE = {
   levier: 'La manette qui lève et baisse le bras.',
   bouton: 'Un bouton à crans gravés, qu’on tourne : un réglage. Son index dit le cran choisi.',
   cran: 'L’une des positions d’un réglage, dont une seule est choisie : gravée autour d’un bouton de la platine, ou touche d’un groupe de l’atelier.',
-  interrupteur: 'Un interrupteur à bascule : un réglage à deux positions.',
+  interrupteur:
+    'Un interrupteur à bascule : un réglage à deux positions ; ou à quatre, une manette, comme celle du mode (en haut, à gauche, à droite, en bas).',
   logo: 'L’étiquette de disque couleur miel, « Honear » écrit en arc.',
 
   // L'avatar.

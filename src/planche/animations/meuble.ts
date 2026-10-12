@@ -9,7 +9,7 @@ import { codeDePartie, partieA } from '../../regles/partie';
 import { AMPLI } from '../../ressources/ampli';
 import { GESTES, MATIERES } from '../../ressources/mouvement';
 import { PLATINE } from '../../ressources/platine';
-import { SITE } from '../../ressources/reglages';
+import { REGLAGES, SITE } from '../../ressources/reglages';
 import { CRANS_DU_VOLUME, dessinerLAmpli, reglerLAmpli } from '../../scene/ampli';
 import { dessinerLeBac, reglerUnePlaylist } from '../../scene/bac';
 import { role, vers, type Geste } from '../../scene/gestes/geste';
@@ -126,23 +126,25 @@ function leVolume(a: Ecritoire): Animation<'volume'> {
 
 // ————— Les commandes de la platine —————
 
-/** On se ravise pendant que le son bascule : tant après qu'il est parti. */
-const EN_BASCULANT = 0.06;
+/** On se ravise pendant que le bouton tourne : tant après qu'il est parti. */
+const EN_TOURNANT = 0.06;
 
-function lesCommandes(a: Ecritoire): Animation<'angle' | 'son'> {
-  const crans = PLATINE.commandes.boutons.mode.crans;
-  const son = basculer(GESTES.selecteur.cran * 2, true);
-  const geste: Geste<'angle' | 'son'> = { roles: { angle: deCranEnCran(crans, 0, 1, 0).roles.angle, son } };
-  const cadre = partDe(R, 150, PLATINE.commandes.ligne - 80, 240, 110);
+function lesCommandes(a: Ecritoire): Animation<'angle'> {
+  const crans = PLATINE.commandes.boutons.pistes.crans;
+  const geste: Geste<'angle'> = { roles: { angle: deCranEnCran(crans, 0, 1, 0).roles.angle } };
+  const cadre = partDe(R, 110, PLATINE.commandes.ligne - 80, 240, 110);
   return {
     ...dite('commandes'),
     etendue: cadre,
-    scene: surSonBois(cadre, platineArretee(a, { mode: 0, son: 0 })),
+    scene: surSonBois(
+      cadre,
+      platineArretee(a, { mode: 0, reglages: { pistes: REGLAGES.pistes.choix[0] ?? REGLAGES.pistes.defaut, extrait: REGLAGES.extrait.defaut } }),
+    ),
     geste,
-    regler: (v) => [rotation('bouton-mode/index/trait/tourne', 0, v.angle), ...reglerLaBascule('son', v.son)],
+    regler: (v) => [rotation('bouton-pistes/index/trait/tourne', 0, v.angle)],
     regard: () => cadre,
-    interruption: { a: GESTES.selecteur.cran * 2 + EN_BASCULANT, ceQuiChange: INTERRUPTIONS.commandes },
-    interrompre: (t) => ({ roles: { angle: deCranEnCran(crans, 1, 0, t).roles.angle, son: basculer(t, false) } }),
+    interruption: { a: EN_TOURNANT, ceQuiChange: INTERRUPTIONS.commandes },
+    interrompre: (t) => ({ roles: { angle: deCranEnCran(crans, 1, 0, t).roles.angle } }),
     grossissement: 2,
   };
 }

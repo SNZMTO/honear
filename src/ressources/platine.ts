@@ -152,19 +152,16 @@ export const PLATINE = {
     course: 12,
   },
 
-  /** Les quatre commandes, alignées sur le bandeau avant : trois boutons à crans et un interrupteur. */
+  /**
+   * Les commandes, alignées sur le bandeau avant : deux boutons à crans (Titres, Secondes), et la manette du mode, une bascule qui
+   * se couche vers l'un des quatre modes gravés autour d'elle, en haut, à gauche, à droite et en bas.
+   */
   commandes: {
     ligne: 448,
-    /**
-     * Les boutons, de gauche à droite. Les crans sont des angles, 0° vers le fond du meuble.
-     * Le bouton de mode a cinq crans gravés : les modes inscrits occupent les premiers, les autres restent libres pour les modes à venir.
-     * Ses inscriptions, des mots et non des chiffres, prennent de la place à sa gauche : il se tient plus loin de son voisin.
-     * À sa droite, il laisse au cadre la place de s'arrêter quand le regard se pose sur la réponse (voir `AMPLEURS.regardSurLaReponse`).
-     */
+    /** Les boutons, de gauche à droite. Les crans sont des angles, 0° vers le fond du meuble. */
     boutons: {
       pistes: { x: 168, rayon: 14.5, crans: [-45, 0, 45] },
       extrait: { x: 244, rayon: 14.5, crans: [-45, 0, 45] },
-      mode: { x: 344, rayon: 18, crans: [-60, -40, -20, 0, 20, 40, 60] },
     },
     /** Ce que les boutons ont en commun : épaisseur, chanfrein, et leur index (de son pied à son bout, en parts du rayon ; largeur en px). */
     bouton: { epaisseur: 6, chanfrein: 1.7, index: { de: 0.26, a: 0.82, largeur: 2.6 } },
@@ -175,10 +172,17 @@ export const PLATINE = {
     /** En deçà de cet angle, un cran pointe vers le fond du meuble : son inscription se pose au-dessus de lui, centrée. */
     cranDuFond: 20,
 
+    /**
+     * La manette du mode, en bas à droite, là où le cadre s'arrête quand le regard se pose sur la réponse : ses noms sont alors tout
+     * entiers hors de lui (voir `AMPLEURS.regardSurLaReponse`).
+     */
     interrupteurs: {
-      son: { x: 440 },
+      mode: { x: 440 },
     },
-    /** Un interrupteur à bascule : un écrou moleté sur sa rondelle, et une bascule couchée vers la position choisie. */
+    /**
+     * Un interrupteur à bascule : un écrou moleté sur sa rondelle, et une bascule couchée vers la position choisie ; deux positions,
+     * à gauche et à droite, ou quatre (une manette), en haut, à gauche, à droite et en bas.
+     */
     interrupteur: {
       /** La rondelle, posée sur la laque : son rayon, son épaisseur. */
       rondelle: { rayon: 10.5, epaisseur: 0.2 },
@@ -198,8 +202,13 @@ export const PLATINE = {
         hauteur: 5.4,
         boule: { rayon: 4.2, chanfrein: 1, flanc: 0.45, plat: 0.5 },
       },
-      /** Distance entre l'axe et le bord le plus proche des inscriptions de ses deux positions. */
+      /** Distance entre l'axe et le bord le plus proche des inscriptions de ses positions ; en haut et en bas, celle de leur ligne de base. */
       inscription: 23,
+      /**
+       * La manette : la ligne de base des noms d'en haut et d'en bas ; et vers où elle se couche pour le mode de chaque cran (le plus
+       * court à droite, près du bord du socle ; le plus long en haut, où il a la place).
+       */
+      manette: { haut: 24, bas: 33, directions: ['droite', 'gauche', 'haut', 'bas'] },
     },
 
     /** Distance entre la ligne des commandes et la ligne de base de leurs titres. */

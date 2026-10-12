@@ -117,6 +117,12 @@ export interface OptionsDuTelephone {
    */
   readonly fenetre?: () => number;
   /**
+   * Ce que l'écran cache sur ses bords, en part de la largeur du cadre : en haut, l'encoche ou la Dynamic Island (`sur`) ; en bas,
+   * la barre de Safari ou le trait de l'iPhone (`sous`). Le jeu dessine jusqu'aux bords, mais n'y pose rien à toucher : la table
+   * continue sous la barre, et les petites touches du coin descendent sous l'encoche. Sans eux, aucun bord n'est caché.
+   */
+  readonly bords?: () => { readonly sur: number; readonly sous: number };
+  /**
    * Vrai quand la page a demandé le diagnostic (« ?diagnostic ») : ce que font le son, la fenêtre et le champ où l'on tape part au
    * serveur, qui l'écrit dans son journal. De quoi comprendre un navigateur qu'on n'a pas sous la main.
    */
@@ -323,7 +329,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   let prochaineQuestion = 0;
 
   let ecranMonte: Montee | undefined;
-  let piste: { readonly lanceeA: number; readonly ecran: EcranDeLaPiste; readonly proportion: number | undefined } | undefined;
+  let piste: { readonly lanceeA: number; readonly ecran: EcranDeLaPiste; readonly fenetre: string } | undefined;
   let posees: Montee | undefined;
   let genre: EcranDuTelephone['genre'] | undefined;
   /** Ce que fait chaque zone posée, par son rang, et le calque qu'elle touche. */
@@ -514,7 +520,14 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   /** La proportion de la fenêtre, à cette image ; rien : le cadre a celle du téléphone. */
   const proportion = (): number | undefined => o.fenetre?.();
   /** Le regard qui remplit la fenêtre, posé sur ce regard du téléphone. */
-  const dansLaFenetre = (r: Regard, p: number | undefined): Regard => (p !== undefined ? regardPourLaFenetre(p, r) : r);
+  const bords = (): { readonly sur: number; readonly sous: number } => o.bords?.() ?? { sur: 0, sous: 0 };
+  /** Le regard qui remplit la fenêtre : celui de la zone où l'on touche, prolongé sous elle jusqu'au bas de l'écran. */
+  const dansLaFenetre = (r: Regard, p: number | undefined): Regard => {
+    if (p === undefined) return r;
+    const regard = regardPourLaFenetre(p, r);
+    const sous = bords().sous * regard.largeur;
+    return sous > 0 ? { ...regard, hauteur: regard.hauteur + sous } : regard;
+  };
   /** Tout ce que le regard parcourt pendant une piste, dans la fenêtre : du regard sur la platine à celui arrêté sur le disque. */
   const parcouru = (p: number): Regard => {
     const [debut, fin] = [0, AMPLEURS.regardSurLaReponse].map((glisse) => dansLaFenetre(regardDeLaPiste({ regard: glisse }), p));
@@ -532,7 +545,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   const replacer = (images: readonly ImagePosee[], de: Regard, dans: Regard): ImagePosee[] =>
     images.map((i) => ({ ...i, centre: [i.centre[0] + de.origine[0] - dans.origine[0], i.centre[1] + de.origine[1] - dans.origine[1]] as const }));
   /** Ce qui fait un écran posé tel qu'il est : l'écran, la définition de ses toiles, et la proportion de la fenêtre. */
-  const cleDe = (e: EcranDuTelephone, p: number | undefined): string => JSON.stringify([e, definition(dansLaFenetre(SUR_LA_PLATINE, p)), p]);
+  const cleDe = (e: EcranDuTelephone, p: number | undefined): string =>
+    JSON.stringify([e, definition(dansLaFenetre(SUR_LA_PLATINE, p)), p, bords()]);
 
   /**
    * Monte une scène dans une couche, à la place de ce qu'elle montrait. Chaque touche y est un bloc à elle, qu'on repeint enfoncée :
@@ -815,9 +829,12 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   const noterLaFenetre = (): void =>
     noter?.(
       `fenêtre ${window.innerWidth}×${window.innerHeight}, cadre ${cadre.clientWidth}×${cadre.clientHeight}, ` +
-        `vue ${Math.round(vu?.width ?? 0)}×${Math.round(vu?.height ?? 0)} +${Math.round(vu?.offsetTop ?? 0)}, défilement ${window.scrollY}`,
+        `vue ${Math.round(vu?.width ?? 0)}×${Math.round(vu?.height ?? 0)} +${Math.round(vu?.offsetTop ?? 0)}, défilement ${window.scrollY}, ` +
+        `bords ${Math.round(bords().sur * cadre.clientWidth)} en haut, ${Math.round(bords().sous * cadre.clientWidth)} en bas, ` +
+        `seul sur l'écran ${String(window.matchMedia('(display-mode: standalone)').matches)}`,
     );
   window.addEventListener('resize', noterLaFenetre);
+  noterLaFenetre();
   /** Ce qu'on a tapé part : la réponse, le code, la recherche, le lien. */
   const validerLeChamp = (): void => {
     const suite = valider(memoire, heure(), o.preparatifs);
@@ -905,8 +922,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       ecranMonte = undefined;
     }
     const p = proportion();
+    const fenetre = JSON.stringify([p, bords()]);
     // Une autre piste, ou une fenêtre qui change de proportion : la scène se remonte.
-    if (piste?.lanceeA !== e.lanceeA || piste.proportion !== p) {
+    if (piste?.lanceeA !== e.lanceeA || piste.fenetre !== fenetre) {
       const nouvelle = piste?.lanceeA !== e.lanceeA;
       fermerLaPiste();
       const decor = decorDeLaPiste(a.textes, e.cran, e.numero);
@@ -921,7 +939,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
         ...(p !== undefined
           ? {
               fenetre: {
-                regardPour: (r: Regard) => regardPourLaFenetre(p, r),
+                regardPour: (r: Regard) => dansLaFenetre(r, p),
                 meuble: meubleAutour(a, [], parcouru(p), false, [aiguilleDesPistes, 0], echellesDeLAmpli(e.numero.sur, e.scene.piste?.duree)),
                 // L'aiguille de gauche dit où en est la face, celle de droite, l'extrait.
                 aiguilles: (s: PisteEnScene, t: number): readonly [number, number] => [
@@ -934,7 +952,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       });
       // La piste commence : sa scène apparaît, fondue sur le noir ; d'une piste à la suivante aussi.
       if (nouvelle) for (const couche of [scene, autour]) apparaitre(couche);
-      piste = { lanceeA: e.lanceeA, ecran, proportion: p };
+      piste = { lanceeA: e.lanceeA, ecran, fenetre };
     }
     piste.ecran.tenirLaFacture();
     const pose = piste.ecran.montrer(e.scene, t);
@@ -1034,19 +1052,21 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const enRoom = memoire.room !== undefined;
     const hote = memoire.room !== undefined && partieA(memoire.room.journal, Infinity).hote === memoire.room.toi;
     const bacOuvert = memoire.preparation.ecran === 'bac';
-    const cle = JSON.stringify([ou, r, d, enRoom, hote, bacOuvert]);
+    // Sous l'encoche, rien ne se touche : les petites touches du coin descendent d'autant.
+    const sur = bords().sur * r.largeur;
+    const cle = JSON.stringify([ou, r, d, enRoom, hote, bacOuvert, sur]);
     zoneDuVolume.setAttribute('aria-valuenow', String(Math.round(volume * POUR_CENT)));
     if (volumeMonte?.cle === cle) {
       volumeMonte.plan.suivreLeCadre();
       tournerLeVolume(volumeMonte.montage);
       return;
     }
-    const quitter = enRoom ? toucheQuitter(a, r) : undefined;
-    const deLHote = enRoom && hote ? toucheDeLHote(a, r, bacOuvert) : undefined;
+    const quitter = enRoom ? toucheQuitter(a, r, sur) : undefined;
+    const deLHote = enRoom && hote ? toucheDeLHote(a, r, bacOuvert, sur) : undefined;
     // Là où la page ne règle pas le volume (l'iPhone), pas de bouton : ce sont ceux du téléphone.
     const reglable = hautParleur.volumeReglable;
     zoneDuVolume.hidden = !reglable;
-    const objets = [...(reglable ? boutonDuVolume(a, r, volume, ou) : []), ...[quitter, deLHote].filter((c) => c !== undefined)];
+    const objets = [...(reglable ? boutonDuVolume(a, r, volume, ou, sur) : []), ...[quitter, deLHote].filter((c) => c !== undefined)];
     volumeMonte = monterDans(coucheDuVolume, volumeMonte, cle, calque('regard-volume', objets), r, d, new Map());
     tournerLeVolume(volumeMonte.montage);
     poserLaZoneDuCoin(zoneQuitter, quitter, r);

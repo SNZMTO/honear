@@ -854,6 +854,15 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   clavier) est remise en place ; plus de rebond. `?diagnostic` envoie au journal du serveur ce que font le son et la fenêtre
   (voir HEBERGEMENT.md). Le son saccadait sur iPhone : l'extrait n'est plus remis à sa place qu'au-delà de 0,6 s d'écart, et
   au plus une fois toutes les 5 s (`TELEPHONE.son`).
+- **Les commandes de la platine** : deux boutons, Titres et Secondes ; le bouton du mode et l'interrupteur du son s'en vont. À leur
+  place, en bas à droite, la manette du mode : elle se couche vers l'un des quatre modes gravés autour d'elle (First one en haut,
+  4 choix à gauche, Libre à droite, 1re note en bas ; `PLATINE.commandes.interrupteur.manette.directions`). On touche un nom pour
+  le prendre, ou la manette pour passer au suivant. Le son est joué par tous les téléphones.
+- **Bord à bord au téléphone** : le cadre prend tout l'écran (`100lvh`), sous l'encoche, la Dynamic Island et la barre de Safari ;
+  ce que les bords cachent (marges de sûreté, barre de Safari) est mesuré (`bords`) : le jeu y dessine (la platine en haut, la table
+  en bas) sans rien y poser à toucher, et les petites touches du coin descendent sous l'encoche. Le haut du regard reste le bord de
+  la platine (plus de bande de bois que Safari reprenait pour teinter sa barre). Posé sur l'écran d'accueil, la barre d'état est
+  transparente (`black-translucent`).
 - **Le plein écran au premier toucher** (Android) ne part plus que d'une touche, jamais d'une étiquette où l'on tape : la page qui
   changeait de taille fermait le clavier, et le champ ne tapait plus.
 - **L'ampli et la saisie** : les cadrans comptent les titres de la face et les secondes de l'extrait ; le volume va de 0 à 10. Le

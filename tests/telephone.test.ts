@@ -258,7 +258,7 @@ test('ce qu’on touche sur un écran est une touche qu’il montre, et chaque z
   assert.deepEqual(touchers(vueDuHitParade(A, hit.avant, hit.apres, false, true).objets, hit), [maPochette, maPochette]);
 });
 
-test('aux réglages, les commandes de la platine tournent : le bouton « Pistes » passe de cran en cran, le sélecteur de mode aussi, et la room s’ouvre réglée ainsi', () => {
+test('aux réglages, les commandes de la platine tournent : le bouton « Titres » passe de cran en cran, la manette de mode aussi, et la room s’ouvre réglée ainsi', () => {
   const p = { ...preparatifs('libre'), commandes: true, pistes: 15 };
   let m = memoireDeDepart(p, {});
   for (const t of [{ genre: 'poser' }, { genre: 'taperLeNom' }, { genre: 'cEstMoi' }, { genre: 'choisir' }] as const) m = toucher(m, t, 0, p).memoire;
@@ -270,12 +270,17 @@ test('aux réglages, les commandes de la platine tournent : le bouton « Pistes 
   assert.equal(reglages()?.pistes, 10, 'après le dernier cran, le premier');
   m = toucher(m, { genre: 'tournerLeBouton', bouton: 'mode' }, 0, p).memoire;
   assert.equal(reglages()?.mode, 'quatreChoix');
-  m = toucher(m, { genre: 'basculerLeSon' }, 0, p).memoire;
-  assert.equal(reglages()?.son, 'hote');
+  // Un nom gravé autour de la manette se touche : ce mode-là, d'un coup (« First one » est en haut).
+  const ecran = ecranDuTelephone(m, 0, p, TEXTES);
+  assert.deepEqual(choseATouche('interrupteur-mode/haut', ecran, TEXTES)?.toucher, { genre: 'choisirLeMode', mode: 'premierArrive' });
+  m = toucher(m, { genre: 'choisirLeMode', mode: 'premiereNote' }, 0, p).memoire;
+  assert.equal(reglages()?.mode, 'premiereNote');
+  m = toucher(m, { genre: 'choisirLeMode', mode: 'quatreChoix' }, 0, p).memoire;
   const { actions } = toucher(m, { genre: 'ouvrir' }, 0, p);
+  // Plus d'interrupteur du son : tous les téléphones jouent le son.
   assert.deepEqual(
     actions.map((a) => (a.genre === 'creer' ? [a.mode, a.pistes, a.son] : a.genre)),
-    [['quatreChoix', 10, 'hote']],
+    [['quatreChoix', 10, 'tous']],
   );
   // Réglées d'avance (la partie du prototype), elles ne tournent pas.
   const fige = toucher(m, { genre: 'tournerLeBouton', bouton: 'pistes' }, 0, { ...p, commandes: false });
