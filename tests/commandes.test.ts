@@ -35,7 +35,7 @@ test('l’index d’un bouton pointe le cran choisi, et le corps du bouton ne ch
 });
 
 test('un bouton refuse un cran qui n’existe pas ou qui n’est pas occupé, et plus d’inscriptions qu’il n’a de crans', () => {
-  assert.equal(C.boutons.mode.crans.length, 5, 'le bouton de mode a cinq crans gravés, pour les modes à venir');
+  assert.equal(C.boutons.mode.crans.length, 7, 'le bouton de mode a sept crans gravés : quatre modes, et de la place pour ceux à venir');
   assert.throws(
     () => bouton({ ...MODE, choisi: 2 }),
     /« mode » ne peut pas être sur le cran 2 : il n'a que 2 crans occupés/,
@@ -43,14 +43,14 @@ test('un bouton refuse un cran qui n’existe pas ou qui n’est pas occupé, et
   );
   assert.throws(() => bouton({ ...MODE, choisi: -1 }), /cran -1/);
   assert.throws(() => bouton({ ...MODE, choisi: 7 }), /cran 7/);
-  assert.throws(() => bouton({ ...MODE, crans: ['1', '2', '3', '4', '5', '6'] }), /n'a que 5 crans : 6 inscriptions/);
+  assert.throws(() => bouton({ ...MODE, crans: ['1', '2', '3', '4', '5', '6', '7', '8'] }), /n'a que 7 crans : 8 inscriptions/);
   assert.doesNotThrow(() => bouton({ ...MODE, crans: ['1', '2', '3', '4', '5'], choisi: 4 }));
 });
 
 test('les crans d’un bouton sont tous gravés dans le socle, avec une inscription par cran occupé et son titre', () => {
   const { gravures } = bouton(MODE);
   const [traits] = gravures;
-  assert.ok(traits?.genre === 'aplat' && traits.contours.length === 5 && traits.teinte === 'creme');
+  assert.ok(traits?.genre === 'aplat' && traits.contours.length === 7 && traits.teinte === 'creme');
   const ecrits = textes(gravures);
   assert.deepEqual(
     ecrits.map((t) => t.contenu),

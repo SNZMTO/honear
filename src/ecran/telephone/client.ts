@@ -10,7 +10,7 @@
 
 import type { NomDeCalque } from '../../lexique';
 import { couleur } from '../../lowpoly/tons';
-import type { Action, Brancher, Connexion } from '../../regles/messages';
+import type { Action, Brancher, Connexion, PlaylistTrouvee } from '../../regles/messages';
 import { avancementDeLExtrait, type Reponse } from '../../regles/piste';
 import { TELEPHONE } from '../../ressources/ecran';
 import { AMPLEURS, TOUCHES } from '../../ressources/mouvement';
@@ -38,6 +38,7 @@ import type { PisteEnScene } from '../../scene/piste/etat';
 import { regardDeLaPiste } from '../../scene/piste/regard';
 import { decorDeLaPiste } from '../../scene/telephone/meuble';
 import { meubleAutour, rangerSousLeDisque, regardPourLaFenetre } from '../../scene/telephone/grand';
+import { echellesDeLAmpli } from '../../scene/telephone/meuble';
 import { toucheQuitter } from '../../scene/telephone/quitter';
 import { angleDuVolume, boutonDuVolume, cranDuVolume, INDEX_DU_VOLUME, type PlaceDuVolume } from '../../scene/telephone/volume';
 import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
@@ -83,6 +84,8 @@ export interface AGarder {
   readonly pochette: Pochette | undefined;
   /** Le secret de la session du compte où joue ce téléphone, s'il y est entré. */
   readonly session: string | undefined;
+  /** « Mes playlists », importées sur cet appareil. */
+  readonly mesPlaylists: readonly PlaylistTrouvee[];
 }
 
 export interface OptionsDuTelephone {
@@ -149,6 +152,8 @@ interface Montee {
   readonly montage: Montage;
   /** Les touches qu'on y enfonce, telles qu'on les a dessinées : chacune est un bloc qu'on repeint. */
   readonly touches: ReadonlyMap<NomDeCalque, Calque>;
+  /** Les curseurs de ce qu'on y tape : ils clignotent. */
+  readonly curseurs: readonly NomDeCalque[];
 }
 
 /** La vue d'un écran posé sur le meuble. */
@@ -220,6 +225,20 @@ const RAPPROCHEMENTS = 3;
 const MOLETTE = 4;
 /** Plus près que ça de son angle, l'index y est. */
 const DEMI_DEGRE = 0.5;
+
+/** Le curseur d'un papier où l'on tape (« etiquette-reponse/curseur ») : il clignote. */
+const CURSEUR = /\/curseur$/;
+
+/** Les calques d'un arbre dont le nom répond à ce motif. */
+function calquesNommes(arbre: Calque, motif: RegExp): NomDeCalque[] {
+  const trouves: NomDeCalque[] = [];
+  const parcourir = (c: Calque): void => {
+    if (motif.test(c.nom)) trouves.push(c.nom);
+    for (const d of c.contenu) if (d.genre === 'calque') parcourir(d);
+  };
+  parcourir(arbre);
+  return trouves;
+}
 
 /** L'index d'un bouton rond (« bouton-pistes/index/trait/tourne ») : c'est lui qui tourne. */
 const INDEX_D_UN_BOUTON = /^bouton-[^/]+\/index\/trait\/tourne$/;
@@ -395,6 +414,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
         memoire.room !== undefined ? { code: memoire.room.code, jeton: memoire.room.jeton, ampli: memoire.ampliAllumeA !== undefined } : undefined,
       pochette: memoire.pochette,
       session: memoire.session,
+      mesPlaylists: memoire.mesPlaylists,
     };
     const ecrit = JSON.stringify(aGarder);
     if (ecrit !== garde) {
@@ -492,9 +512,10 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const plan = poserUnPlan(dans, regard);
     plan.suivreLeCadre();
     const boutons = indexDesBoutons(arbre);
+    const curseurs = calquesNommes(arbre, CURSEUR);
     const montage = monter(arbre, {
       etendue: regard,
-      reglables: new Set(boutons.map((b) => b.nom)),
+      reglables: new Set([...boutons.map((b) => b.nom), ...curseurs]),
       remplacables: new Set(touches.keys()),
       definition: d,
       mesurer: a.encrier.largeur,
@@ -503,11 +524,11 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     plan.element.append(montage.element);
     montage.regarder(regard.origine);
     faireTourner(montage, boutons);
-    if (fondre && fondreSur(dans, plan.element, avant)) return { cle, plan, montage, touches };
+    if (fondre && fondreSur(dans, plan.element, avant)) return { cle, plan, montage, touches, curseurs };
     if (dans === scene) finirLeFondu();
     avant?.montage.demonter();
     vider(dans).append(plan.element);
-    return { cle, plan, montage, touches };
+    return { cle, plan, montage, touches, curseurs };
   }
 
   /**
@@ -545,6 +566,24 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       anglesMontres.set(t.nom, angle);
       return x < 1;
     });
+  }
+
+  /**
+   * Les curseurs clignotent : allumés une demi-période, éteints la suivante (toujours allumés en version sobre). On ne règle que
+   * quand ils changent.
+   */
+  const curseursMontres = new WeakMap<Montage, boolean>();
+  function clignoter(): void {
+    const allume = o.options.sobre || Math.floor(o.horloge.maintenant() / TELEPHONE.curseur.demiPeriode) % 2 === 0;
+    for (const m of [ecranMonte, posees]) {
+      if (m === undefined || m.curseurs.length === 0 || curseursMontres.get(m.montage) === allume) continue;
+      curseursMontres.set(m.montage, allume);
+      try {
+        m.montage.regler(m.curseurs.map((nom) => opacite(nom, allume ? 1 : 0)));
+      } catch {
+        // Un montage qui s'en va : rien à faire clignoter.
+      }
+    }
   }
 
   /** Le fondu d'un écran à l'autre en cours, et ce qui reste à faire quand il finit : un autre écran qui arrive le termine net. */
@@ -802,7 +841,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
           ? {
               fenetre: {
                 regardPour: (r: Regard) => regardPourLaFenetre(p, r),
-                meuble: meubleAutour(a, [], parcouru(p), false, [aiguilleDesPistes, 0]),
+                meuble: meubleAutour(a, [], parcouru(p), false, [aiguilleDesPistes, 0], echellesDeLAmpli(e.numero.sur, e.scene.piste?.duree)),
                 // L'aiguille de gauche dit où en est la face, celle de droite, l'extrait.
                 aiguilles: (s: PisteEnScene, t: number): readonly [number, number] => [
                   aiguilleDesPistes,
@@ -1045,6 +1084,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     else montrerUnEcran(e);
     poserLeVolume();
     tournerLesBoutons();
+    clignoter();
     if (e.genre !== genre) {
       genre = e.genre;
       o.enChangeant?.(genre);

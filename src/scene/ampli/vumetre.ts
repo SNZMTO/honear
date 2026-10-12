@@ -107,7 +107,7 @@ export function dessinerUnVumetre(
   place: PlaceDuVumetre,
   canal: Canal,
   valeur: number,
-  inscriptions: { readonly sigle: string; readonly signes: SignesDeLEchelle },
+  inscriptions: { readonly sigle: string; readonly signes: SignesDeLEchelle; readonly nombres?: readonly string[] },
   densite: Densite,
 ): VumetreDessine {
   const coin = coinDeLaFenetre(place.position, canal);
@@ -124,22 +124,36 @@ export function dessinerUnVumetre(
   );
 
   // Les graduations : un trait par valeur de l'échelle, long pour celles qu'on écrit ; la zone rouge, une bande sous l'arc.
-  const traits = echelle.graduations.map((n, rang) => {
-    const angle = echelle.angles[rang] ?? 0;
-    const longueur = echelle.ecrits.includes(n as (typeof echelle.ecrits)[number]) ? G.longues : G.courtes;
+  // Une échelle de jeu : ses nombres à intervalles réguliers de la course de l'aiguille, une graduation courte entre deux.
+  const jeu = inscriptions.nombres !== undefined && inscriptions.nombres.length > 1 ? inscriptions.nombres : undefined;
+  const pas = jeu !== undefined ? 1 / (jeu.length - 1) : 0;
+  const graduations: readonly { readonly angle: number; readonly longue: boolean }[] =
+    jeu !== undefined
+      ? jeu.flatMap((_, k) => [
+          { angle: angleDeLAiguille(k * pas), longue: true },
+          ...(k < jeu.length - 1 ? [{ angle: angleDeLAiguille((k + 1 / 2) * pas), longue: false }] : []),
+        ])
+      : echelle.graduations.map((n, rang) => ({
+          angle: echelle.angles[rang] ?? 0,
+          longue: echelle.ecrits.includes(n as (typeof echelle.ecrits)[number]),
+        }));
+  const traits = graduations.map(({ angle, longue }) => {
+    const longueur = longue ? G.longues : G.courtes;
     return trait([surLeCadran(pivot, angle, G.rayon - longueur), surLeCadran(pivot, angle, G.rayon)], G.largeur);
   });
   const { rouge } = echelle;
   const segments = Math.ceil((rouge.a - rouge.de) / 4);
   const zoneRouge = trait(arc(pivot, G.rayon + rouge.epaisseur / 2 + G.largeur, rouge.de - 90, rouge.a - 90, segments), rouge.epaisseur);
-  const arcDeLEchelle = trait(
-    arc(pivot, G.rayon, (echelle.angles[0] ?? 0) - 90, (echelle.angles[echelle.angles.length - 1] ?? 0) - 90, 16),
-    G.largeur,
-  );
-  const nombres = echelle.ecrits.map((n) => {
-    const angle = echelle.angles[echelle.graduations.indexOf(n)] ?? 0;
-    return ecrireSurLeCadran(nombreDeLEchelle(n, inscriptions.signes), surLeCadran(pivot, angle, G.nombres), CORPS.gravure);
-  });
+  const [premier, dernier] =
+    jeu !== undefined ? [angleDeLAiguille(0), angleDeLAiguille(1)] : [echelle.angles[0] ?? 0, echelle.angles[echelle.angles.length - 1] ?? 0];
+  const arcDeLEchelle = trait(arc(pivot, G.rayon, premier - 90, dernier - 90, 16), G.largeur);
+  const nombres =
+    jeu !== undefined
+      ? jeu.map((n, k) => ecrireSurLeCadran(n, surLeCadran(pivot, angleDeLAiguille(k * pas), G.nombres), CORPS.gravure))
+      : echelle.ecrits.map((n) => {
+          const angle = echelle.angles[echelle.graduations.indexOf(n)] ?? 0;
+          return ecrireSurLeCadran(nombreDeLEchelle(n, inscriptions.signes), surLeCadran(pivot, angle, G.nombres), CORPS.gravure);
+        });
   const encre = encreLisibleSur('creme');
 
   const surface = [cadranALEcran(place, canal)];

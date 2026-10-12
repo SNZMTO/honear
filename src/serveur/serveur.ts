@@ -11,6 +11,7 @@ import { assezLongue, codeDePartie, type EtatDeLaPartie } from '../regles/partie
 import type { Tirage } from '../regles/pochette';
 import { SERVEUR } from '../ressources/reglages';
 import { avecDesChoix } from './choix';
+import { dansLOrdre, unOrdreAuHasard } from './ordre';
 import { ouvrirUneRoom, type Room } from './room';
 
 export interface Serveur {
@@ -34,6 +35,8 @@ export interface OptionsDuServeur {
   readonly playlist: (lien: string) => readonly PisteDuMode[] | undefined;
   /** Une face jouée jusqu'au bout, dans cette room : de quoi compter les scores de ceux qui ont un compte. */
   readonly quandUneFaceFinit?: (code: string, etat: EtatDeLaPartie) => void;
+  /** L'ordre où une room joue les n pistes de sa playlist ; sans lui, tiré au hasard. */
+  readonly ordre?: (n: number) => readonly number[];
 }
 
 /** Les actions dont le serveur du jeu ne s'occupe pas : la musique et les comptes, que le réseau tient. */
@@ -122,7 +125,9 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
             }
             const { mode, extrait, son } = action;
             // Les pistes se relisent à chaque lancer : la source a peut-être renouvelé les liens de leurs extraits.
-            const lues = (): readonly PisteDuMode[] => avecDesChoix(o.playlist(action.playlist) ?? pistes, mode, o.tirage);
+            // Elles se jouent dans un ordre tiré au hasard à l'ouverture de la room.
+            const ordre = o.ordre?.(pistes.length) ?? unOrdreAuHasard(pistes.length, o.tirage);
+            const lues = (): readonly PisteDuMode[] => avecDesChoix(dansLOrdre(o.playlist(action.playlist) ?? pistes, ordre), mode, o.tirage);
             const code = codeLibre();
             const finie = (etat: EtatDeLaPartie): void => o.quandUneFaceFinit?.(code, etat);
             const room = ouvrirUneRoom(code, { mode, pistes: action.pistes, extrait, son }, action.playlist, lues, heure, finie);

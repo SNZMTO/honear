@@ -80,6 +80,9 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     const rang = rangDans(nom, 'disque-resultat-');
     if (cran === 'chercher' && rang !== undefined) return de({ genre: 'resultat', rang }, `${textes.playlists.chercher} ${rang + 1}`);
     if (cran === 'laMienne' && nom === 'etiquette-lien') return de({ genre: 'collerLeLien' }, textes.playlists.laMienne);
+    const mienne = /^(?:disque|etiquette)-mienne-(\d+)$/.exec(nom)?.[1];
+    if (cran === 'laMienne' && mienne !== undefined)
+      return de({ genre: 'maPlaylist', rang: Number(mienne) - 1 }, `${textes.playlists.laMienne} ${mienne}`);
   }
   // Aux réglages, les commandes de la platine se tournent, quand l'hôte peut les régler.
   if (ecran.genre === 'reglages' && ecran.commandes) {

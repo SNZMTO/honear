@@ -62,6 +62,10 @@ export interface ModeDeJeu {
    * @returns les points de plus, par joueur.
    */
   departager?(piste: PisteDuMode, propositions: readonly PropositionDeLaPiste[]): Readonly<Record<string, number>>;
+  /** Combien de secondes de l'extrait s'entendent, au plus : le reste de la piste, on cherche dans le silence. */
+  readonly son?: number;
+  /** Vrai si la piste s'arrête dès qu'un joueur a tout trouvé : la réponse se révèle aussitôt. */
+  readonly finitAuPremier?: boolean;
   /** En combien d'équipes il range les joueurs, s'il en fait : leurs points se mettent en commun, et la tablée se range en autant de piles. */
   readonly equipes?: number;
 }

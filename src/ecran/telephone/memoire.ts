@@ -15,6 +15,7 @@ import type { ChoixDeLAvatar } from '../../ressources/avatar';
 import { TELEPHONE } from '../../ressources/ecran';
 import type { Pochette } from '../../ressources/pochettes';
 import { PARTIE, REGLAGES } from '../../ressources/reglages';
+import { TABLEE } from '../../ressources/tablee';
 import type { CranDuBac } from '../../scene/telephone/ecrans';
 import { pochetteAvecLOption } from '../../scene/telephone/pochette';
 import { sonVoulu } from './son';
@@ -146,7 +147,12 @@ export interface Memoire {
   /** Le compte où joue ce téléphone, tel que le serveur l'a dit, et le secret de sa session : il le redonne en se branchant. */
   readonly compte: CompteVu | undefined;
   readonly session: string | undefined;
+  /** Mes playlists : celles qu'on a importées par un lien, gardées sur l'appareil, la plus récente d'abord. */
+  readonly mesPlaylists: readonly PlaylistTrouvee[];
 }
+
+/** Combien de « Mes playlists » l'appareil garde : autant que le bac en montre. */
+export const MES_PLAYLISTS_AU_PLUS = TABLEE.telephone.bac.miennes.y.length;
 
 export const POUCE_LIBRE: AuPouce = { lanceeA: undefined, tape: '', frappe: undefined, touchee: undefined, tapees: 0, clavier: false };
 
@@ -161,6 +167,7 @@ export const MEMOIRE_VIDE: Memoire = {
   reprise: undefined,
   compte: undefined,
   session: undefined,
+  mesPlaylists: [],
 };
 
 /** Ce que l'hôte trouve réglé avant d'ouvrir sa room, et ce qu'il faut pour tirer une pochette au sort. */
@@ -208,6 +215,8 @@ export type Toucher =
   | { readonly genre: 'theme'; readonly cle: string; readonly recherche: string }
   /** Aux « Prêtes à jouer » : une des playlists du genre, tirée au sort. */
   | { readonly genre: 'playlistAuHasard' }
+  /** Une de « Mes playlists », par son rang. */
+  | { readonly genre: 'maPlaylist'; readonly rang: number }
   /** Un résultat de la recherche, touché : c'est lui qu'on prendra. */
   | { readonly genre: 'resultat'; readonly rang: number }
   /** Les étiquettes où l'on tape, dans le bac : celle de la recherche, celle du lien. */
@@ -262,11 +271,20 @@ export function memoireDeDepart(
     readonly session?: string;
     /** Le secret du lien de connexion qui a ouvert la page : l'écran du compte attend qu'on touche « Entrer ». */
     readonly lien?: string;
+    /** Les playlists que l'appareil a gardées. */
+    readonly mesPlaylists?: readonly PlaylistTrouvee[];
   },
 ): Memoire {
   // Son ampli était allumé : il l'est encore, depuis toujours (le regard ne s'y attarde pas) ; le son repartira au premier toucher.
   const ampliAllumeA = depart.reprise?.ampli === true ? -Infinity : undefined;
-  const m: Memoire = { ...MEMOIRE_VIDE, pochette: depart.pochette, reprise: depart.reprise, ampliAllumeA, session: depart.session };
+  const m: Memoire = {
+    ...MEMOIRE_VIDE,
+    pochette: depart.pochette,
+    reprise: depart.reprise,
+    ampliAllumeA,
+    session: depart.session,
+    mesPlaylists: depart.mesPlaylists ?? [],
+  };
   if (depart.lien !== undefined && depart.reprise === undefined)
     return { ...m, preparation: { ecran: 'compte', etape: 'lien', email: '', lien: depart.lien, enAttente: false } };
   if (depart.reprise !== undefined || depart.code === undefined) return m;
@@ -322,8 +340,13 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
       const p = m.preparation;
       if (p.ecran !== 'bac' || p.cran !== 'laMienne' || p.bac.enAttente === undefined) return m;
       const assez = (n.playlist.jouables ?? n.playlist.total) >= Math.min(...REGLAGES.pistes.choix);
+      // Une playlist qu'on peut jouer rejoint « Mes playlists », en tête ; on n'en garde que ce que le bac en montre.
+      const mesPlaylists = assez
+        ? [n.playlist, ...m.mesPlaylists.filter((p) => p.lien !== n.playlist.lien)].slice(0, MES_PLAYLISTS_AU_PLUS)
+        : m.mesPlaylists;
       return {
         ...m,
+        mesPlaylists,
         preparation: {
           ...p,
           bac: {
@@ -520,6 +543,13 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       if (prep.ecran !== 'bac') return rien;
       const trouvee = prep.bac.resultats?.[t.rang];
       return trouvee === undefined ? rien : seul({ ...m, preparation: { ...prep, bac: { ...prep.bac, touche: t.rang, choisie: trouvee } } });
+    }
+    case 'maPlaylist': {
+      if (prep.ecran !== 'bac') return rien;
+      const mienne = m.mesPlaylists[t.rang];
+      return mienne === undefined
+        ? rien
+        : seul({ ...m, preparation: { ...prep, bac: { ...prep.bac, touche: t.rang, choisie: mienne, importee: undefined, refus: undefined } } });
     }
     case 'playlistAuHasard': {
       if (prep.ecran !== 'bac') return rien;

@@ -34,6 +34,7 @@ import { TEXTES } from '../src/ressources/textes.fr';
 import { vueDeLAccueil, vueDuHitParade, vueDuSalon } from '../src/scene/telephone/ecrans';
 import { demarrerLeServeur } from '../src/serveur/serveur';
 import { ENCRIER } from './planche';
+import { lOrdreDeLaPlaylist } from '../src/serveur/ordre';
 
 const PAS = 0.05;
 const A = { textes: TEXTES, encrier: ENCRIER };
@@ -63,6 +64,8 @@ function jouerAuTelephone(mode: 'libre' | 'quatreChoix') {
   const serveur = demarrerLeServeur({
     maintenant: () => heure,
     tirage: hasard(1987).suivant,
+    // Les pistes dans l'ordre de la playlist : les tests savent laquelle vient.
+    ordre: lOrdreDeLaPlaylist,
     jeton: (() => {
       let n = 0;
       return () => `jeton-${++n}`;
