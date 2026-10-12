@@ -68,10 +68,25 @@ export function vueDuCompte(a: Ecritoire, c: CompteOuvertAuTelephone): VueDuTele
       action('touche-envoyer', C.envoyer);
       break;
     case 'envoye':
-      ecrire([
-        { contenu: C.envoye, role: 'titrage', auPlus: 'intertitre' },
-        { contenu: remplir(C.envoyeA, { email: c.email }), role: 'technique', auPlus: 'mention' },
-      ]);
+      // Un papier plus large ; chaque phrase a ses lignes, et l'adresse la sienne : longue, elle ne coupe rien d'autre.
+      objets.push(
+        ...papier(
+          'etiquette-compte',
+          r,
+          T.envoye.en,
+          T.envoye.largeur,
+          -1.5,
+          [
+            { contenu: C.envoye, role: 'titrage', auPlus: 'intertitre' },
+            { contenu: C.envoyeA, role: 'technique', auPlus: 'mention' },
+            { contenu: c.email, role: 'techniqueFort', auPlus: 'mention' },
+            { contenu: C.valable, role: 'technique', auPlus: 'mention' },
+            { contenu: C.indesirables, role: 'technique', auPlus: 'mention' },
+          ],
+          a.encrier,
+          { ancre: 'debut' },
+        ).calques,
+      );
       objets.push(toucheAuBord('touche-autre-adresse', 'secondaire', C.autreAdresse, r, T.action, a.encrier));
       break;
     case 'lien':
