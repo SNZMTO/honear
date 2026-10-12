@@ -126,6 +126,8 @@ export interface AuPouce {
   readonly tapees: number;
   /** Vrai tant que le clavier du téléphone est ouvert sur l'étiquette vierge. */
   readonly clavier: boolean;
+  /** Le dessus du vrai clavier, en px depuis le haut du regard, quand la page sait le lire : l'étiquette se pose au-dessus. */
+  readonly dessusDuClavier?: number;
 }
 
 export interface Memoire {
@@ -667,9 +669,15 @@ export function aLaNouvelle(avant: Memoire, apres: Memoire): readonly Action[] {
 export const SAISIE_AU_PLUS = 120;
 export const ADRESSE_AU_PLUS = 254;
 
-/** Le clavier du téléphone s'ouvre sur l'étiquette vierge, ou se ferme : l'éventail et l'étiquette lui font de la place. */
-export const clavierOuvert = (m: Memoire, ouvert: boolean): Memoire =>
-  m.room === undefined ? m : { ...m, pouce: { ...pouceDeLaPiste(m), clavier: ouvert } };
+/**
+ * Le clavier du téléphone s'ouvre sur l'étiquette vierge, ou se ferme : l'éventail et l'étiquette lui font de la place.
+ * @param dessus le dessus du vrai clavier, en px depuis le haut du regard, si la page sait le lire.
+ */
+export function clavierOuvert(m: Memoire, ouvert: boolean, dessus?: number): Memoire {
+  if (m.room === undefined) return m;
+  const { dessusDuClavier: _ancien, ...pouce } = pouceDeLaPiste(m);
+  return { ...m, pouce: { ...pouce, clavier: ouvert, ...(ouvert && dessus !== undefined ? { dessusDuClavier: dessus } : {}) } };
+}
 
 /**
  * Ce qu'on tape au clavier du téléphone : le code d'une room, à la saisie (en capitales, sans les lettres qu'on confond, quatre au

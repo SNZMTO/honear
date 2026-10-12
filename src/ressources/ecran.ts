@@ -37,9 +37,17 @@ export const TELEPHONE = {
   zoneAuMoins: 44,
   /** Une touche enfoncée reste ce temps au fond de sa course avant que l'écran d'après n'arrive : on voit qu'elle a été pressée. */
   tenue: 0.07,
+  /** D'un écran à l'autre, le nouveau se fond sur l'ancien en ce temps-là (rien, quand on a demandé moins d'animations). */
+  fondu: 0.22,
   /**
    * Le son : un extrait qui s'écarte de plus que ce temps de là où il devrait en être, à l'heure du serveur, y est remis ;
    * il se tait en ce temps-là, là où le téléphone laisse baisser le volume.
    */
   son: { ecartAdmis: 0.15, fondu: 0.6 },
 } as const;
+
+/**
+ * Le grand écran (un ordinateur, une tablette couchée) : une fenêtre au moins tant de fois plus large que haute, et au moins
+ * si haute, en px de la page ; un téléphone couché, trop bas, garde le regard du téléphone.
+ */
+export const GRAND_ECRAN = { plusLargeQueHaut: 1.2, hauteurAuMoins: 500 } as const;

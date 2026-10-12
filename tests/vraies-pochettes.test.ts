@@ -1,5 +1,5 @@
 /**
- * Les vraies pochettes : l'image que la source donne d'un titre, posée à la révélation sur le carton dessiné, et sur le dos des
+ * Les vraies pochettes : l'image que la source donne d'un titre, posée à la révélation au milieu du disque retourné, et sur le dos des
  * titres joués, qu'on revoit en touchant leur papier à la finale. Sans image, la vignette reste.
  */
 
@@ -15,7 +15,10 @@ import type { Reponse } from '../src/regles/piste';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { vueDeLaFinale } from '../src/scene/telephone/ecrans';
 import { SUR_LA_PLATINE } from '../src/scene/telephone/pieces';
-import { dessusDeLaVraiePochette } from '../src/scene/telephone/piste';
+import { pochetteSurLeVerso } from '../src/scene/telephone/piste';
+import { POSE_AVANT_LA_PISTE } from '../src/scene/piste/pose';
+import { HALTES_DU_DISQUE } from '../src/scene/piste/emplacements';
+import { VERSO } from '../src/ressources/verso';
 import { imagesDesTitres, vueDesTitres } from '../src/scene/telephone/titres';
 import { dessinerLeMeuble } from '../src/scene/meuble';
 import { DENSITE } from '../src/scene/telephone/pieces';
@@ -46,11 +49,20 @@ const P: Preparatifs = {
   graine: 7,
 };
 
-test('la vraie pochette révélée se pose sur le dessus du carton, dans le regard', () => {
-  const d = dessusDeLaVraiePochette();
+test('la vraie pochette révélée se pose au milieu du disque, une fois retourné à plat, dans le regard', () => {
+  const disque = { ...POSE_AVANT_LA_PISTE.disque, ...HALTES_DU_DISQUE.surLePlateau };
+  assert.equal(pochetteSurLeVerso({ ...POSE_AVANT_LA_PISTE, disque: { ...disque, retourne: 0 } }), undefined, 'pas sur le recto');
+  assert.equal(pochetteSurLeVerso({ ...POSE_AVANT_LA_PISTE, disque: { ...disque, retourne: 120 } }), undefined, 'pas en se retournant');
+  const d = pochetteSurLeVerso({ ...POSE_AVANT_LA_PISTE, disque: { ...disque, retourne: 180 } });
+  assert.ok(d !== undefined);
   assert.ok(d.cote > 0 && d.ecrasement > 0 && d.ecrasement < 1);
-  for (const v of [d.centre[0] - d.cote / 2, d.centre[0] + d.cote / 2]) assert.ok(v >= 0 && v <= SUR_LA_PLATINE.largeur);
-  for (const v of [d.centre[1] - d.cote / 2, d.centre[1] + d.cote / 2]) assert.ok(v >= 0 && v <= SUR_LA_PLATINE.hauteur);
+  assert.equal(d.cote, 2 * (VERSO.etiquette.pochette - VERSO.etiquette.lisere), 'la place de la pochette ronde du verso');
+  assert.equal(d.coin, d.cote / 2, 'ronde');
+  assert.ok(d.trou > 0 && d.trou < 0.1, 'le trou de l’axe');
+  // Le disque déborde un peu du cadre par la gauche ; la pochette, à peine.
+  assert.ok(d.centre[0] - d.cote / 2 > -d.cote / 20 && d.centre[0] + d.cote / 2 <= SUR_LA_PLATINE.largeur);
+  for (const v of [d.centre[1] - (d.cote / 2) * d.ecrasement, d.centre[1] + (d.cote / 2) * d.ecrasement])
+    assert.ok(v >= 0 && v <= SUR_LA_PLATINE.hauteur);
 });
 
 test('le dos des titres joués : une colonne jusqu’à dix, deux au-delà ; une image par titre qui en a une, chacune à sa place', () => {

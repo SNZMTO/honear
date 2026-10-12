@@ -9,9 +9,9 @@
  */
 
 import type { NomDeCalque } from '../../lexique';
+import { couleur } from '../../lowpoly/tons';
 import type { Action, Brancher, Connexion } from '../../regles/messages';
 import type { Reponse } from '../../regles/piste';
-import { CADRAGES } from '../../ressources/cadrages';
 import { TELEPHONE } from '../../ressources/ecran';
 import { TOUCHES } from '../../ressources/mouvement';
 import type { Pochette } from '../../ressources/pochettes';
@@ -33,9 +33,12 @@ import {
   vueDuSalon,
 } from '../../scene/telephone/ecrans';
 import { vueDuCompte } from '../../scene/telephone/compte';
+import type { PoseDeLaPiste } from '../../scene/piste/pose';
+import { regardDeLaPiste } from '../../scene/piste/regard';
 import { decorDeLaPiste } from '../../scene/telephone/meuble';
+import { meubleAutour, regardDuGrandEcran } from '../../scene/telephone/grand';
 import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
-import { autourDeLaPiste, dessusDeLaVraiePochette } from '../../scene/telephone/piste';
+import { autourDeLaPiste, pochetteSurLeVerso } from '../../scene/telephone/piste';
 import { vueDeLaPochette } from '../../scene/telephone/pochette';
 import { imagesDesTitres, vueDesTitres } from '../../scene/telephone/titres';
 import { calquesDeLaTouche } from '../../scene/touche';
@@ -98,9 +101,17 @@ export interface OptionsDuTelephone {
   readonly vibrer?: (cle: CleDeVibration) => void;
   /** Vrai si le téléphone joue les extraits que le serveur lui donne (le jeu en ligne) ; sans cela, il reste muet. */
   readonly son?: boolean;
+  /**
+   * Sur un grand écran (un ordinateur), la largeur du regard, en px de la scène : il montre le meuble entier, et les écrans du
+   * téléphone y gardent leur place. Lue à chaque image ; rien, c'est un téléphone.
+   */
+  readonly grandEcran?: () => number | undefined;
 }
 
-/** Une image posée par-dessus la scène : son adresse, son centre et son côté en px dans le regard, ses coins, son angle, son écrasement. */
+/**
+ * Une image posée par-dessus la scène : son adresse, son centre et son côté en px dans le regard, ses coins, son angle, son écrasement ;
+ * et le trou de l'axe, en part de son côté, si elle est posée sur un disque.
+ */
 interface ImagePosee {
   readonly adresse: string;
   readonly centre: readonly [number, number];
@@ -108,6 +119,7 @@ interface ImagePosee {
   readonly coin?: number;
   readonly angle?: number;
   readonly ecrasement: number;
+  readonly trou?: number;
 }
 
 /** Un téléphone muet : rien à jouer, toujours prêt. */
@@ -184,6 +196,9 @@ const CLAVIERS: Readonly<Record<SorteDeChamp, { readonly touche: string; readonl
   nom: { touche: 'done', majuscules: 'words', sorteDeClavier: 'text' },
 };
 
+/** Les millisecondes d'une seconde : les animations de la page comptent en millisecondes, nos tables en secondes. */
+const MS_PAR_SECONDE = 1000;
+
 /** Une part d'une longueur, en pourcentage, pour poser une zone dans le cadre quelle que soit sa taille. */
 const part = (longueur: number, totale: number): string => `${(longueur / totale) * 100}%`;
 
@@ -222,7 +237,6 @@ function enfoncement(nom: NomDeCalque, part: number): Reglage[] {
  */
 export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Telephone {
   const a = o.ecritoire;
-  const { largeur } = CADRAGES.telephone;
   vider(cadre);
   cadre.style.position = 'relative';
   const scene = couche(cadre, 'scene');
@@ -239,7 +253,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   let prochaineQuestion = 0;
 
   let ecranMonte: Montee | undefined;
-  let piste: { readonly lanceeA: number; readonly ecran: EcranDeLaPiste } | undefined;
+  let piste: { readonly lanceeA: number; readonly ecran: EcranDeLaPiste; readonly grand: number | undefined } | undefined;
   let posees: Montee | undefined;
   let genre: EcranDuTelephone['genre'] | undefined;
   /** Ce que fait chaque zone posée, par son rang, et le calque qu'elle touche. */
@@ -287,11 +301,15 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const voulues = posees.filter((p) => p.adresse.startsWith('https://'));
     for (const [rang, p] of voulues.entries()) {
       const image = images[rang] ?? nouvelleImage();
-      const { centre, cote, coin = 0, angle = 0, ecrasement } = p;
+      const { centre, cote, coin = 0, angle = 0, ecrasement, trou } = p;
+      // Le trou de l'axe : l'axe de la platine passe au travers de l'image, comme au travers du papier.
+      const plein = couleur('vinyle');
+      const masque = trou !== undefined ? `radial-gradient(circle closest-side,transparent ${trou * 200}%,${plein} ${trou * 200}%)` : undefined;
       const style =
         `position:absolute;left:${part(centre[0] - cote / 2, r.largeur)};top:${part(centre[1] - cote / 2, r.hauteur)};` +
         `width:${part(cote, r.largeur)};height:${part(cote, r.hauteur)};border-radius:${part(coin, cote)};object-fit:cover;` +
-        `transform:scaleY(${ecrasement}) rotate(${angle}deg);transform-origin:50% 50%;`;
+        `transform:scaleY(${ecrasement}) rotate(${angle}deg);transform-origin:50% 50%;` +
+        (masque !== undefined ? `-webkit-mask-image:${masque};mask-image:${masque};` : '');
       if (image.dataset['pour'] === p.adresse && image.dataset['place'] === style) continue;
       image.dataset['place'] = style;
       image.style.cssText = style;
@@ -308,10 +326,14 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     }
   }
 
-  /** La vraie pochette révélée, s'il y en a une : rien avant la révélation, ni quand la source n'en a pas. */
-  function laVraiePochette(revelee: Reponse | undefined): ImagePosee[] {
+  /**
+   * La vraie pochette révélée, s'il y en a une, au milieu du disque retourné : rien avant que le disque ne soit à plat, son verso
+   * en haut, ni quand la source n'en a pas, ni quand le verso montre la pochette sur tout le disque.
+   */
+  function laVraiePochette(revelee: Reponse | undefined, pose: PoseDeLaPiste): ImagePosee[] {
     const adresse = revelee !== undefined && 'vignette' in revelee.pochette ? revelee.pochette.image : undefined;
-    return adresse !== undefined ? [{ adresse, ...dessusDeLaVraiePochette() }] : [];
+    const place = o.options.verso === 'etiquette' ? pochetteSurLeVerso(pose) : undefined;
+    return adresse !== undefined && place !== undefined ? [{ adresse, ...place }] : [];
   }
 
   // Le haut-parleur : il joue l'extrait de la piste à l'heure du serveur, et dit quand il l'a chargé ; on le dit alors prêt.
@@ -382,8 +404,24 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   }
 
   /** La définition des toiles, à l'échelle où le cadre montre la scène. */
-  const definition = (): number =>
-    factureVoulue(o.options.allegements, cadre.clientWidth > 0 ? cadre.clientWidth / largeur : 1, o.densiteDeLEcran()).definition;
+  const definition = (regard: Regard): number =>
+    factureVoulue(o.options.allegements, cadre.clientWidth > 0 ? cadre.clientWidth / regard.largeur : 1, o.densiteDeLEcran()).definition;
+
+  /** Le regard du grand écran, à cette image ; rien sur un téléphone. */
+  const grand = (): Regard | undefined => {
+    const l = o.grandEcran?.();
+    return l !== undefined ? regardDuGrandEcran(l) : undefined;
+  };
+  /** Le regard où l'on monte la scène : celui du grand écran, s'il y en a un, ou celui de l'écran. */
+  let regardMonte: Regard = SUR_LA_PLATINE;
+  /** Des images placées dans un regard, replacées dans un autre. */
+  const replacer = (images: readonly ImagePosee[], de: Regard, dans: Regard): ImagePosee[] =>
+    images.map((i) => ({ ...i, centre: [i.centre[0] + de.origine[0] - dans.origine[0], i.centre[1] + de.origine[1] - dans.origine[1]] as const }));
+  /** Ce qui fait un écran posé tel qu'il est : l'écran, la définition de ses toiles, et le regard du grand écran. */
+  const cleDe = (e: EcranDuTelephone, g: Regard | undefined): string => {
+    const r = g ?? SUR_LA_PLATINE;
+    return JSON.stringify([e, definition(r), g?.largeur]);
+  };
 
   /**
    * Monte une scène dans une couche, à la place de ce qu'elle montrait. Chaque touche y est un bloc à elle, qu'on repeint enfoncée :
@@ -397,6 +435,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     regard: Regard,
     d: number,
     touches: ReadonlyMap<NomDeCalque, Calque>,
+    fondre = false,
   ): Montee {
     const plan = poserUnPlan(dans, regard);
     plan.suivreLeCadre();
@@ -410,9 +449,47 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     });
     plan.element.append(montage.element);
     montage.regarder(regard.origine);
+    if (fondre && fondreSur(dans, plan.element, avant)) return { cle, plan, montage, touches };
+    if (dans === scene) finirLeFondu();
     avant?.montage.demonter();
     vider(dans).append(plan.element);
     return { cle, plan, montage, touches };
+  }
+
+  /** Le fondu d'un écran à l'autre en cours, et ce qui reste à faire quand il finit : un autre écran qui arrive le termine net. */
+  let fondu: { readonly animation: Animation; readonly fin: () => void } | undefined;
+  function finirLeFondu(): void {
+    const f = fondu;
+    fondu = undefined;
+    if (f === undefined) return;
+    f.animation.cancel();
+    f.fin();
+  }
+  /**
+   * D'un écran à l'autre, le nouveau se pose par-dessus l'ancien et s'y fond : le meuble qui ne change pas reste où il est, seul ce qui
+   * change apparaît. Rien quand on a demandé moins d'animations, ni dans un navigateur qui ne sait pas animer.
+   * @returns faux si l'on n'a pas fondu : c'est alors à l'appelant de poser le nouvel écran.
+   */
+  function fondreSur(dans: HTMLElement, nouveau: HTMLElement, avant: Montee | undefined): boolean {
+    finirLeFondu();
+    if (o.options.sobre || typeof nouveau.animate !== 'function') return false;
+    for (const enfant of Array.from(dans.children)) if (enfant !== avant?.plan.element) enfant.remove();
+    dans.append(nouveau);
+    const animation = nouveau.animate([{ opacity: 0 }, { opacity: 1 }], { duration: TELEPHONE.fondu * MS_PAR_SECONDE, easing: 'ease-out' });
+    const fin = (): void => {
+      avant?.montage.demonter();
+      avant?.plan.element.remove();
+    };
+    fondu = { animation, fin };
+    animation.onfinish = () => {
+      if (fondu?.animation === animation) finirLeFondu();
+    };
+    return true;
+  }
+  /** Une couche qui apparaît, fondue sur le noir : la scène d'une piste qui commence. Rien quand on a demandé moins d'animations. */
+  function apparaitre(couche: HTMLElement): void {
+    if (o.options.sobre || typeof couche.animate !== 'function') return;
+    couche.animate([{ opacity: 0 }, { opacity: 1 }], { duration: TELEPHONE.fondu * MS_PAR_SECONDE, easing: 'ease-out' });
   }
 
   /** Les zones à toucher de ce qu'on a posé dans ce regard : une par calque qu'on peut toucher sur cet écran, assez grande pour un pouce. */
@@ -492,11 +569,48 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     champ.hidden = false;
   }
 
+  /**
+   * Le vrai clavier du téléphone, pendant qu'on tape sa réponse. Il couvre le bas de l'écran, et le navigateur fait glisser la page
+   * vers le haut pour montrer le champ : on remet le haut du téléphone en haut de ce qu'on voit, et l'on dit à l'écran où commence
+   * le clavier, pour que l'étiquette se pose au-dessus de lui. Un navigateur qui ne dit pas ce qu'on voit garde le clavier ordinaire.
+   */
+  let glisse = 0;
+  function suivreLeClavier(): void {
+    const vu = window.visualViewport;
+    const tape = document.activeElement === champ && champ.dataset['pour'] === 'reponse';
+    if (vu === null || vu === undefined || !tape) {
+      if (glisse !== 0) cadre.style.transform = '';
+      glisse = 0;
+      return;
+    }
+    // Le haut du téléphone, depuis le haut de ce qu'on voit : au-dessus, c'est que le navigateur l'a fait glisser ; on le redescend
+    // d'autant, jamais plus bas que sa place.
+    const haut = (): number => cadre.getBoundingClientRect().top - vu.offsetTop;
+    const avant = haut();
+    if (Math.round(avant) !== 0) {
+      glisse = Math.max(0, glisse - avant);
+      cadre.style.transform = glisse !== 0 ? `translateY(${glisse}px)` : '';
+    }
+    // Le dessus du clavier, en px depuis le haut du regard du téléphone (celui du grand écran commence plus haut). S'il est sous le
+    // bas du regard, il n'y a pas de clavier à l'écran (un ordinateur, son clavier à lui) : rien ne bouge.
+    const echelle = cadre.clientWidth / regardMonte.largeur;
+    if (echelle <= 0) return;
+    const dessus = Math.round((vu.height - haut()) / echelle - (SUR_LA_PLATINE.origine[1] - regardMonte.origine[1]));
+    const ouvert = dessus < SUR_LA_PLATINE.hauteur;
+    if (ouvert !== memoire.pouce.clavier || (ouvert && dessus !== memoire.pouce.dessusDuClavier)) changer(clavierOuvert(memoire, ouvert, dessus));
+  }
+  const vu = typeof window.visualViewport === 'object' ? window.visualViewport : null;
+  vu?.addEventListener('resize', suivreLeClavier);
+  vu?.addEventListener('scroll', suivreLeClavier);
+
   champ.addEventListener('focus', () => {
-    if (champ.dataset['pour'] === 'reponse') changer(clavierOuvert(memoire, true));
+    // Sans rien qui dise ce qu'on voit, on fait place à un clavier ordinaire ; sinon, c'est le vrai clavier qui le dira.
+    if (champ.dataset['pour'] === 'reponse' && vu === null) changer(clavierOuvert(memoire, true));
+    suivreLeClavier();
   });
   champ.addEventListener('blur', () => {
     if (champ.dataset['pour'] === 'reponse') changer(clavierOuvert(memoire, false));
+    suivreLeClavier();
   });
   /** Ce qu'on a tapé part : la réponse, le code, la recherche, le lien. */
   const validerLeChamp = (): void => {
@@ -542,57 +656,66 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
 
   function montrerUnEcran(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>): void {
     if (piste !== undefined) fermerLaPiste();
-    const d = definition();
-    const cle = JSON.stringify([e, d]);
+    const g = grand();
+    const cle = cleDe(e, g);
     if (ecranMonte?.cle === cle) {
       ecranMonte.plan.suivreLeCadre();
       return;
     }
     const vue = vueDe(e, a);
-    poserLesImages(e.genre === 'titres' ? imagesDesTitres(e.joues) : [], vue.regard);
+    // Sur un grand écran, l'écran garde sa place sur le meuble, et le reste du meuble est là, au repos.
+    const regard = g !== undefined ? regardDuGrandEcran(g.largeur, vue.regard) : vue.regard;
+    const objets = g !== undefined ? [...meubleAutour(a, vue.objets), ...vue.objets] : vue.objets;
+    regardMonte = regard;
+    poserLesImages(replacer(e.genre === 'titres' ? imagesDesTitres(e.joues) : [], vue.regard, regard), regard);
     const touches = new Map(vue.objets.filter((objet) => objet.nom.startsWith('touche-')).map((objet) => [objet.nom, objet] as const));
-    ecranMonte = monterDans(
-      scene,
-      ecranMonte,
-      cle,
-      dessinerLeMeuble({ regard: vue.regard, densite: DENSITE, objets: vue.objets }),
-      vue.regard,
-      d,
-      touches,
-    );
-    poserLesZones(vue.objets, vue.regard, e);
+    // Un autre écran se fond sur l'ancien ; le même, qui change (une lettre tapée, un cran tourné), se repose tel quel.
+    const fondre = e.genre !== genre;
+    ecranMonte = monterDans(scene, ecranMonte, cle, dessinerLeMeuble({ regard, densite: DENSITE, objets }), regard, definition(regard), touches, fondre);
+    poserLesZones(vue.objets, regard, e);
   }
 
   function montrerLaPiste(e: Extract<EcranDuTelephone, { readonly genre: 'piste' }>, t: number): void {
     if (ecranMonte !== undefined) {
+      finirLeFondu();
       ecranMonte.montage.demonter();
       ecranMonte = undefined;
     }
-    if (piste?.lanceeA !== e.lanceeA) {
+    const g = grand();
+    // Une autre piste, ou un grand écran qui change de largeur : la scène se remonte.
+    if (piste?.lanceeA !== e.lanceeA || piste.grand !== g?.largeur) {
+      const nouvelle = piste?.lanceeA !== e.lanceeA;
       fermerLaPiste();
+      const decor = decorDeLaPiste(a.textes, e.cran, e.numero);
       const ecran = ouvrirLEcranDeLaPiste(scene, {
-        decor: decorDeLaPiste(a.textes, e.cran, e.numero),
+        decor,
         textes: a.textes,
         encrier: a.encrier,
         horloge: o.horloge,
         densiteDeLEcran: o.densiteDeLEcran,
         options: o.options,
+        ...(g !== undefined ? { grand: { regard: g, meuble: meubleAutour(a, [], { platine: false }) } } : {}),
       });
-      piste = { lanceeA: e.lanceeA, ecran };
+      // La piste commence : sa scène apparaît, fondue sur le noir ; d'une piste à la suivante aussi.
+      if (nouvelle) for (const couche of [scene, autour]) apparaitre(couche);
+      piste = { lanceeA: e.lanceeA, ecran, grand: g?.largeur };
     }
     piste.ecran.tenirLaFacture();
-    piste.ecran.montrer(e.scene, t);
-    poserLesImages(laVraiePochette(e.autour.revelee), SUR_LA_PLATINE);
-    // Ce qu'on pose autour reste à l'écran pendant que le regard suit la piste : il a sa couche, au-dessus d'elle.
-    const d = definition();
-    const cle = JSON.stringify([e.autour, e.pouce, d]);
+    const pose = piste.ecran.montrer(e.scene, t);
+    const regard = g ?? SUR_LA_PLATINE;
+    regardMonte = regard;
+    poserLesImages(g !== undefined ? replacer(laVraiePochette(e.autour.revelee, pose), regardDeLaPiste(pose), g) : laVraiePochette(e.autour.revelee, pose), regard);
+    // Ce qu'on pose autour reste à l'écran pendant que le regard suit la piste : il a sa couche, au-dessus d'elle. Sur un grand
+    // écran, il garde sa place sur le meuble, devant la platine.
+    const d = definition(regard);
+    const cle = JSON.stringify([e.autour, e.pouce, d, g?.largeur]);
     if (posees?.cle === cle) {
       posees.plan.suivreLeCadre();
       return;
     }
     const objets = autourDeLaPiste(a, SUR_LA_PLATINE, e.autour);
-    posees = monterDans(autour, posees, cle, calque('regard-autour', objets), SUR_LA_PLATINE, d, new Map());
-    poserLesZones(objets, SUR_LA_PLATINE, e);
+    posees = monterDans(autour, posees, cle, calque('regard-autour', objets), regard, d, new Map());
+    poserLesZones(objets, regard, e);
   }
 
   /** Repeint une touche à cette part de sa course, de 0 (au repos) à 1 (au fond). */
@@ -651,8 +774,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     if (suite.memoire !== memoire) changer(suite.memoire);
     envoyer(suite.actions);
     ecouter(t);
+    if (document.activeElement === champ || glisse !== 0) suivreLeClavier();
     const e = ecranDuTelephone(memoire, t, o.preparatifs, a.textes);
-    if (enfoncer(e.genre === 'piste' ? undefined : JSON.stringify([e, definition()]))) return true;
+    if (enfoncer(e.genre === 'piste' ? undefined : cleDe(e, grand()))) return true;
     if (e.genre === 'piste') montrerLaPiste(e, t);
     else montrerUnEcran(e);
     if (e.genre !== genre) {
@@ -705,6 +829,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       zones.removeEventListener('pointerdown', auToucher);
       zones.removeEventListener('click', auClic);
       for (const geste of GESTES) zones.removeEventListener(geste, debloquer);
+      vu?.removeEventListener('resize', suivreLeClavier);
+      vu?.removeEventListener('scroll', suivreLeClavier);
+      cadre.style.transform = '';
       boucle.arreter();
       connexion?.couper();
       connexion = undefined;

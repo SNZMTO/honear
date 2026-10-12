@@ -63,8 +63,12 @@ export const TABLEE = {
       /** Les pastilles, à cheval sur le bord haut, surtout au-dessus pour ne rien cacher : leur place en part de la largeur, depuis le milieu ; leur angle. */
       pastilles: { places: [-0.31, 0.31, 0], au: -13, angles: [-9, 7, -3] },
     },
-    /** Clavier ouvert : la platine garde le haut, le regard descend un peu, l'étiquette vierge se colle au-dessus du clavier. */
-    clavier: { hauteur: 291, descente: 44, eventail: 486, reponse: 526 },
+    /**
+     * Clavier ouvert : la platine garde le haut, le regard descend un peu, l'étiquette vierge se colle au-dessus du clavier.
+     * Ces places sont celles d'un clavier de cette hauteur ; un vrai clavier plus haut les remonte d'autant, jusqu'à ce que son dessus
+     * soit à `auPlusHaut` du haut du regard.
+     */
+    clavier: { hauteur: 291, descente: 44, eventail: 486, reponse: 526, auPlusHaut: 330 },
     /** Les quatre étiquettes à toucher du mode 4 choix, en colonne dans la zone du pouce. */
     choix: { x: 134, y: [632, 686, 740, 794], largeur: 232, angles: [-1.5, 1, -1, 1.5] },
     /**
@@ -75,10 +79,10 @@ export const TABLEE = {
     /** Un mot sur une pastille (« Presque. », « Rayé. ») collée à cheval sur le bord droit de l'étiquette vierge. */
     mot: { decalage: [22, -2], angle: -8 },
     /**
-     * L'accueil : créer une room, en rejoindre une avec son code, ou ouvrir son compte. Les touches sont posées par leur bord gauche,
-     * sur la colonne.
+     * L'accueil : deux grandes touches, créer une room ou en rejoindre une avec son code, posées par leur bord gauche, sur la colonne ;
+     * dessous, deux petits onglets, sa pochette à gauche et son compte à droite, entre ces deux bords.
      */
-    accueil: { poser: [18, 640], code: [21, 724], compte: [19, 798], pochette: [20, 556] },
+    accueil: { poser: [18, 610], code: [21, 698], onglets: { y: 792, gauche: 20, droite: 370 } },
     /**
      * Le compte : sous la platine, sur la colonne, le papier qui dit ce qu'il garde (ou ce qui se passe, ce qu'on vient de refuser),
      * l'étiquette où l'on tape son adresse ; puis les touches, par leur bord gauche, de haut en bas, et « Retour » au bout.
@@ -114,26 +118,31 @@ export const TABLEE = {
       choisir: [18, 792],
       /** La playlist choisie, sous les résultats ; aux « Prêtes à jouer », de combien elle sort du bac ; d'où viennent les extraits. */
       choisie: { en: [168, 730], largeur: 300 },
+      /**
+       * Aux « Prêtes à jouer », le thème touché : sa pochette sur le bois, devant le bac, son centre et son côté, son angle ; son disque,
+       * de ce rayon en part du côté, sorti de cette part du côté vers la droite. Le papier qui dit la playlist, à droite d'elle.
+       */
+      pochetteChoisie: { en: [72, 600], taille: 112, angle: -4, disque: { rayon: 0.46, sortie: 0.42 } },
+      aCoteDeLaPochette: { en: [278, 596], largeur: 190 },
+      /** Le regard sur le bac descend sous le haut de ses intercalaires, de cette marge : on lit tous les thèmes. */
+      auDessus: 10,
       leve: 28,
       source: { en: [168, 424], largeur: 300 },
     },
     /** Les réglages : la touche qui ouvre le salon (par son bord gauche), une fois les commandes de la platine réglées. */
     reglages: { ouvrir: [18, 792] },
     /**
-     * « Fais ta pochette » : le regard se pose à côté de la platine, sur le bois nu. En haut, la pochette ; dessous, l'étiquette
-     * vierge du nom ; les deux choix de l'avatar en crans, leurs options en petites pochettes, quatre par rang ; « Au hasard »,
-     * puis « C'est moi ». Les tailles des pochettes, en px.
+     * « Fais ta pochette » : le regard se pose à côté de la platine, sur le bois nu. En haut, la pochette, en grand ; dessous,
+     * l'étiquette vierge du nom ; « Au hasard », puis « C'est moi ». Rien d'autre : on tire au sort jusqu'à ce qu'elle plaise.
+     * Les tailles des pochettes, en px.
      */
     pochette: {
       origine: [520, 560],
-      pochette: { en: [195, 132], angle: -4, taille: 228 },
-      etiquette: { centre: [176, 296], largeur: 268, angle: -1.5, marge: 14 },
-      autreAlbum: [282, 362],
-      crans: { y: 424, de: 120, pas: 150 },
-      choix: { x: 60, y: 502, pas: [90, 82], taille: 72, portee: 10, angles: [3, -4, 5, -3, -5, 4, -3, 6] },
-      auHasard: [112, 698],
+      pochette: { en: [195, 228], angle: -4, taille: 300 },
+      etiquette: { centre: [176, 452], largeur: 268, angle: -1.5, marge: 14 },
+      auHasard: [112, 690],
       /** Quand on la refait (à l'accueil, dans la room) : la touche qui la laisse comme elle était, à côté du hasard. */
-      laisser: [296, 698],
+      laisser: [296, 690],
       cEstMoi: [195, 784],
     },
     /** La révélation : la vraie pochette, sortie de sous la kraft, posée de travers à côté d'elle. */

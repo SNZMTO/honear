@@ -1,14 +1,14 @@
 /**
- * L'écran « Fais ta pochette », au téléphone : en haut, la pochette ; dessous, l'étiquette vierge où s'écrit le nom d'artiste, avec
- * l'album ; les deux choix de l'avatar en crans, leurs options en petites pochettes ; dans la zone du pouce, « Au hasard » et
- * « C'est moi ». Une seule action principale. Le regard se pose à côté de la platine, sur le bois nu.
+ * L'écran « Fais ta pochette », au téléphone : en haut, la pochette, en grand ; dessous, l'étiquette vierge où s'écrit le nom
+ * d'artiste, avec l'album ; dans la zone du pouce, « Au hasard » et « C'est moi ». Une seule action principale, une seule à côté :
+ * on tire au sort jusqu'à ce qu'elle plaise. Le regard se pose à côté de la platine, sur le bois nu.
  */
 
 import { rectangleArrondi, trait } from '../../lowpoly/contours';
 import { placer } from '../../lowpoly/polygones';
 import { TON_DE_BASE } from '../../lowpoly/tons';
 import type { Vec2 } from '../../lowpoly/vecteurs';
-import { CHOIX_DE_L_AVATAR, DESSUS, TETES, type Avatar, type ChoixDeLAvatar } from '../../ressources/avatar';
+import { DESSUS, TETES, type Avatar, type ChoixDeLAvatar } from '../../ressources/avatar';
 import { CADRAGES } from '../../ressources/cadrages';
 import type { Pochette } from '../../ressources/pochettes';
 import { TABLEE } from '../../ressources/tablee';
@@ -101,11 +101,11 @@ export function pochetteAvecLOption(pochette: Pochette, choisi: ChoixDeLAvatar, 
 }
 
 /**
- * L'écran, sur le choix ouvert : ses options sont la même pochette, ce choix changé ; celle qu'on porte est un peu plus grande.
- * Chaque option s'appelle « pochette-choix-n », du premier rang au dernier : on la touche pour la porter. L'étiquette du nom
- * se tape. Quand on la refait (à l'accueil, dans la room), une touche la laisse comme elle était.
+ * L'écran, simple : la pochette en grand, l'étiquette où l'on tape son nom d'artiste, « Au hasard » pour en tirer une autre, et
+ * « C'est moi ». Quand on la refait (à l'accueil, dans la room), une touche la laisse comme elle était.
+ * @param _choisi le choix de l'avatar ouvert : l'écran ne montre plus les options, la mémoire le garde.
  */
-export function vueDeLaPochette(a: Ecritoire, pochette: Pochette, choisi: ChoixDeLAvatar, retouche = false): VueDuTelephone {
+export function vueDeLaPochette(a: Ecritoire, pochette: Pochette, _choisi: ChoixDeLAvatar, retouche = false): VueDuTelephone {
   const regard = REGARD_DE_LA_POCHETTE;
   const ici = (p: readonly [number, number]): Vec2 => surLeBois(regard, p[0], p[1]);
   const T = a.textes.touches;
@@ -116,36 +116,6 @@ export function vueDeLaPochette(a: Ecritoire, pochette: Pochette, choisi: ChoixD
     { nom: 'pochette-ecran', centre: ici(P.pochette.en), angle: P.pochette.angle, taille: P.pochette.taille, expression: 'content' },
     a.encrier.largeur,
   );
-  const crans = CHOIX_DE_L_AVATAR.map((c, rang) =>
-    dessinerUneTouche(
-      {
-        nom: `touche-choix-${c}`,
-        genre: 'cran',
-        libelle: textes.choix[c],
-        centre: ici([P.crans.de + rang * P.crans.pas, P.crans.y]),
-        support: 0,
-        etat: c === choisi ? 'allumee' : 'repos',
-      },
-      DENSITE,
-      a.encrier.largeur,
-    ),
-  );
-  const porte: string = pochette.avatar[choisi];
-  const C = P.choix;
-  const choix = CLES_DES_CHOIX[choisi].flatMap((cle, rang) => {
-    const d = dessinerLaPochette(
-      pochetteAvecLOption(pochette, choisi, rang),
-      {
-        nom: `pochette-choix-${rang + 1}`,
-        centre: ici([C.x + (rang % 4) * C.pas[0], C.y + Math.floor(rang / 4) * C.pas[1]]),
-        angle: C.angles[rang] ?? C.angles[0],
-        taille: cle === porte ? C.taille + C.portee : C.taille,
-        expression: 'content',
-      },
-      a.encrier.largeur,
-    );
-    return [d.ombre, d.pochette];
-  });
   const toucher = (nom: `touche-${string}`, genre: 'principale' | 'secondaire' | 'cran', libelle: string, p: readonly [number, number]): Calque =>
     dessinerUneTouche({ nom, genre, libelle, centre: ici(p), support: 0, etat: 'repos' }, DENSITE, a.encrier.largeur);
 
@@ -155,10 +125,8 @@ export function vueDeLaPochette(a: Ecritoire, pochette: Pochette, choisi: ChoixD
       grande.ombre,
       grande.pochette,
       ...etiquetteVierge(regard, pochette, a.encrier, textes.tonNom),
-      toucher('touche-autre-album', 'secondaire', textes.autreAlbum, P.autreAlbum),
-      ...crans,
-      ...choix,
-      toucher('touche-hasard', 'secondaire', textes.auHasard, P.auHasard),
+      // Seul, « Au hasard » se met au milieu, au-dessus de « C'est moi » ; à côté de « Laisser » quand on la refait.
+      toucher('touche-hasard', 'secondaire', textes.auHasard, retouche ? P.auHasard : [P.cEstMoi[0], P.auHasard[1]]),
       ...(retouche ? [toucher('touche-laisser', 'secondaire', textes.laisser, P.laisser)] : []),
       toucher('touche-c-est-moi', 'principale', T.cEstMoi, P.cEstMoi),
     ],

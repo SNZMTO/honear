@@ -83,7 +83,7 @@ test('le salon : le code est sur l’étiquette du disque, dans le lien et dans 
   assert.ok(toutCeQuOnLit('etat-complet').includes([...code].join(' ')));
 });
 
-test('pendant la piste, chacun fait la tête que la partie lui donne ; le décompte ne montre rien de la réponse ; la révélation sort la vraie pochette et colle les points', () => {
+test('pendant la piste, chacun fait la tête que la partie lui donne ; le décompte ne montre rien de la réponse ; la révélation colle les points', () => {
   const journal = journalDExemple(TEXTES);
   const tetes = (t: number) => Object.fromEntries(partieA(journal, t).joueurs.map((j) => [j.id, j.expression]));
   assert.deepEqual(tetes(L.instants.rayure), {
@@ -97,7 +97,8 @@ test('pendant la piste, chacun fait la tête que la partie lui donne ; le décom
   assert.deepEqual(tetes(L.instants.reponse), { toi: 'content', lady: 'content', mc: 'endormi', dj: 'content', mamie: 'content', baron: 'endormi' });
   assert.equal(posesSur('libre-decompte', /^pochette-vraie/).length, 0);
   assert.ok(!textesDe('libre-decompte').some((t) => t.contenu.startsWith('+')), 'pas de points avant la révélation');
-  assert.equal(posesSur('libre-reponse', /^pochette-vraie$/).length, 1);
+  // La pochette de la réponse est au milieu du disque retourné : plus rien ne sort de sous la kraft.
+  assert.equal(posesSur('libre-reponse', /^pochette-vraie$/).length, 0);
   assert.ok(
     textesDe('libre-reponse').some((t) => t.contenu.startsWith('+')),
     'les points se collent à la révélation',
