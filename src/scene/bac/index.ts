@@ -8,7 +8,7 @@
  */
 
 import { arc, rectangleArrondi } from '../../lowpoly/contours';
-import { peindre, type Facette } from '../../lowpoly/facette';
+import { facetteAPlat, peindre, type Facette } from '../../lowpoly/facette';
 import { boiteChanfreinee } from '../../lowpoly/formes/boite';
 import { plaqueDebout } from '../../lowpoly/formes/plaque';
 import { tonDeFacette } from '../../lowpoly/ombrage';
@@ -196,6 +196,8 @@ function dessinerUneRangee(rangee: Rangee, rang: number, rangDIntercalaire: numb
   const lisible = Math.abs((rangee.penche ?? R.penche) - R.penche) < BASCULE_LISIBLE;
   return calque(`intercalaire-${rangee.cle}`, [peinture(peindre(carton)), ...(lisible ? etiquetteDOnglet(rangee.titre, place, y, mesurer) : [])], {
     role: 'image',
+    // Celui du thème choisi sort du bac d'un bloc, son onglet avec lui.
+    ...(rangee.leve !== undefined ? { transformations: [{ genre: 'glisser', de: [0, -rangee.leve] }] } : {}),
   });
 }
 
@@ -216,6 +218,8 @@ export function dessinerLeBac(etat: EtatDuBac, densite: Densite, mesurer: Mesure
       'bac/fond',
       [
         ombreAuPied('bac/ombre', { silhouettes: [contour], hauteur: hauteurDuRangement, support: 0 }),
+        // Le fond de la caisse, peint comme elle, un ton plus sombre : entre les rangées et les parois, on ne voit pas la table.
+        peinture(peindre([facetteAPlat(rectangleArrondi(x, y, C.largeur, C.profondeur, C.rayon, densite.pansDeCoin), C.fond, C.teinte, -1)])),
         paroi(0, 0, C.largeur, C.paroi, densite),
         paroi(0, 0, C.paroi, C.profondeur, densite),
         paroi(C.largeur - C.paroi, 0, C.paroi, C.profondeur, densite),

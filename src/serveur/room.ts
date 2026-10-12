@@ -163,6 +163,16 @@ export function ouvrirUneRoom(
     for (const [qui, envoyer] of branches) envoyer(etatComplet(qui, heure));
   }
 
+  /** La réponse se révèle, à cet instant : à la fin de l'extrait, ou dès que le premier a tout trouvé. */
+  function reveler(p: PisteDeLaRoom, a: number): void {
+    if (p.piste === undefined || p.piste.revelation !== undefined) return;
+    jouerLaPiste(p, { genre: 'reveler', a, reponse: p.attendue.reponse });
+    ajouter({ genre: 'revelation', a });
+    // La dernière piste de la face : la partie est finie, ses scores comptent.
+    const apres = etat();
+    if (apres.phase === 'fin') quandFinie?.(apres);
+  }
+
   function avancer(heure: number): number | undefined {
     const p = enCours;
     if (p?.piste === undefined) return undefined;
@@ -177,13 +187,7 @@ export function ouvrirUneRoom(
     }
     const fin = finDeLExtrait(p.piste);
     if (fin === undefined) return undefined;
-    if (p.piste.revelation === undefined && heure >= fin) {
-      jouerLaPiste(p, { genre: 'reveler', a: fin, reponse: p.attendue.reponse });
-      ajouter({ genre: 'revelation', a: fin });
-      // La dernière piste de la face : la partie est finie, ses scores comptent.
-      const apres = etat();
-      if (apres.phase === 'fin') quandFinie?.(apres);
-    }
+    if (p.piste.revelation === undefined && heure >= fin) reveler(p, fin);
     if (!p.extraitParti) return extraitA;
     return p.piste.revelation === undefined ? fin : undefined;
   }
@@ -245,8 +249,13 @@ export function ouvrirUneRoom(
           return pret(id, heure);
         case 'repondre': {
           const fin = enCours?.piste !== undefined ? finDeLExtrait(enCours.piste) : undefined;
-          if (enCours?.extraitParti === true && fin !== undefined && heure < fin)
+          if (enCours?.extraitParti === true && fin !== undefined && heure < fin) {
             ajouter({ genre: 'reponse', a: heure, id, proposition: action.proposition });
+            // Un mode où le premier qui a tout trouvé arrête la piste : la réponse se révèle tout de suite.
+            const trouve = etat().piste?.trouve[id] ?? [];
+            const aTrouver = MODES[reglages.mode].aTrouver(enCours.attendue);
+            if (MODES[reglages.mode].finitAuPremier === true && aTrouver.every((partie) => trouve.includes(partie))) reveler(enCours, heure);
+          }
           return;
         }
         case 'changerDePochette': {

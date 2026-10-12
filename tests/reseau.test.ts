@@ -265,7 +265,8 @@ test('dans le bac, la ligne cherche chez Deezer et importe un lien ; la room jou
     hote.envoyer({ genre: 'lancer' });
     const lancer = await invite.attendre('piste');
     assert.equal(lancer.action.genre, 'lancer');
-    assert.match(lancer.extrait ?? '', /^https:\/\/cdnt-preview\.dzcdn\.net\/api\/1\/1\/0\/0\/0\/0\/1\.mp3\?/);
+    // Une piste de la playlist, tirée au hasard : la room la joue dans un ordre à elle.
+    assert.match(lancer.extrait ?? '', /^https:\/\/cdnt-preview\.dzcdn\.net\/api\/1\/1\/0\/0\/0\/0\/\d+\.mp3\?/);
     // Dans la room, le bac est fermé : la ligne ne cherche plus rien.
     hote.envoyer({ genre: 'chercher', recherche: 'autre chose' });
     hote.envoyer({ genre: 'quelleHeure', depart: 1 });
@@ -280,7 +281,7 @@ test('dans le bac, la ligne cherche chez Deezer et importe un lien ; la room jou
     autreInvite.envoyer({ genre: 'rejoindre', code: autre.code, pochette: POCHETTE });
     await autreInvite.attendre('etat');
     autreHote.envoyer({ genre: 'lancer' });
-    assert.match((await autreInvite.attendre('piste')).extrait ?? '', /\/1\.mp3\?/);
+    assert.match((await autreInvite.attendre('piste')).extrait ?? '', /\/\d+\.mp3\?/);
     for (const t of [hote, invite, autreHote, autreInvite]) t.socket.close();
   } finally {
     await site.fermer();

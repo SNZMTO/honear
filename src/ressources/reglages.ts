@@ -11,6 +11,8 @@ export const REGLAGES = {
 } as const;
 
 export const DEROULE = {
+  /** La première note : on n'entend de l'extrait que ces premières secondes, puis on cherche dans le silence. */
+  premiereNote: 1,
   /** Le décompte avant l'extrait : le chiffre d'où il part, et la durée de chaque chiffre, en secondes. */
   decompte: { de: 3, pas: 1 },
   /**

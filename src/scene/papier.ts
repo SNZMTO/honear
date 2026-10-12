@@ -15,7 +15,7 @@ import type { Vec2 } from '../lowpoly/vecteurs';
 import type { NomDeTeinte } from '../ressources/palette';
 import { PAPIER } from '../ressources/tablee';
 import { HAUTEUR_DE_CAPITALE, type Echelon, type RoleDeTexte } from '../ressources/typo';
-import { aplat, aPlatSurLeMeuble, type Calque, type Dessin, type Mesure, type RoleDeCalque, type Texte } from './calque';
+import { aplat, aPlatSurLeMeuble, calque, type Calque, type Dessin, type Mesure, type RoleDeCalque, type Texte } from './calque';
 import { encreLisibleSur } from './encre';
 import { ombreAuPied } from './ombre';
 import { mettreEnLignes } from './texte';
@@ -40,8 +40,11 @@ export interface Papier {
   readonly lignes: readonly LigneDePapier[];
   /** Le texte, aligné à gauche (ce qu'on tape) ou centré (ce qu'on lit). */
   readonly alignement: 'debut' | 'milieu';
-  /** Vrai pour l'étiquette où l'on tape : le curseur clignote au bout de la dernière ligne. */
-  readonly curseur?: boolean;
+  /**
+   * Vrai pour l'étiquette où l'on tape : le curseur clignote au bout de la dernière ligne (« debut » : devant elle, quand elle ne
+   * dit que ce qu'on peut taper). Il a son calque, « …/curseur », que l'écran fait clignoter.
+   */
+  readonly curseur?: boolean | 'debut';
   readonly teinte?: NomDeTeinte;
   /** Décor par défaut ; mobile pour une étiquette qu'on touche, et qui s'enfonce. */
   readonly role?: RoleDeCalque;
@@ -86,6 +89,7 @@ export function dessinerUnPapier(p: Papier, mesurer: Mesure): PapierDessine {
   let y = cy - hauteur / 2 + PAPIER.marge;
   const textes: Texte[] = [];
   let finDeLaDerniere: Vec2 = [gauche, y];
+  let debutDeLaDerniere: Vec2 = [gauche, y];
   for (const [rang, b] of blocs.entries()) {
     if (rang > 0) y += PAPIER.entre;
     for (const [i, contenu] of b.lignes.entries()) {
@@ -105,28 +109,32 @@ export function dessinerUnPapier(p: Papier, mesurer: Mesure): PapierDessine {
       });
       const largeur = mesurer({ contenu, role: b.l.role, corps: b.corps });
       finDeLaDerniere = [p.alignement === 'debut' ? gauche + largeur : cx + largeur / 2, y];
+      debutDeLaDerniere = [p.alignement === 'debut' ? gauche : cx - largeur / 2, y];
     }
   }
   const dernier = blocs[blocs.length - 1]?.corps ?? 0;
+  const nom = p.nom;
+  const xDuCurseur = p.curseur === 'debut' ? debutDeLaDerniere[0] - PAPIER.avantLeCurseur : finDeLaDerniere[0] + PAPIER.avantLeCurseur;
   const curseur: Dessin[] =
-    p.curseur === true
+    p.curseur !== undefined && p.curseur !== false
       ? [
-          aplat(
-            [
-              trait(
-                [
-                  [finDeLaDerniere[0] + PAPIER.avantLeCurseur, finDeLaDerniere[1] + PAPIER.curseurDepasse],
-                  [finDeLaDerniere[0] + PAPIER.avantLeCurseur, finDeLaDerniere[1] - dernier * PAPIER.hauteurDuCurseur],
-                ],
-                PAPIER.epaisseurDuCurseur,
-              ),
-            ],
-            'miel',
-            1,
-          ),
+          calque(`${nom}/curseur`, [
+            aplat(
+              [
+                trait(
+                  [
+                    [xDuCurseur, finDeLaDerniere[1] + PAPIER.curseurDepasse],
+                    [xDuCurseur, finDeLaDerniere[1] - dernier * PAPIER.hauteurDuCurseur],
+                  ],
+                  PAPIER.epaisseurDuCurseur,
+                ),
+              ],
+              'miel',
+              1,
+            ),
+          ]),
         ]
       : [];
-  const nom = p.nom;
   return {
     ombre: ombreAuPied(`${nom}/ombre`, { silhouettes: [contour], hauteur: PAPIER.epaisseur, support: 0, paliers: 2 }),
     papier: { ...aPlatSurLeMeuble(nom, PAPIER.epaisseur, [aplat([contour], teinte, 3), ...textes, ...curseur]), role: p.role ?? 'decor' },

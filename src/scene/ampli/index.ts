@@ -35,7 +35,7 @@ export const DESSUS_DE_L_AMPLI: number = C.epaisseur;
 /** Un point donné par rapport au coin du coffre, replacé dans le plan du meuble. */
 export const surLAmpli = (p: readonly [number, number]): Vec2 => plus(AMPLI.position, p);
 
-/** Les crans du volume, de -135 à +135 degrés, un tous les 15. */
+/** Les crans du volume, de -135 à +135 degrés : vingt et un, de 0 à 10 par demis. */
 export const CRANS_DU_VOLUME: readonly number[] = Array.from(
   { length: Math.round((AMPLI.volume.a - AMPLI.volume.de) / AMPLI.volume.pas) + 1 },
   (_, rang) => AMPLI.volume.de + rang * AMPLI.volume.pas,
@@ -52,6 +52,11 @@ export interface EtatDeLAmpli {
   readonly interrupteur?: number;
   /** Vrai pour un ampli qu'on allume sous les yeux : sa bascule est dessinée dans ses trois poses (voir `reglerLaBascule`). */
   readonly interrupteurEnTroisPoses?: boolean;
+  /**
+   * Les nombres écrits sur le cadran de chaque vumètre, à intervalles réguliers de l'aiguille au repos à l'aiguille en butée (les
+   * titres de la face, les secondes de l'extrait) ; sans eux, l'échelle d'un vrai vumètre, en décibels.
+   */
+  readonly echelles?: readonly [readonly string[], readonly string[]];
   /** Ce qui est gravé sur lui. */
   readonly inscriptions: {
     readonly volume: string;
@@ -118,7 +123,13 @@ export function dessinerLAmpli(etat: EtatDeLAmpli, densite: Densite): Calque {
   const { inscriptions: I } = etat;
 
   const vumetres = CANAUX.map((canal, rang) =>
-    dessinerUnVumetre(PLACE, canal, etat.aiguilles[rang] ?? 0, { sigle: I.sigle, signes: I.graduations }, densite),
+    dessinerUnVumetre(
+      PLACE,
+      canal,
+      etat.aiguilles[rang] ?? 0,
+      { sigle: I.sigle, signes: I.graduations, ...(etat.echelles?.[rang] !== undefined ? { nombres: etat.echelles[rang] } : {}) },
+      densite,
+    ),
   );
   const crans = CRANS_DU_VOLUME.map((_, rang) => (rang % AMPLI.volume.ecritTousLes === 0 ? String(rang / AMPLI.volume.ecritTousLes) : ''));
   const volume = dessinerUnBouton(

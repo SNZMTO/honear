@@ -20,11 +20,11 @@ export interface GenreDeTouche {
 
 export const FORMES_DES_TOUCHES = {
   /** L'action de l'écran, sous le pouce : miel, la couleur signature, son libellé dans le caractère de titrage. */
-  principale: { largeur: 248, profondeur: 52, teinte: 'miel', role: 'titrage', auPlus: 'intertitre' },
+  principale: { largeur: 264, profondeur: 58, teinte: 'miel', role: 'titrage', auPlus: 'intertitre' },
   /** Une action de plus, plus petite : crème, son libellé gravé. */
-  secondaire: { largeur: 168, profondeur: 40, teinte: 'creme', role: 'techniqueFort', auPlus: 'mention' },
+  secondaire: { largeur: 184, profondeur: 46, teinte: 'creme', role: 'techniqueFort', auPlus: 'mention' },
   /** Un cran d'un groupe, côte à côte avec les autres : crème, petit, son libellé gravé. Choisi, il s'allume. */
-  cran: { largeur: 120, profondeur: 32, teinte: 'creme', role: 'techniqueFort', auPlus: 'gravure' },
+  cran: { largeur: 128, profondeur: 36, teinte: 'creme', role: 'techniqueFort', auPlus: 'gravure' },
   /** Une réponse proposée, en mode 4 choix : large, pour un titre et son interprète ; crème, son libellé gravé. */
   reponse: { largeur: 214, profondeur: 36, teinte: 'creme', role: 'techniqueFort', auPlus: 'mention' },
 } as const satisfies Readonly<Record<string, GenreDeTouche>>;

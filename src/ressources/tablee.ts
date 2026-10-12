@@ -133,6 +133,8 @@ export const TABLEE = {
       saisie: { en: [195, 562], largeur: 300 },
       resultats: { y: 662, x: [66, 152, 238, 324], rayon: 36 },
       message: { en: [195, 664], largeur: 300 },
+      /** « Mes playlists », sous l'étiquette du lien : un disque et son papier par rangée, à ces hauteurs. */
+      miennes: { y: [628, 680, 732] },
       /** La hauteur de la touche qui choisit, au milieu. */
       choisir: 792,
       /** La playlist choisie, sous les résultats ; aux « Prêtes à jouer », de combien elle sort du bac ; d'où viennent les extraits. */

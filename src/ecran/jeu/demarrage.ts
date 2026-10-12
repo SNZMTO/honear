@@ -5,6 +5,7 @@
  * la sienne, de quoi la recharger ou la partager.
  */
 
+import type { PlaylistTrouvee } from '../../regles/messages';
 import { MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { estUnePochette } from '../../regles/pochette';
 import { PLAYLIST_D_ESSAI } from '../../ressources/bac';
@@ -32,6 +33,7 @@ const GARDE = {
   session: 'honear.session',
   tuto: 'honear.tuto',
   rechargee: 'honear.rechargee',
+  playlists: 'honear.playlists',
 } as const;
 
 /** Un secret de compte, tel que le serveur les donne (voir `regles/messages.ts`). */
@@ -213,6 +215,17 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
       ? { code: gardee.code, jeton: gardee.jeton, pochette: mienne, ampli: gardee.ampli === true }
       : undefined;
   const session = lire(surLAppareil, GARDE.session);
+  // « Mes playlists » : ce qu'on a importé sur cet appareil, tel qu'on l'a gardé (ce qui n'en a plus la forme est oublié).
+  const gardees = lire(surLAppareil, GARDE.playlists);
+  const mesPlaylists = (Array.isArray(gardees) ? (gardees as unknown[]) : []).filter(
+    (p): p is PlaylistTrouvee =>
+      typeof p === 'object' &&
+      p !== null &&
+      typeof (p as PlaylistTrouvee).lien === 'string' &&
+      /^(deezer|spotify):[\w-]+$/.test((p as PlaylistTrouvee).lien) &&
+      typeof (p as PlaylistTrouvee).titre === 'string' &&
+      typeof (p as PlaylistTrouvee).total === 'number',
+  );
   const lien = lienDeConnexion();
   // Un lien de connexion touché alors que la page est déjà ouverte : seule l'ancre change ; la page repart, et le lit.
   window.addEventListener('hashchange', () => {
@@ -224,6 +237,7 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     ...(mienne !== undefined ? { pochette: mienne } : {}),
     ...(typeof session === 'string' && SECRET.test(session) ? { session } : {}),
     ...(lien !== undefined ? { lien } : {}),
+    mesPlaylists,
   });
 
   // Une room qu'on a quittée s'oublie, et l'adresse redevient celle du site.
@@ -231,6 +245,7 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
   const retenir = (aGarder: AGarder): void => {
     if (aGarder.pochette !== undefined) ecrire(surLAppareil, GARDE.pochette, aGarder.pochette);
     ecrire(surLAppareil, GARDE.session, aGarder.session);
+    ecrire(surLAppareil, GARDE.playlists, aGarder.mesPlaylists.length > 0 ? aGarder.mesPlaylists : undefined);
     if (aGarder.room === undefined) {
       if (!dansUneRoom) return;
       dansUneRoom = false;

@@ -98,7 +98,7 @@ test('le registre range les modes par cran, un cran chacun ; chaque mode a son n
   const { TEXTES } = await import('../src/ressources/textes.fr');
   assert.deepEqual(
     MODES_PAR_CRAN.map((m) => m.cle),
-    ['libre', 'quatreChoix'],
+    ['libre', 'quatreChoix', 'premierArrive', 'premiereNote'],
   );
   assert.equal(new Set(MODES_PAR_CRAN.map((m) => m.cran)).size, MODES_PAR_CRAN.length);
   for (const mode of MODES_PAR_CRAN) {
