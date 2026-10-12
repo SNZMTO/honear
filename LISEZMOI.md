@@ -1,4 +1,4 @@
-# Miel d'oreilles — étapes 1 à 7, et le jeu en ligne
+# Honear — étapes 1 à 7, et le jeu en ligne
 
 Un blind test musical entre potes, qui se joue sur le dessus d'un meuble hi-fi en noyer, sous une lampe couleur miel.
 Ce dossier contient ce que les sept premières étapes demandent, prototype compris, et rien d'autre :
@@ -21,7 +21,7 @@ Ce dossier contient ce que les sept premières étapes demandent, prototype comp
    `NOTES-TECHNIQUES.md` ; et **le prototype** : une partie cliquable de bout en bout, au téléphone de l'hôte, contre le serveur simulé
    et cinq potes, en saisie libre ou en 4 choix (`sortie/prototype.html`).
 
-Pour le mettre en ligne : `HEBERGEMENT.md` (Docker sur un VPS Debian, trois scripts dans `deploiement/`).
+Pour le mettre en ligne : `HEBERGEMENT.md` (un conteneur Docker sur un VPS Debian, derrière le frontal du dépôt `vps`).
 Pour continuer à travailler avec Claude Code (sur le VPS ou ailleurs) : `CLAUDE.md`, ses règles, ses commandes, et la mise en ligne
 depuis un clone du dépôt.
 
@@ -43,7 +43,7 @@ npm run animations  # étape 7 : écrit sortie/etape7.html (la page à publier ;
 npm run prototype   # étape 7 : écrit sortie/prototype.html (la page à publier ; son script fait tourner le serveur, les potes et le téléphone) et sortie/prototype-local.html
 npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist/serveur.mjs (le serveur, à lancer avec Node 22 ou plus récent)
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
-docker build -t miel-doreilles .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
+docker build -t honear .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
 npm run controle    # passe les contrôles du rendu sur les 196 images, et dit ce qu'ils ont mesuré
 npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 433 tests
 npm run format      # Prettier
@@ -790,7 +790,7 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   repart au premier toucher. Quand l'hôte joue le son pour tous, seul son téléphone le joue.
 - **Les comptes sont facultatifs, et sans mot de passe** : on tape son adresse, un lien part (une fois, un quart d'heure) ; touché, il
   ouvre la page, qui attend « Entrer » (un robot qui vérifie les liens d'un e-mail ne le consomme pas). Le téléphone garde le secret de
-  sa session ; le serveur n'en garde que l'empreinte, dans un fichier (`/var/lib/miel-doreilles/comptes.json`), avec l'adresse, la
+  sa session ; le serveur n'en garde que l'empreinte, dans un fichier (`/var/lib/honear/comptes.json`), avec l'adresse, la
   pochette et les scores, rien d'autre. Les e-mails partent par le serveur d'envoi d'une boîte qu'on a déjà (celle du domaine chez OVH).
   Une face finie compte une partie à chacun, une victoire au premier. On sort, ou l'on efface tout, depuis l'écran du compte.
 - **Sa pochette, quand on veut** : on tape son nom d'artiste sur l'étiquette (24 signes au plus, ce que la grande pochette imprime
@@ -824,9 +824,10 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Le RGPD** : `/confidentialite` et `/mentions-legales`, fabriquées par `npm run construire` (`ecran/jeu/legal.ts`), servies sans
   script ; le serveur y écrit l'adresse du site et celle où écrire (`CONTACT`, sinon celle qui envoie les liens). Leurs liens sont en
   bas de l'accueil et du compte. Un compte où personne ne revient depuis deux ans s'efface, prévenu un mois avant (`entretenir`).
-- **Docker** : le jeu et Caddy dans deux conteneurs sans droits (`Dockerfile`, `deploiement/compose.yaml`) ; trois scripts,
-  préparer le VPS, mettre en ligne, régler le courrier, à la place de l'installateur et du service systemd. Le durcissement de la
-  machine est dans `deploiement/systeme/` (SSH, noyau, journaux six mois, LLMNR, mises à jour et redémarrage à 5 h).
+- **Docker** : le jeu dans un conteneur sans droits (`Dockerfile`, `deploiement/compose.yaml`), deux scripts (mettre en ligne,
+  régler le courrier) à la place de l'installateur et du service systemd. La machine durcie et le frontal Caddy, partagés avec
+  les autres sites du VPS, sont dans le dépôt `vps`.
+- **Honear** : le jeu ne s'appelle plus « Miel d'oreilles » (honey + ear) ; l'expéditeur des e-mails prend le nom des textes.
 - **honear.fr** est l'adresse du jeu ; mateosan.fr, sur le même VPS, montre une page d'attente et ne mène pas au jeu : il
   accueillera un autre site.
 

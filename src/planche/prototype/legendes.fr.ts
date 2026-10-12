@@ -4,7 +4,7 @@
  */
 
 export const LEGENDES_DU_PROTOTYPE = {
-  nom: 'Le prototype de Miel d’oreilles',
+  nom: 'Le prototype de Honear',
   titre: 'Une partie, de bout en bout',
   sousTitre: 'Le téléphone de l’hôte, cinq potes simulés, et un serveur qui tourne dans la page',
   intro:

@@ -22,7 +22,7 @@ const AVEC_L_AMPLI = 'à venir avec l’ampli, à l’étape 3';
 
 export const LEGENDES = {
   titre: 'La platine en mouvement',
-  chapeau: 'Étape 2 de Miel d’oreilles : le décompte, l’extrait, la rayure et la révélation.',
+  chapeau: 'Étape 2 de Honear : le décompte, l’extrait, la rayure et la révélation.',
   /** Ce qu'on peut y faire : la phrase se retire quand la scène ne peut pas se montrer. */
   consigne: 'Rejoue la piste depuis l’un de ses moments, ralentis-la, raye le disque, révèle avant l’heure.',
 

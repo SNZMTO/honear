@@ -16,7 +16,7 @@ export const TEXTES: Textes = {
   },
 
   logo: {
-    nom: 'Miel d’oreilles',
+    nom: 'Honear',
     face: 'Face A',
     vitesse: '33 tours',
     mention: 'Enregistré entre potes',
@@ -248,17 +248,17 @@ export const TEXTES: Textes = {
       comptesFermes: 'Les comptes ne marchent pas en ce moment : aucun e-mail ne part.',
     },
     courrier: {
-      sujet: 'Ton lien pour entrer dans Miel d’oreilles',
+      sujet: 'Ton lien pour entrer dans Honear',
       bonjour: 'Salut,',
-      corps: 'Touche ce lien sur le téléphone où tu joues : tu entres dans ton compte Miel d’oreilles.',
+      corps: 'Touche ce lien sur le téléphone où tu joues : tu entres dans ton compte Honear.',
       bouton: 'Entrer dans mon compte',
       duree: 'Il marche une fois, pendant un quart d’heure.',
       rien: 'Tu n’as rien demandé ? Ne fais rien : sans ce lien, personne n’entre.',
-      signature: 'Miel d’oreilles',
-      essaiSujet: 'Miel d’oreilles : l’e-mail d’essai',
+      signature: 'Honear',
+      essaiSujet: 'Honear : l’e-mail d’essai',
       essai: 'Si tu lis ceci, le courrier de ton site marche : les liens de connexion des comptes partiront bien.',
-      dortSujet: 'Ton compte Miel d’oreilles va être effacé',
-      dort: 'Personne n’est entré dans ton compte Miel d’oreilles depuis presque deux ans. Dans un mois, il sera effacé, avec ta pochette et tes scores : on ne garde pas ce qui ne sert plus.',
+      dortSujet: 'Ton compte Honear va être effacé',
+      dort: 'Personne n’est entré dans ton compte Honear depuis presque deux ans. Dans un mois, il sera effacé, avec ta pochette et tes scores : on ne garde pas ce qui ne sert plus.',
       dortGarder:
         'Pour le garder, il suffit d’y revenir : ouvre le site sur ton téléphone, ou demande un lien de connexion. Pour le laisser partir, ne fais rien.',
     },
@@ -275,7 +275,7 @@ export const TEXTES: Textes = {
         {
           titre: 'En deux mots',
           paragraphes: [
-            'Miel d’oreilles ({site}) est un blind test entre potes, gratuit, sans publicité, sans cookie et sans mesure d’audience. On ne garde que ce qu’il faut pour jouer, et rien n’est vendu ni prêté à personne.',
+            'Honear ({site}) est un blind test entre potes, gratuit, sans publicité, sans cookie et sans mesure d’audience. On ne garde que ce qu’il faut pour jouer, et rien n’est vendu ni prêté à personne.',
             'Le responsable de ces données est l’éditeur du site, un particulier (voir les mentions légales). Pour toute question, ou pour exercer tes droits : {contact}.',
           ],
         },
@@ -354,7 +354,7 @@ export const TEXTES: Textes = {
         {
           titre: 'L’éditeur',
           paragraphes: [
-            'Miel d’oreilles ({site}) est édité à titre non professionnel par un particulier, qui a choisi de ne pas publier son identité, comme la loi le permet (article 1-1, II, de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l’économie numérique) : il l’a communiquée à l’hébergeur. Pour le joindre : {contact}.',
+            'Honear ({site}) est édité à titre non professionnel par un particulier, qui a choisi de ne pas publier son identité, comme la loi le permet (article 1-1, II, de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l’économie numérique) : il l’a communiquée à l’hébergeur. Pour le joindre : {contact}.',
           ],
         },
         {

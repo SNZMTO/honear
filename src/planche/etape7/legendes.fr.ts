@@ -6,7 +6,7 @@
 export const LEGENDES_DE_LA_PLANCHE = {
   nom: 'La planche d’animations',
   titre: 'La planche d’animations',
-  sousTitre: 'Étape 7 de Miel d’oreilles : chaque animation, seule, jouée en direct',
+  sousTitre: 'Étape 7 de Honear : chaque animation, seule, jouée en direct',
   intro:
     'Chaque animation se rejoue seule, au ralenti si l’on veut, en version sobre, et s’interrompt à mi-course. Pendant qu’elle joue, rien n’est redessiné : la scène est montée une fois, puis le moteur du site ne règle plus que des transformations et des opacités, image après image. C’est ce qui tourne sur le téléphone. Interrompue, elle reprend d’où elle est, avec sa vitesse : l’état a changé, rien ne saute.',
   ailleurs:

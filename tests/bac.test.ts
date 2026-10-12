@@ -16,7 +16,7 @@ import { encrier } from '../src/scene/rendu/texte';
 import { vueDuBac, type BacOuvert } from '../src/scene/telephone/ecrans';
 import { ENCRIER } from './planche';
 
-const A = { textes: TEXTES, encrier: ENCRIER, site: 'miel-doreilles.fr' };
+const A = { textes: TEXTES, encrier: ENCRIER, site: 'honear.fr' };
 const vignette = { fond: 'olive', motif: 'rayons' } as const;
 const choisie = { titre: 'Soirée 2000', total: 24 };
 const source = TEXTES.playlists.source;

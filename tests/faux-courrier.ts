@@ -16,7 +16,7 @@ export interface LettreRecue {
 
 /** Les deux versions d'un message en deux parties, en base 64, décodées. */
 function corps(message: string): { readonly texte: string; readonly html: string } {
-  const parties = message.split(/\r\n--miel-[0-9a-f]+(?:--)?\r\n/).slice(1);
+  const parties = message.split(/\r\n--honear-[0-9a-f]+(?:--)?\r\n/).slice(1);
   const lire = (genre: string): string => {
     const partie = parties.find((p) => p.startsWith(`Content-Type: text/${genre}`)) ?? '';
     return Buffer.from(partie.split('\r\n\r\n')[1]?.replace(/\r\n/g, '') ?? '', 'base64').toString('utf8');

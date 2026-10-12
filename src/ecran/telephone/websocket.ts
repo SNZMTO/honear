@@ -11,7 +11,7 @@ import { TELEPHONE } from '../../ressources/ecran';
 /** Le code d'une ligne que le serveur a coupée parce qu'on n'a pas respecté ses règles : on ne se rebranche pas. */
 const HORS_DES_REGLES = 1008;
 
-/** @param adresse celle de la ligne : « wss://miel-doreilles.fr/ligne ». */
+/** @param adresse celle de la ligne : « wss://honear.fr/ligne ». */
 export function brancherEnLigne(adresse: string): Brancher {
   return (recevoir, enLigne) => {
     let socket: WebSocket | undefined;
