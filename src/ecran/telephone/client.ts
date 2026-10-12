@@ -42,7 +42,7 @@ import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '..
 import { autourDeLaPiste, pochetteSurLeVerso } from '../../scene/telephone/piste';
 import { vueDeLaPochette } from '../../scene/telephone/pochette';
 import { imagesDesTitres, vueDesTitres } from '../../scene/telephone/titres';
-import { calquesDeLaTouche } from '../../scene/touche';
+import { calquesDeLaTouche, estPrincipale } from '../../scene/touche';
 import { lancerLaBoucle } from '../boucle';
 import { factureVoulue } from '../facture';
 import type { Horloge } from '../horloge';
@@ -580,7 +580,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       }
       const zone = document.createElement('button');
       zone.type = 'button';
-      zone.className = 'zone';
+      // La touche principale respire : on voit d'un coup d'œil ce qui fait avancer l'écran.
+      zone.className = estPrincipale(c) ? 'zone pouls' : 'zone';
       zone.dataset['zone'] = String(choses.length);
       zone.setAttribute('aria-label', chose.libelle);
       zone.style.cssText = place;

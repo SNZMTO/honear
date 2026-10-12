@@ -17,6 +17,37 @@ export const TEXTES: Textes = {
 
   accueil: { titre: 'BLIND TEST' },
 
+  tuto: {
+    diapos: [
+      {
+        titre: 'Bienvenue sur Honear',
+        texte: 'Le blind test entre potes : un téléphone chacun, une platine, et des extraits de 30 secondes à reconnaître.',
+      },
+      {
+        titre: 'Pose un disque',
+        texte:
+          'Touche « On pose un disque ? », fais ta pochette, choisis un genre dans le bac, puis ouvre le salon : un code et un QR code s’affichent.',
+      },
+      {
+        titre: 'Tes potes te rejoignent',
+        texte: 'Chacun ouvre honear.fr sur son téléphone et touche « J’ai un code », ou scanne le QR code. Puis il fait sa pochette.',
+      },
+      {
+        titre: 'Trouve l’artiste et le titre',
+        texte: 'Pendant l’extrait, tape ce que tu reconnais : 1 point l’artiste, 1 le titre, 1 le feat. En mode 4 choix, touche la bonne étiquette.',
+      },
+      {
+        titre: 'Le hit-parade',
+        texte: 'Après chaque piste, le classement ; à la fin, la finale et ses disques. Le son part à 30 % : règle-le au bouton de l’ampli.',
+      },
+    ],
+    suivant: 'Suivant',
+    precedent: 'Retour',
+    passer: 'Passer',
+    commencer: 'C’est parti !',
+    lien: 'Comment on joue ?',
+  },
+
   logo: {
     nom: 'Honear',
     face: 'Face A',
@@ -322,7 +353,7 @@ export const TEXTES: Textes = {
         {
           titre: 'Ce que le site garde sur ton téléphone',
           paragraphes: [
-            'Ni cookie, ni traceur, ni outil tiers. Le site garde dans le stockage local de ton navigateur seulement ce qu’il faut pour marcher : ta pochette, la room où tu joues (pour y revenir si la page se recharge), et le secret de ta session si tu as un compte.',
+            'Ni cookie, ni traceur, ni outil tiers. Le site garde dans le stockage local de ton navigateur seulement ce qu’il faut pour marcher : ta pochette, la room où tu joues (pour y revenir si la page se recharge), le secret de ta session si tu as un compte, et le fait que tu as vu le petit tutoriel.',
             'Ces informations, strictement nécessaires au jeu que tu demandes, ne demandent pas ton consentement (article 82 de la loi Informatique et Libertés). Tu peux les effacer quand tu veux, en effaçant les données du site dans ton navigateur.',
           ],
         },
