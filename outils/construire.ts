@@ -1,6 +1,7 @@
 /**
  * Construit le site à mettre en ligne, dans dist/ : la page du jeu (son script, ses polices à tracer et ses textes embarqués, servie
- * telle quelle), les pages légales, et le serveur, en un seul fichier que Node lance sans rien installer à côté.
+ * telle quelle), les pages légales, la page des statistiques, et le serveur, en un seul fichier que Node lance sans rien installer
+ * à côté.
  *
  *   npm run construire      puis      node dist/serveur.mjs
  */
@@ -13,6 +14,8 @@ import { build } from 'esbuild';
 import { pageDuJeu } from '../src/ecran/jeu/gabarit';
 import { iconeDeLApplication, manifesteDeLApplication } from '../src/ecran/jeu/application';
 import { pageLegale, type CleDePageLegale } from '../src/ecran/jeu/legal';
+import { pageDesStatistiques } from '../src/ecran/statistiques/gabarit';
+import { ADRESSES_DES_STATISTIQUES } from '../src/ressources/statistiques';
 import { APPLICATION, PAGES_LEGALES } from '../src/ressources/reglages';
 import { policesEnBase64 } from '../src/planche/polices';
 import { CIBLE, pourUnePage } from '../src/planche/script';
@@ -48,6 +51,25 @@ writeFileSync(join(DIST, APPLICATION.icone.slice(1)), iconeDeLApplication());
 // Les pages légales, sans script : le serveur les sert à leur adresse (« /confidentialite » dans confidentialite.html).
 for (const cle of Object.keys(PAGES_LEGALES) as CleDePageLegale[])
   writeFileSync(join(DIST, `${PAGES_LEGALES[cle].slice(1)}.html`), pageLegale(TEXTES, cle));
+
+// La page des statistiques : son script, ses textes, ses polices pour écrire (les « web »). Le serveur la sert à qui a sa clé.
+const scriptDesStatistiques = await build({
+  entryPoints: [join(RACINE, 'src/ecran/statistiques/page.ts')],
+  bundle: true,
+  format: 'iife',
+  target: CIBLE,
+  minify: true,
+  write: false,
+  legalComments: 'none',
+  define: { TEXTES: JSON.stringify(TEXTES) },
+  logLevel: 'warning',
+});
+const [statistiques] = scriptDesStatistiques.outputFiles;
+if (statistiques === undefined) throw new Error("Le script de la page des statistiques n'a pas été assemblé.");
+writeFileSync(
+  join(DIST, `${ADRESSES_DES_STATISTIQUES.page.slice(1)}.html`),
+  pageDesStatistiques(TEXTES, pourUnePage(statistiques.text), policesEnBase64('web')),
+);
 
 // Le serveur : un module pour Node, `ws` compris, avec les textes de ses lettres. Ce que `ws` charge de lui-même en CommonJS a
 // besoin de `require`.

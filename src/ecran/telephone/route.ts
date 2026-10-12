@@ -58,6 +58,8 @@ export type EcranDuTelephone =
       readonly qui: QuiRegardeLeSalon;
       readonly ampli: boolean;
       readonly toi: string;
+      /** Vrai un instant après qu'on a copié le lien de la room. */
+      readonly copie: boolean;
     }
   | { readonly genre: 'ampli' }
   | {
@@ -261,5 +263,7 @@ export function ecranDuTelephone(m: Memoire, heure: number, p: Preparatifs, text
   // L'hôte est le premier arrivé ; s'il est parti, la platine est passée au suivant, qui le lit au salon.
   const premier = room.journal.find(estUn('arrivee'))?.id;
   const qui: QuiRegardeLeSalon = !hote ? 'invite' : premier === room.toi ? 'hote' : 'nouvelHote';
-  return { genre: 'salon', etat, code: room.code, qui, ampli: m.ampliAllumeA !== undefined, toi };
+  // Le lien vient d'être copié : son papier le dit un instant.
+  const copie = m.lienCopieA !== undefined && heure - m.lienCopieA < TELEPHONE.lienCopie;
+  return { genre: 'salon', etat, code: room.code, qui, ampli: m.ampliAllumeA !== undefined, toi, copie };
 }

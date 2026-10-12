@@ -48,6 +48,8 @@ export const TELEPHONE = {
    * caractères ; on n'en garde pas plus que tant en attendant la ligne.
    */
   diagnostic: { envoi: 2, paquet: 3000, enAttente: 400 },
+  /** Le lien de la room copié : son papier le dit ce temps-là. */
+  lienCopie: 2,
   /** La réponse qu'on valide (« Entrée ») : son étiquette reste enfoncée ce temps-là, qu'on voie qu'elle est partie. */
   reponseEnfoncee: 0.25,
   /** Le curseur de ce qu'on tape clignote : allumé ce temps-là, éteint autant. */

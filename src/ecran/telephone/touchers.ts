@@ -50,6 +50,8 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     if (rang !== undefined && cle !== undefined) return de({ genre: 'porter', rang }, (ecran.choisi === 'tete' ? P.tetes : P.dessus)[cle] ?? cle);
     if (nom === 'etiquette-vierge') return de({ genre: 'taperLeNom' }, P.tonNom);
   }
+  // Au salon, le papier du lien se touche : on le partage, ou on le copie.
+  if (ecran.genre === 'salon' && nom === 'etiquette-lien') return de({ genre: 'partagerLeLien' }, textes.partie.copier);
   // Dans la room, entre deux pistes : sa propre pochette, sur la tablée, se touche pour la refaire.
   if (ecran.genre === 'salon' || ecran.genre === 'hitParade' || ecran.genre === 'finale') {
     const etat = ecran.genre === 'hitParade' ? ecran.apres : ecran.etat;

@@ -153,7 +153,12 @@ export interface Memoire {
   readonly session: string | undefined;
   /** Mes playlists : celles qu'on a importées par un lien, gardées sur l'appareil, la plus récente d'abord. */
   readonly mesPlaylists: readonly PlaylistTrouvee[];
+  /** L'heure du serveur où l'on a copié le lien de la room : le papier du lien le dit un instant. */
+  readonly lienCopieA?: number;
 }
+
+/** Le lien de la room vient d'être copié, à cette heure : le papier du lien le dit un instant. */
+export const lienCopie = (m: Memoire, heure: number): Memoire => ({ ...m, lienCopieA: heure });
 
 /** Combien de « Mes playlists » l'appareil garde : autant que le bac en montre. */
 export const MES_PLAYLISTS_AU_PLUS = TABLEE.telephone.bac.miennes.y.length;
@@ -209,6 +214,8 @@ export type Toucher =
   | { readonly genre: 'maPochette' | 'taperLeNom' | 'laisserLaPochette' }
   /** À la finale : revoir les titres joués, et revenir. */
   | { readonly genre: 'revoirLesTitres' | 'fermerLesTitres' }
+  /** Au salon : partager le lien de la room (le téléphone le partage, ou le copie ; la mémoire n'en garde rien de plus). */
+  | { readonly genre: 'partagerLeLien' }
   | { readonly genre: 'ouvrirLeChoix'; readonly choix: ChoixDeLAvatar }
   | { readonly genre: 'porter'; readonly rang: number }
   | { readonly genre: 'cranDuBac'; readonly cran: CranDuBac }
@@ -514,6 +521,9 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
     case 'taperLeNom':
       // C'est le clavier du téléphone qui tape : le champ posé sur l'étiquette s'en charge ; celui du prototype tape tout seul.
       return prep.ecran === 'pochette' && p.clavier !== undefined ? seul(saisir(m, p.clavier.nom())) : rien;
+    case 'partagerLeLien':
+      // C'est le téléphone qui partage le lien, ou le copie : la mémoire le saura s'il est copié (voir `lienCopie`).
+      return rien;
     case 'revoirLesTitres':
       return m.room !== undefined ? seul({ ...m, preparation: { ecran: 'titres' } }) : rien;
     case 'fermerLesTitres':

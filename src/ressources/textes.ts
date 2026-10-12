@@ -160,6 +160,9 @@ export interface Textes {
     readonly rejoindre: string;
     readonly lien: string;
     readonly copier: string;
+    /** Ce que dit le papier du lien, un instant, une fois qu'on l'a copié ; et le mot qui accompagne le lien qu'on partage. */
+    readonly copie: string;
+    readonly viensJouer: string;
     readonly ouvrirLeSalon: string;
     readonly taReponse: string;
     readonly artiste: string;
@@ -278,6 +281,9 @@ export interface Textes {
     readonly sansContact: string;
   };
 
+  /** La page des statistiques, pour l'éditeur seul (voir ecran/statistiques). */
+  readonly statistiques: TextesDesStatistiques;
+
   /**
    * Données d'exemple : un pseudo de pote et un titre d'album tiré de la liste ; un vrai titre connu, et qui le chante ;
    * et trois autres vrais titres, pour les quatre choix.
@@ -291,6 +297,81 @@ export interface Textes {
     /** Une piste avec un feat, pour montrer la troisième partie à trouver en saisie libre. */
     readonly avecUnFeat: { readonly titre: string; readonly interprete: string; readonly feat: string; readonly saisie: string };
   };
+}
+
+/** Un nom par clé : ce qu'une page écrit pour une clé qu'elle reçoit (un appareil, un navigateur, une phase…). */
+export type Noms = Readonly<Record<string, string>>;
+
+/**
+ * La page des statistiques : son titre, ce qu'elle dit quand elle est fermée, ses périodes, ses unités, et chacune de ses parties,
+ * avec le nom de ce qu'elle y compte. Les « {n} », « {jour} »… y sont remplis par la page.
+ */
+export interface TextesDesStatistiques {
+  readonly titre: string;
+  readonly aJour: string;
+  readonly chargement: string;
+  readonly fermee: { readonly titre: string; readonly texte: string };
+  readonly periodes: Noms;
+  readonly depuis: string;
+  readonly rienDePersonnel: string;
+  readonly evolution: { readonly hausse: string; readonly baisse: string; readonly egal: string; readonly avant: string };
+  readonly unites: {
+    readonly secondes: string;
+    readonly minutes: string;
+    readonly heures: string;
+    readonly jours: string;
+    readonly pourcent: string;
+    readonly fois: string;
+  };
+  readonly enDirect: {
+    readonly titre: string;
+    readonly rooms: string;
+    readonly telephones: string;
+    readonly joueurs: string;
+    readonly enJeu: string;
+    readonly comptes: string;
+    readonly serveur: string;
+    readonly aucune: string;
+    readonly phases: Noms;
+    readonly room: string;
+  };
+  readonly essentiel: Noms & { readonly titre: string; readonly completion: string };
+  readonly jourParJour: Noms & { readonly titre: string };
+  readonly modes: { readonly titre: string; readonly colonnes: Noms };
+  readonly reglages: { readonly titre: string; readonly titres: string; readonly secondes: string; readonly son: string; readonly sons: Noms };
+  readonly joueurs: Noms & { readonly titre: string; readonly moyenne: string };
+  readonly reponses: Noms & { readonly titre: string; readonly delais: string; readonly verdicts: string; readonly trouvailles: string };
+  readonly musique: {
+    readonly titre: string;
+    readonly titres: string;
+    readonly durs: string;
+    readonly playlists: string;
+    readonly themes: string;
+    readonly recherches: string;
+    readonly collees: string;
+    readonly vides: string;
+    readonly changees: string;
+    readonly rejouees: string;
+    readonly sansTitre: string;
+    readonly colonnes: Noms;
+    readonly imports: Noms;
+  };
+  readonly partage: Noms & { readonly titre: string };
+  readonly appareils: {
+    readonly titre: string;
+    readonly appareils: string;
+    readonly navigateurs: string;
+    readonly systemes: string;
+    readonly ecranDAccueil: string;
+    readonly pleinEcran: string;
+    readonly sonBloque: string;
+    readonly robots: string;
+    readonly noms: Noms;
+  };
+  readonly premiersPas: Noms & { readonly titre: string };
+  readonly quand: { readonly titre: string; readonly heures: string; readonly jours: string; readonly semaine: readonly string[] };
+  readonly comptes: Noms & { readonly titre: string };
+  readonly records: Noms & { readonly titre: string; readonly le: string; readonly aucun: string };
 }
 
 /** Une page légale : son titre, sa date, ses parties. */

@@ -249,11 +249,14 @@ test('ce qu’on touche sur un écran est une touche qu’il montre, et chaque z
     `code:${TEXTES.touches.jAiUnCode}`,
     maPochette,
   ]);
-  // Dans la room, sa propre pochette se touche, sur la tablée (et pas celle des autres) ; au salon, un cran le dit aussi.
-  assert.deepEqual(touchers(vueDuSalon(A, salon.etat, salon.code, 'hote').objets, salon), [maPochette, `lancer:${TEXTES.touches.lancer}`]);
+  // Dans la room, sa propre pochette se touche, sur la tablée (et pas celle des autres) ; au salon, un cran le dit aussi ; et le papier
+  // du lien se touche pour le partager.
+  const partager = `partagerLeLien:${TEXTES.partie.copier}`;
+  assert.deepEqual(touchers(vueDuSalon(A, salon.etat, salon.code, 'hote').objets, salon), [maPochette, partager, `lancer:${TEXTES.touches.lancer}`]);
   // L'ampli s'allume tout seul dans la room : le salon n'a plus de touche pour lui.
   assert.deepEqual(touchers(vueDuSalon(A, salon.etat, salon.code, 'hote', true).objets, salon), [
     maPochette,
+    partager,
     maPochette,
     `lancer:${TEXTES.touches.lancer}`,
   ]);

@@ -908,6 +908,14 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Le RGPD** : `/confidentialite` et `/mentions-legales`, fabriquées par `npm run construire` (`ecran/jeu/legal.ts`), servies sans
   script ; le serveur y écrit l'adresse du site et celle où écrire (`CONTACT`, sinon celle qui envoie les liens). Leurs liens sont en
   bas de l'accueil et du compte. Un compte où personne ne revient depuis deux ans s'efface, prévenu un mois avant (`entretenir`).
+- **Les statistiques** : `/statistiques`, pour l'éditeur seul. La page ne montre rien sans sa clé : le lien la porte dans son ancre
+  (`#cle=…`), la page la garde dans le navigateur, l'efface de son adresse et la donne en `Authorization` ; tirée au sort à la
+  première mise en ligne (`/etc/honear/statistiques.env`), `sudo sh deploiement/statistiques.sh` donne le lien. Le serveur compte
+  sans savoir qui (`reseau/statistiques.ts`) : pages et visiteurs du jour (une empreinte de l'IP et du navigateur, salée chaque
+  jour, en mémoire seulement), appareils, rooms et réglages, parties lancées et finies par mode, réponses et délais, titres,
+  playlists et recherches du bac, partage et arrivées (QR, lien, code), tutoriel, comptes, records. Les rooms racontent ce qui
+  s'y passe (`serveur/faits.ts`) ; le téléphone dit ce que lui seul voit (`statistique`). Jour par jour sur treize mois, puis en
+  totaux, dans `/var/lib/honear/statistiques.json`, réécrit chaque minute. La page (`ecran/statistiques/`) se relit toutes les 30 s.
 - **Docker** : le jeu dans un conteneur sans droits (`Dockerfile`, `deploiement/compose.yaml`), deux scripts (mettre en ligne,
   régler le courrier) à la place de l'installateur et du service systemd. La machine durcie et le frontal Caddy, partagés avec
   les autres sites du VPS, sont dans le dépôt `vps`.

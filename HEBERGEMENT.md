@@ -138,6 +138,25 @@ ses e-mails : `v=spf1 include:mx.ovh.com ~all`), et active DKIM dans l'espace cl
 - **Les envois sont limités** : un lien par adresse et par minute, cinq par heure ; dix par heure depuis un même téléphone ; trois cents
   par jour en tout. De quoi ne pas faire de ton adresse un envoyeur de courrier indésirable.
 
+## Les statistiques : la page de l'éditeur
+
+`https://honear.fr/statistiques` ne montre rien sans sa clé. Le lien qui la porte, à ouvrir une fois sur chaque appareil (la page
+garde la clé dans le navigateur et l'efface de son adresse) :
+
+```
+sudo sh deploiement/statistiques.sh
+```
+
+La clé est dans `/etc/honear/statistiques.env`, que seul root lit, tirée au sort à la première mise en ligne. Pour en changer :
+`sudo rm /etc/honear/statistiques.env`, puis remettre le site en ligne ; l'ancien lien ne s'ouvre plus.
+
+- **Ce qui est gardé** : des compteurs, dans `/var/lib/honear/statistiques.json`, jour par jour pendant treize mois, puis en
+  totaux. Ni adresse IP, ni nom, ni e-mail, ni ce que les joueurs répondent. Les visiteurs se comptent par une empreinte de l'IP et
+  du navigateur, mêlée à un sel tiré chaque jour, qui ne vit qu'en mémoire.
+- **Ce que la page montre** : en ce moment (les rooms ouvertes), l'essentiel, jour après jour, les modes et les réglages, les
+  joueurs, les réponses, la musique, le partage, les appareils, les premiers pas, les heures, les comptes, les records ; sur un
+  jour, 7, 30 ou 90 jours, ou depuis le début, avec l'écart à la période d'avant.
+
 ## Ce que ça coûte
 
 Le VPS, et le domaine. Rien d'autre : pas de base de données (les comptes tiennent dans un fichier), et l'e-mail des liens part par

@@ -297,7 +297,14 @@ export type QuiRegardeLeSalon = 'hote' | 'invite' | 'nouvelHote';
  * Le salon : le code en énorme sur l'étiquette, le QR code sur la kraft, le lien à copier, les pochettes, et la touche de l'hôte,
  * qui lance la face A. L'ampli s'allume tout seul : le son part au premier toucher.
  */
-export function vueDuSalon(a: Ecritoire, etat: EtatDeLaPartie, code: string, qui: QuiRegardeLeSalon, maPochette = false): VueDuTelephone {
+export function vueDuSalon(
+  a: Ecritoire,
+  etat: EtatDeLaPartie,
+  code: string,
+  qui: QuiRegardeLeSalon,
+  maPochette = false,
+  copie = false,
+): VueDuTelephone {
   const lancer = etat.face === 'B' ? a.textes.touches.lancerLaFaceB : a.textes.touches.lancer;
   const r = SUR_LA_PLATINE;
   const S = T.salon;
@@ -305,7 +312,8 @@ export function vueDuSalon(a: Ecritoire, etat: EtatDeLaPartie, code: string, qui
   const joueurs = eventail(etat, a.textes, 'rien');
   const objets: Calque[] = [
     platineArretee(a, { code: { code, joueurs: etat.joueurs.length } }),
-    ...kraftDuSalon(a, `https://${lien}`, etat),
+    // Le QR code mène à la room, et dit qu'on vient de lui (« #qr ») : on le compte, à l'arrivée.
+    ...kraftDuSalon(a, `https://${lien}#qr`, etat),
     ...dessinerLaTablee(joueurs, placesEnEventail(joueurs.length), T.eventail.taille, r, T.trouve, a.encrier.largeur),
   ];
   // Le nouvel hôte lit, à la place du lien, que c'est lui qui tient la platine.
@@ -320,7 +328,8 @@ export function vueDuSalon(a: Ecritoire, etat: EtatDeLaPartie, code: string, qui
         -1.5,
         [
           { contenu: lien, role: 'techniqueFort', auPlus: 'texte' },
-          { contenu: a.textes.partie.copier, role: 'technique', auPlus: 'gravure' },
+          // Copié, il le dit un instant.
+          { contenu: copie ? a.textes.partie.copie : a.textes.partie.copier, role: 'technique', auPlus: 'gravure' },
         ],
         a.encrier,
         { role: 'mobile', ancre: 'debut' },

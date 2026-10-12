@@ -300,7 +300,13 @@ test('ce qui tournera dans un navigateur se passe de ce que ceux d’il y a cinq
   assert.deepEqual(lireJson('tsconfig.page.json'), {
     extends: './tsconfig.json',
     compilerOptions: { target: 'ES2019', lib: ['ES2019', 'DOM', 'DOM.Iterable'], types: [] },
-    include: ['src/planche/etape2/page.ts', 'src/planche/etape7/page.ts', 'src/planche/prototype/page.ts', 'src/ecran/jeu/page.ts'],
+    include: [
+      'src/planche/etape2/page.ts',
+      'src/planche/etape7/page.ts',
+      'src/planche/prototype/page.ts',
+      'src/ecran/jeu/page.ts',
+      'src/ecran/statistiques/page.ts',
+    ],
   });
   const paquet = lireJson('package.json');
   assert.ok(typeof paquet === 'object' && paquet !== null && 'scripts' in paquet);
