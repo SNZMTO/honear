@@ -39,7 +39,7 @@ export const TEXTES: Textes = {
       {
         titre: 'Le hit-parade',
         texte:
-          'Après chaque piste, le classement ; à la fin, la finale et ses disques. Le son part à 30 % : règle-le en tournant le bouton de l’ampli (sur iPhone, avec les boutons du téléphone). Pour partir, « Quitter », en haut à gauche.',
+          'Après chaque piste, le classement ; à la fin, la finale et ses disques. Le son part à 30 % : règle-le en tournant le bouton de l’ampli (sur iPhone et iPad, avec les boutons de l’appareil). Pour partir, « Quitter », en haut à gauche.',
       },
     ],
     suivant: 'Suivant',
