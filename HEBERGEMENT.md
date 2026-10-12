@@ -22,7 +22,8 @@ téléphone ──HTTPS / WebSocket (wss)──▶ caddy :443 ──▶ jeu :808
 
 - **Un VPS Debian 13** (le plus petit d'OVH suffit largement), commandé avec **ta clé SSH**, sans mot de passe.
 - **Un nom de domaine** qui pointe sur lui, pour le HTTPS : un téléphone ne se branche en WebSocket sécurisé qu'à une adresse
-  qui a un certificat. Ici : **honear.fr** ; **mateosan.fr**, l'ancienne adresse, y renvoie.
+  qui a un certificat. Ici : **honear.fr**. Le VPS porte aussi **mateosan.fr**, qui accueillera un autre site : en attendant, il
+  montre une page d'attente, et ne mène pas au jeu.
 - **Une adresse e-mail** pour envoyer les liens de connexion des comptes (voir « Les comptes »). Sans elle, le jeu marche ; seuls
   les comptes sont fermés.
 
@@ -46,7 +47,7 @@ Depuis le dépôt cloné sur le VPS :
 sudo sh deploiement/preparer-le-vps.sh honear.fr mateosan.fr
 ```
 
-Le premier domaine est l'adresse du jeu, le second y renvoie. Il installe Docker depuis son dépôt officiel et le règle (journaux
+Le premier domaine est l'adresse du jeu, le second l'autre domaine du VPS (une page d'attente, rien du jeu). Il installe Docker depuis son dépôt officiel et le règle (journaux
 dans ceux de la machine, aucun conteneur qui gagne des droits) ; il durcit SSH (par clé, en tant que `debian` seulement, trois
 essais), le noyau, les journaux (six mois au plus) ; il coupe LLMNR et mDNS ; il met en route les mises à jour automatiques (Debian
 et Docker, redémarrage à 5 h si un noyau neuf le demande), fail2ban, et le pare-feu (SSH, HTTP, HTTPS). Pour échanger les rôles

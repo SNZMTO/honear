@@ -5,11 +5,12 @@
 #
 #   sudo sh deploiement/preparer-le-vps.sh honear.fr mateosan.fr
 #
-# Le premier domaine est l'adresse du jeu ; le second renvoie vers lui. On le relance pour échanger leurs rôles. Pour Debian 13.
+# Le premier domaine est l'adresse du jeu ; le second, l'autre domaine du VPS, montre une page d'attente et ne mène pas au jeu.
+# Pour Debian 13.
 set -eu
-USAGE="sudo sh deploiement/preparer-le-vps.sh honear.fr mateosan.fr (l'adresse du jeu, puis celle qui y renvoie)"
+USAGE="sudo sh deploiement/preparer-le-vps.sh honear.fr mateosan.fr (l'adresse du jeu, puis l'autre domaine du VPS)"
 DOMAINE="${1:?$USAGE}"
-ANCIEN_DOMAINE="${2:?$USAGE}"
+AUTRE_DOMAINE="${2:?$USAGE}"
 SYSTEME="$(cd "$(dirname "$0")" && pwd)/systeme"
 [ "$(id -u)" = 0 ] || { echo "Lance-le avec sudo."; exit 1; }
 . /etc/os-release
@@ -75,9 +76,9 @@ etape "Les comptes, et les réglages du site"
 id miel >/dev/null 2>&1 || useradd --system --user-group --no-create-home --shell /usr/sbin/nologin miel
 install -d -m 0700 -o miel -g miel /var/lib/miel-doreilles
 install -d -m 0750 -o root -g root /etc/miel-doreilles
-printf 'DOMAINE=%s\nANCIEN_DOMAINE=%s\n' "$DOMAINE" "$ANCIEN_DOMAINE" > /etc/miel-doreilles/site.env
+printf 'DOMAINE=%s\nAUTRE_DOMAINE=%s\n' "$DOMAINE" "$AUTRE_DOMAINE" > /etc/miel-doreilles/site.env
 chmod 0644 /etc/miel-doreilles/site.env
-echo "Le jeu sera à https://$DOMAINE ; $ANCIEN_DOMAINE y renverra."
+echo "Le jeu sera à https://$DOMAINE ; $AUTRE_DOMAINE montrera une page d'attente."
 
 etape "Vérifications"
 docker version --format 'Docker {{.Server.Version}}'

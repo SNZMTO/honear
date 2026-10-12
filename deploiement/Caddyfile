@@ -2,8 +2,8 @@
 # compressée, les WebSockets qui passent tels quels, et les en-têtes de sécurité que le jeu ne pose pas lui-même. Le jeu répond
 # sur le réseau des conteneurs, à l'adresse « jeu:8080 ».
 #
-# DOMAINE est l'adresse du jeu ; ANCIEN_DOMAINE renvoie vers elle (deploiement/compose.yaml les lui donne, depuis
-# /etc/miel-doreilles/site.env).
+# DOMAINE est l'adresse du jeu ; AUTRE_DOMAINE, l'autre domaine du VPS, qui n'y mène pas (deploiement/compose.yaml les lui
+# donne, depuis /etc/miel-doreilles/site.env).
 {
 	# Les journaux de Caddy ne disent que ses erreurs : aucune visite n'y est écrite (voir la page « Confidentialité »).
 	log {
@@ -31,9 +31,24 @@ www.{$DOMAINE} {
 	redir https://{$DOMAINE}{uri} permanent
 }
 
-# L'ancienne adresse : tout y mène au jeu, à sa nouvelle adresse (un lien de room, un lien de connexion, son ancre comprise).
-# Temporaire (302) : ce domaine accueillera un autre site.
-{$ANCIEN_DOMAINE}, www.{$ANCIEN_DOMAINE} {
+# L'autre domaine du VPS : il accueillera un autre site. En attendant, une page qui le dit, et rien du jeu.
+{$AUTRE_DOMAINE} {
 	import securite
-	redir https://{$DOMAINE}{uri} 302
+	header Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+	header Content-Type "text/html; charset=utf-8"
+	respond `<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{$AUTRE_DOMAINE}</title>
+<body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#1A1313;color:#F3E7CF;font:18px/1.5 system-ui,sans-serif">
+<p style="margin:24px">{$AUTRE_DOMAINE} arrive bientôt.</p>
+</body>
+</html>
+` 200
+}
+
+www.{$AUTRE_DOMAINE} {
+	import securite
+	redir https://{$AUTRE_DOMAINE}{uri} permanent
 }

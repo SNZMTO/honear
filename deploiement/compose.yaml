@@ -4,7 +4,7 @@
 # rien à gagner en route, un système de fichiers en lecture seule.
 #
 # Posé dans /srv/miel-doreilles par deploiement/mettre-en-ligne.sh, avec un .env à côté : VERSION (l'image du jeu, étiquetée à son
-# commit), UID_DU_JEU et GID_DU_JEU (l'utilisateur miel, à qui appartiennent les comptes), DOMAINE et ANCIEN_DOMAINE.
+# commit), UID_DU_JEU et GID_DU_JEU (l'utilisateur miel, à qui appartiennent les comptes), DOMAINE et AUTRE_DOMAINE.
 
 name: miel-doreilles
 
@@ -46,7 +46,7 @@ services:
       - '443:443/udp'
     environment:
       DOMAINE: ${DOMAINE:?}
-      ANCIEN_DOMAINE: ${ANCIEN_DOMAINE:?}
+      AUTRE_DOMAINE: ${AUTRE_DOMAINE:?}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-donnees:/data
