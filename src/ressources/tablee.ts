@@ -79,60 +79,69 @@ export const TABLEE = {
     /** Un mot sur une pastille (« Presque. », « Rayé. ») collée à cheval sur le bord droit de l'étiquette vierge. */
     mot: { decalage: [22, -2], angle: -8 },
     /**
-     * L'accueil : deux grandes touches, créer une room ou en rejoindre une avec son code, posées par leur bord gauche, sur la colonne ;
-     * dessous, deux petits onglets, sa pochette à gauche et son compte à droite, entre ces deux bords.
+     * Le bouton du volume, au téléphone : la copie de celui de l'ampli, petite, sur le coin haut droit de la platine (à droite du
+     * contrepoids du bras), ou du cadre. Son centre, dans le regard du téléphone, et son rayon.
      */
-    accueil: { poser: [18, 610], code: [21, 698], onglets: { y: 792, gauche: 20, droite: 370 } },
+    volume: { en: [364, 54], rayon: 15 },
+    /**
+     * L'accueil : le titre du jeu, en grand, sous la platine ; deux grandes touches au milieu, créer une room ou en rejoindre une
+     * avec son code (leur hauteur) ; dessous, deux petits onglets, sa pochette à gauche et son compte à droite, entre ces deux bords.
+     */
+    accueil: { titre: { en: [195, 528], angle: -2 }, poser: 626, code: 706, onglets: { y: 792, gauche: 20, droite: 370 } },
     /**
      * Le compte : sous la platine, sur la colonne, le papier qui dit ce qu'il garde (ou ce qui se passe, ce qu'on vient de refuser),
      * l'étiquette où l'on tape son adresse ; puis les touches, par leur bord gauche, de haut en bas, et « Retour » au bout.
      */
     compte: {
-      papier: { en: [132, 548], largeur: 228 },
+      papier: { en: [195, 548], largeur: 300 },
       /** Le lien parti : un papier plus large, qui laisse à l'adresse toute une ligne. */
-      envoye: { en: [184, 552], largeur: 336 },
-      adresse: { en: [148, 630], largeur: 260, angle: -1 },
-      /** La touche de l'étape (envoyer le lien, entrer…) ; les deux touches du compte ouvert, ou de la question avant d'effacer. */
-      action: [18, 734],
-      deux: [
-        [18, 650],
-        [19, 728],
-      ],
-      retour: [19, 806],
+      envoye: { en: [195, 552], largeur: 336 },
+      adresse: { en: [195, 630], largeur: 300, angle: -1 },
+      /** La hauteur de la touche de l'étape (envoyer le lien, entrer…) ; des deux touches du compte ouvert, ou de la question avant d'effacer. */
+      action: 734,
+      deux: [650, 728],
+      retour: 806,
     },
     /** La saisie du code : le papier, ses quatre cases, la touche qui entre (par son bord gauche). */
-    saisie: { en: [148, 610], largeur: 260, angle: -1.5, cases: 4, entrer: [18, 784], message: [132, 690] },
+    saisie: { en: [195, 610], largeur: 260, angle: -1.5, cases: 4, entrer: 784, message: [195, 690] },
     /**
      * Le salon : l'éventail des pochettes, le lien à copier, l'ampli à allumer, et la touche de l'hôte, en colonne ; les touches
      * par leur bord gauche. Le QR code est sur la kraft.
      */
-    salon: { lien: { en: [132, 616], largeur: 228 }, allume: [20, 700], lancer: [18, 792], pochette: [19, 565] },
+    salon: { lien: { en: [132, 640], largeur: 228 }, lancer: [18, 792], pochette: [19, 565] },
     /** Le QR code imprimé sur la pochette kraft, dans le tiers qu'on en voit : son centre depuis celui de la pochette, et son côté. */
     qr: { en: [-100, 12], cote: 66 },
     /** Le bac, chez l'hôte : les trois façons de choisir, en crans au-dessus du bac, et ce qui se pose dessous. */
     bac: {
       /** Les crans, taillés à leur libellé, côte à côte depuis la colonne, à cet écart l'un de l'autre. */
       crans: { y: 470, ecart: 10 },
-      saisie: { en: [168, 562], largeur: 300 },
-      resultats: { y: 668, x: [50, 136, 222, 308], taille: 64, angles: [-4, -5, -3, -6] },
-      message: { en: [168, 664], largeur: 300 },
-      /** La touche qui choisit, par son bord gauche. */
-      choisir: [18, 792],
+      saisie: { en: [195, 562], largeur: 300 },
+      resultats: { y: 662, x: [66, 152, 238, 324], rayon: 36 },
+      message: { en: [195, 664], largeur: 300 },
+      /** La hauteur de la touche qui choisit, au milieu. */
+      choisir: 792,
       /** La playlist choisie, sous les résultats ; aux « Prêtes à jouer », de combien elle sort du bac ; d'où viennent les extraits. */
-      choisie: { en: [168, 730], largeur: 300 },
+      choisie: { en: [195, 730], largeur: 300 },
       /**
-       * Aux « Prêtes à jouer », le thème touché : sa pochette sur le bois, devant le bac, son centre et son côté, son angle ; son disque,
-       * de ce rayon en part du côté, sorti de cette part du côté vers la droite. Le papier qui dit la playlist, à droite d'elle.
+       * Aux « Prêtes à jouer », les playlists du genre touché, en liste au milieu : à chaque rang sa hauteur et son angle ; un disque
+       * à gauche (son centre et son rayon), son nom sur un papier à droite (le milieu du papier, sa largeur). La choisie se soulève
+       * d'autant. « Au hasard », dessous, à cette hauteur.
        */
-      pochetteChoisie: { en: [72, 600], taille: 112, angle: -4, disque: { rayon: 0.46, sortie: 0.42 } },
-      aCoteDeLaPochette: { en: [278, 596], largeur: 190 },
+      playlists: {
+        y: [518, 570, 622, 674],
+        angles: [-1, 0.8, -0.6, 1],
+        disque: { x: 62, rayon: 23 },
+        papier: { x: 222, largeur: 252 },
+        leve: 12,
+        auHasard: 730,
+      },
       /** Le regard sur le bac descend sous le haut de ses intercalaires, de cette marge : on lit tous les thèmes. */
       auDessus: 10,
       leve: 28,
-      source: { en: [168, 424], largeur: 300 },
+      source: { en: [195, 424], largeur: 300 },
     },
     /** Les réglages : la touche qui ouvre le salon (par son bord gauche), une fois les commandes de la platine réglées. */
-    reglages: { ouvrir: [18, 792] },
+    reglages: { ouvrir: 792 },
     /**
      * « Fais ta pochette » : le regard se pose à côté de la platine, sur le bois nu. En haut, la pochette, en grand ; dessous,
      * l'étiquette vierge du nom ; « Au hasard », puis « C'est moi ». Rien d'autre : on tire au sort jusqu'à ce qu'elle plaise.

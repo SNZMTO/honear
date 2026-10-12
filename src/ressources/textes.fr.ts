@@ -15,6 +15,8 @@ export const TEXTES: Textes = {
     unites: ['ms', 's', 'px', 'Mpx', 'fois', 'tours', 'images', 'toiles', '°/s²'],
   },
 
+  accueil: { titre: 'BLIND TEST' },
+
   logo: {
     nom: 'Honear',
     face: 'Face A',
@@ -55,6 +57,8 @@ export const TEXTES: Textes = {
 
   ampli: {
     volume: 'Volume',
+    baisser: 'Baisser le son',
+    monter: 'Monter le son',
     allume: 'Allume l’ampli',
     sigle: 'VU',
     canaux: ['Gauche', 'Droite'],
@@ -215,6 +219,8 @@ export const TEXTES: Textes = {
     jouables: '{jouables} titres jouables sur {total}',
     spotify: 'Cette playlist Spotify ne se laisse pas lire : elle est sans doute privée. Rends-la publique, puis recolle son lien.',
     choisir: 'Celle-là',
+    toucheUnGenre: 'Touche un genre dans le bac.',
+    auHasard: 'Au hasard',
     titres: '{pistes} titres',
     fouille: 'On fouille le bac…',
     rien: 'Rien dans le bac pour ça. Essaie autrement.',

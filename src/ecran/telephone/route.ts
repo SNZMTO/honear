@@ -113,6 +113,9 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
       const bac: BacOuvert = {
         cran: prep.cran,
         ...(b.theme !== undefined ? { theme: b.theme } : {}),
+        ...(prep.cran === 'pretes' && b.resultats !== undefined
+          ? { proposees: b.resultats.map((r) => ({ titre: r.titre, total: r.jouables ?? r.total })) }
+          : {}),
         ...(b.recherche !== '' ? { recherche: b.recherche } : {}),
         ...(b.resultats !== undefined ? { resultats: b.resultats.map((r) => vignetteDe(r.lien)) } : {}),
         ...(b.touche !== undefined ? { touche: b.touche } : {}),

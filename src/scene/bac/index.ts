@@ -53,7 +53,7 @@ const NORMALE_DEBOUT: Vec3 = [0, Math.cos(radians(R.penche)), Math.sin(radians(R
 /** Le pied de la rangée de ce rang, dans la profondeur du meuble. */
 const piedDuRang = (rang: number): number => BAC.position[1] + C.profondeur - C.paroi - R.avant - rang * R.pas;
 
-/** Une paroi de la caisse : une boîte de noyer clair, de tout son haut. */
+/** Une paroi de la caisse : une boîte peinte, de tout son haut. */
 function paroi(x: number, y: number, largeur: number, profondeur: number, densite: Densite): Dessin {
   const [px, py] = dansLaCaisse(x, y);
   return peinture(
@@ -68,7 +68,7 @@ function paroi(x: number, y: number, largeur: number, profondeur: number, densit
         base: 0,
         epaisseur: C.hauteur,
         chanfrein: C.chanfrein,
-        teinte: 'noyerClair',
+        teinte: C.teinte,
       }),
     ),
   );
@@ -84,7 +84,7 @@ function surLaFaceAvant(contour: Polygone, teinte: NomDeTeinte): Facette {
 function paroiAvant(densite: Densite): Dessin[] {
   const { joints, joint, poignee } = C;
   const traits = joints.map((h) =>
-    surLaFaceAvant(rectangleArrondi(C.chanfrein, h - joint / 2, C.largeur - 2 * C.chanfrein, joint, 0, 1), 'noyerSombre'),
+    surLaFaceAvant(rectangleArrondi(C.chanfrein, h - joint / 2, C.largeur - 2 * C.chanfrein, joint, 0, 1), C.teinteDesJoints),
   );
   const milieu = C.largeur / 2;
   const fente = rectangleArrondi(
@@ -95,7 +95,7 @@ function paroiAvant(densite: Densite): Dessin[] {
     (poignee.haut - poignee.bas) / 2,
     4,
   );
-  return [paroi(0, C.profondeur - C.paroi, C.largeur, C.paroi, densite), peinture(peindre([...traits, surLaFaceAvant(fente, 'noyerSombre')]))];
+  return [paroi(0, C.profondeur - C.paroi, C.largeur, C.paroi, densite), peinture(peindre([...traits, surLaFaceAvant(fente, C.teinteDesJoints)]))];
 }
 
 /** Le contour d'une pochette, dans le plan de sa face, centré sur la largeur de la caisse. */

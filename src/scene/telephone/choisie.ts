@@ -1,38 +1,44 @@
 /**
- * La playlist touchée dans le bac, aux « Prêtes à jouer » : sa pochette, à la couleur de son thème, posée sur le bois devant le bac,
- * et son disque qui en sort un peu, vers la droite. On voit d'un coup d'œil ce qu'on a choisi, sans rien chercher dans le bac.
+ * Les playlists d'un genre, aux « Prêtes à jouer » : quand on touche un intercalaire du bac, ses playlists s'étalent au milieu de
+ * l'écran, chacune un disque (son étiquette à la couleur du genre) et son nom sur un papier. Les pochettes sont les joueurs ; les
+ * disques, la musique. Celle qu'on choisit se soulève. On touche un disque ou son papier.
  */
 
 import { cercle } from '../../lowpoly/contours';
 import { peindre } from '../../lowpoly/facette';
 import { disque } from '../../lowpoly/formes/disque';
 import { COULEURS_DES_THEMES, type CleDeTheme } from '../../ressources/bac';
-import { MOTIFS_DE_POCHETTE } from '../../ressources/pochettes';
+import type { NomDeTeinte } from '../../ressources/palette';
 import { RECOMPENSES } from '../../ressources/recompenses';
 import { TABLEE } from '../../ressources/tablee';
 import { calque, peinture, type Calque } from '../calque';
 import { surLeBois, type Regard } from '../meuble';
 import { ombreAuPied } from '../ombre';
-import { dessinerLaVraiePochette } from '../pochette/dos';
+import { papier, type Ecritoire } from './pieces';
 
-const C = TABLEE.telephone.bac.pochetteChoisie;
+const L = TABLEE.telephone.bac.playlists;
 
 /** Vrai si cette clé est celle d'un thème du bac. */
 export const estUnTheme = (cle: string): cle is CleDeTheme => cle in COULEURS_DES_THEMES;
 
-/**
- * La pochette du thème touché et son disque, sorti d'une part de son côté : le disque d'abord, sous la pochette, avec son ombre.
- * Son étiquette est de la couleur du thème.
- */
-export function pochetteChoisie(regard: Regard, theme: CleDeTheme): Calque[] {
-  const teinte = COULEURS_DES_THEMES[theme];
-  const rang = Object.keys(COULEURS_DES_THEMES).indexOf(theme);
-  const motif = MOTIFS_DE_POCHETTE[rang % MOTIFS_DE_POCHETTE.length] ?? 'rayons';
-  const centre = surLeBois(regard, C.en[0], C.en[1]);
-  const rayon = C.taille * C.disque.rayon;
-  const auDisque = surLeBois(regard, C.en[0] + C.taille * C.disque.sortie, C.en[1]);
+/** Une playlist proposée : son nom, et combien de titres on peut en jouer. */
+export interface PlaylistProposee {
+  readonly titre: string;
+  readonly total: number;
+}
+
+/** Un disque de playlist, à plat sur le bois, son étiquette de cette teinte ; soulevé de `leve` px s'il est choisi. */
+export function disqueDePlaylist(
+  nom: `disque-${string}`,
+  regard: Regard,
+  en: readonly [number, number],
+  teinte: NomDeTeinte,
+  leve: number,
+  rayon: number = L.disque.rayon,
+): Calque[] {
+  const centre = surLeBois(regard, en[0], en[1]);
   const maille = disque({
-    centre: auDisque,
+    centre,
     hauteur: RECOMPENSES.epaisseur,
     pans: RECOMPENSES.pans,
     anneaux: [
@@ -40,16 +46,41 @@ export function pochetteChoisie(regard: Regard, theme: CleDeTheme): Calque[] {
       { de: rayon * RECOMPENSES.etiquette, a: 0, teinte },
     ],
   });
-  const pochette = dessinerLaVraiePochette({ fond: teinte, motif }, { nom: 'pochette-choisie', centre, angle: C.angle, taille: C.taille }, 'choisie');
   return [
-    ombreAuPied('disque-choisi/ombre', {
-      silhouettes: [cercle(auDisque, rayon, RECOMPENSES.pans)],
-      hauteur: RECOMPENSES.epaisseur,
+    ombreAuPied(`${nom}/ombre`, {
+      silhouettes: [cercle(centre, rayon, RECOMPENSES.pans)],
+      hauteur: RECOMPENSES.epaisseur + leve,
       support: 0,
       paliers: 2,
     }),
-    calque('disque-choisi', [peinture(peindre(maille))], { role: 'image' }),
-    pochette.ombre,
-    pochette.pochette,
+    calque(nom, [peinture(peindre(maille))], { role: 'image', ...(leve !== 0 ? { transformations: [{ genre: 'glisser', de: [0, -leve] }] } : {}) }),
   ];
+}
+
+/**
+ * Les playlists proposées pour ce genre, une par rang, de haut en bas : « disque-playlist-n » et « etiquette-playlist-n », de 1 à
+ * n. Celle de rang `choisie` se soulève, et son nom s'écrit plus appuyé.
+ */
+export function playlistsDuGenre(
+  a: Ecritoire,
+  regard: Regard,
+  theme: CleDeTheme,
+  proposees: readonly PlaylistProposee[],
+  choisie: number | undefined,
+): Calque[] {
+  return proposees.slice(0, L.y.length).flatMap((p, rang) => {
+    const y = L.y[rang] ?? 0;
+    const elue = rang === choisie;
+    const nom = papier(
+      `etiquette-playlist-${rang + 1}`,
+      regard,
+      [L.papier.x, y],
+      L.papier.largeur,
+      L.angles[rang] ?? 0,
+      [{ contenu: p.titre, role: elue ? 'techniqueFort' : 'technique', auPlus: 'mention' }],
+      a.encrier,
+      { ancre: 'debut', role: 'mobile' },
+    ).calques;
+    return [...disqueDePlaylist(`disque-playlist-${rang + 1}`, regard, [L.disque.x, y], COULEURS_DES_THEMES[theme], elue ? L.leve : 0), ...nom];
+  });
 }

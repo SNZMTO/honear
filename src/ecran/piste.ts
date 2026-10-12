@@ -5,6 +5,7 @@
  */
 
 import type { Densite } from '../ressources/densites';
+import { AMPLEURS } from '../ressources/mouvement';
 import { MONTAGE } from '../ressources/ecran';
 import type { Textes } from '../ressources/textes';
 import { CALQUES_DU_VERSO } from '../scene/disque';
@@ -34,10 +35,21 @@ export interface PisteADessiner {
   readonly textes: Textes;
   readonly encrier: Encrier;
   /**
-   * Sur un grand écran : le regard, qui ne glisse jamais et montre tout ce que la piste parcourt, et le reste du meuble, au repos.
-   * Sans lui, le regard du téléphone, qui glisse vers le disque.
+   * La fenêtre, quand elle n'a pas la proportion du téléphone : le regard qu'elle montre pour chaque regard du téléphone (élargi, et
+   * d'autant moins glissant qu'elle est large), et le reste du meuble, au repos. Sans elle, le regard du téléphone.
    */
-  readonly grand?: { readonly regard: Regard; readonly meuble: readonly Calque[] };
+  readonly fenetre?: { readonly regardPour: (telephone: Regard) => Regard; readonly meuble: readonly Calque[] };
+}
+
+/** Tout ce que le regard parcourt pendant une piste, dans la fenêtre : du regard sur la platine à celui qui s'est arrêté sur le disque. */
+function etendueDansLaFenetre(regardPour: (telephone: Regard) => Regard): Regard {
+  const [debut, fin] = [0, AMPLEURS.regardSurLaReponse].map((glisse) => regardPour(regardDeLaPiste({ regard: glisse })));
+  if (debut === undefined || fin === undefined) return ETENDUE_DE_LA_PISTE;
+  const x0 = Math.min(debut.origine[0], fin.origine[0]);
+  const y0 = Math.min(debut.origine[1], fin.origine[1]);
+  const x1 = Math.max(debut.origine[0] + debut.largeur, fin.origine[0] + fin.largeur);
+  const y1 = Math.max(debut.origine[1] + debut.hauteur, fin.origine[1] + fin.hauteur);
+  return { origine: [x0, y0], largeur: x1 - x0, hauteur: y1 - y0 };
 }
 
 /** Une piste dessinée et montée dans la page. */
@@ -56,12 +68,12 @@ export interface PisteMontee {
 export function monterLaPiste(piste: PisteADessiner, facture: Facture, verso: GenreDeVerso): PisteMontee {
   const { decor, textes, encrier } = piste;
   const { densite, ombresFigees, definition } = facture;
-  const etendue = piste.grand?.regard ?? ETENDUE_DE_LA_PISTE;
+  const etendue = piste.fenetre !== undefined ? etendueDansLaFenetre(piste.fenetre.regardPour) : ETENDUE_DE_LA_PISTE;
   const arbre = dessinerLeMeuble({
     regard: etendue,
     densite,
     objets: [
-      ...(piste.grand?.meuble ?? []),
+      ...(piste.fenetre?.meuble ?? []),
       ...dessinerLaPiste(decor, { genre: verso }, poseDeDepart(ombresFigees), textes, encrier.largeur, densite),
     ],
   });
@@ -125,8 +137,8 @@ export function ouvrirLEcranDeLaPiste(
   },
 ): EcranDeLaPiste {
   let options = o.options;
-  /** Le regard à cette pose : celui du grand écran ne glisse jamais. */
-  const regard = (pose: PoseDeLaPiste): Regard => o.grand?.regard ?? regardDeLaPiste(pose);
+  /** Le regard à cette pose, dans la fenêtre. */
+  const regard = (pose: PoseDeLaPiste): Regard => (o.fenetre !== undefined ? o.fenetre.regardPour(regardDeLaPiste(pose)) : regardDeLaPiste(pose));
   const plan = poserUnPlan(cadre, regard(POSE_AVANT_LA_PISTE));
   const suivi = suivreLaPiste();
   const refuser = (erreur: unknown): void => o.enCasDeRefus?.(erreur);

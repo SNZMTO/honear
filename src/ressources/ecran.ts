@@ -44,6 +44,8 @@ export const TELEPHONE = {
    * il se tait en ce temps-là, là où le téléphone laisse baisser le volume.
    */
   son: { ecartAdmis: 0.15, fondu: 0.6 },
+  /** Le volume de ce téléphone, de 0 à 1 : à 30 % en arrivant, pour ne pas agresser les oreilles ; un toucher le change de 10 %. */
+  volume: { depart: 0.3, pas: 0.1 },
 } as const;
 
 /**

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { MEUBLE } from '../src/ressources/meuble';
 import { test } from 'node:test';
 import { cercle, rectangle } from '../src/lowpoly/contours';
 import { decalagesDOmbre } from '../src/lowpoly/ombrePortee';
@@ -421,7 +422,7 @@ test('ce qui survole le plateau n’a qu’une ombre : la tête n’en porte plu
   );
 });
 
-test('sur la planche, toute ombre est de la même encre, en deux ou trois paliers ; rien d’autre n’est translucide, sauf le rose des joues', () => {
+test('sur la planche, toute ombre est de la même encre, en deux ou trois paliers ; rien d’autre n’est translucide, sauf le rose des joues et la lumière de la lampe', () => {
   let ombres = 0;
   for (const image of TOUTES_LES_IMAGES) {
     for (const portee of calques(image.scene).filter((c) => c.role === 'ombre' || c.nom.endsWith('/ombre'))) {
@@ -433,12 +434,14 @@ test('sur la planche, toute ombre est de la même encre, en deux ou trois palier
       // Une ombre mobile n'a que des paliers, chacun dans son calque.
       if (portee.role === 'ombre') assert.equal(sousCalques(portee).length, portee.contenu.length, portee.nom);
     }
-    // Hors des ombres, pas de voile ni de fondu : le seul aplat translucide est le rose posé sur les joues, quelle que soit la peau.
+    // Hors des ombres, pas de voile : les seuls aplats translucides sont le rose posé sur les joues, quelle que soit la peau, et la
+    // lumière de la lampe, des ellipses de bois clair à peine opaques dont la pile fait le fondu de la nappe.
     const { teinte, ton, opacite } = AVATAR.joue;
     for (const c of calques(image.scene).filter((c) => !/\/ombre(\/|$)/.test(c.nom))) {
       for (const d of c.contenu) {
-        if (d.genre === 'aplat' && d.opacite !== undefined)
-          assert.deepEqual([d.teinte, d.ton, d.opacite], [teinte, ton, opacite], `${image.fichier} : ${c.nom}`);
+        if (d.genre !== 'aplat' || d.opacite === undefined) continue;
+        if (c.nom === 'noyer/lumiere') assert.deepEqual([d.teinte, d.opacite], [MEUBLE.noyer.eclaire, LAMPE.nappe.opacite], image.fichier);
+        else assert.deepEqual([d.teinte, d.ton, d.opacite], [teinte, ton, opacite], `${image.fichier} : ${c.nom}`);
       }
     }
   }

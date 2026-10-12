@@ -88,6 +88,8 @@ test('une pochette est une pile figée en image : une tranche de 3 px, l’impri
     assert.deepEqual(etages, [
       'pochette-essai/niveau-1',
       'pochette-essai/niveau-2',
+      // Le disque glissé dedans, qui dépasse du haut, entre les étages de la tranche.
+      'pochette-essai/disque',
       'pochette-essai/niveau-3',
       'pochette-essai/niveau-4',
       'pochette-essai/imprime',
@@ -99,7 +101,7 @@ test('une pochette est une pile figée en image : une tranche de 3 px, l’impri
       (c.transformations ?? []).flatMap((t) => (t.genre === 'tourner' ? [t.de] : [])),
     );
     assert.ok(
-      angles.length === 5 + 3 && angles.every((angle) => angle === -4),
+      angles.length === 6 + 3 && angles.every((angle) => angle === -4),
       `la pochette et son ombre tournent du même angle : ${angles.join(', ')}`,
     );
   }
@@ -194,15 +196,14 @@ test('déplacer les tons ne sort jamais des 5 tons, et ne garde que ce qui a un 
   assert.equal(deplacerLesTons(depart, 1).length, 2, 'le texte n’est pas redessiné sur le chanfrein');
 });
 
-test('l’usure des coins tient au nom de l’artiste : la même pochette est toujours usée pareil, en rond, jamais en éclat', () => {
+test('l’usure des coins : les quatre coins de chaque pochette, du même rond, en rond, jamais en éclat', () => {
   const carton = contourDuCarton(240);
   assert.deepEqual(coinsUses('Tonton Reverb', 240, carton), coinsUses('Tonton Reverb', 240, carton));
   const usures = ['Tonton Reverb', 'DJ Saucisson Sec', 'Mamie Techno', 'Jo', 'Les Démons de Minuit', 'Kévin 2000'].map((artiste) =>
     coinsUses(artiste, 240, carton),
   );
-  assert.ok(new Set(usures.map((usure) => JSON.stringify(usure))).size >= 4, 'd’un joueur à l’autre, l’usure change');
   for (const usure of usures) {
-    assert.ok(usure.genre === 'peinture' && usure.facettes.length <= 4, 'une usure par coin, au plus');
+    assert.ok(usure.genre === 'peinture' && usure.facettes.length === 4, 'une usure à chaque coin');
     for (const rond of usure.facettes) {
       assert.deepEqual([rond.teinte, rond.ton], ['creme', tonAPlat(-1)], 'le carton, un ton plus sombre que le papier neuf');
       // Un rond centré sur le coin rejoint les deux bords à angle droit, à un demi-pan près : aucune pointe, aucun éclat.
@@ -212,10 +213,6 @@ test('l’usure des coins tient au nom de l’artiste : la même pochette est to
       for (const [x, y] of rond.contour) assert.ok(Math.abs(x) <= 120 + 1e-9 && Math.abs(y) <= 120 + 1e-9);
     }
   }
-  assert.ok(
-    usures.some((usure) => usure.genre === 'peinture' && usure.facettes.length < 4),
-    'il arrive qu’un coin soit épargné',
-  );
 });
 
 test('le nom et le titre gardent leurs distances : entre eux, avec le bord du carton, et avec le plus haut des avatars', () => {

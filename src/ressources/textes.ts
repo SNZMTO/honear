@@ -20,6 +20,9 @@ export interface Textes {
     readonly unites: readonly string[];
   };
 
+  /** L'accueil : ce qu'est le jeu, écrit en grand sous la platine. */
+  readonly accueil: { readonly titre: string };
+
   readonly logo: {
     readonly nom: string;
     /** Les petites mentions d'une étiquette de disque. */
@@ -68,6 +71,9 @@ export interface Textes {
   /** Ce qui est gravé sur l'ampli : le titre de son gros bouton, celui de son interrupteur, le sigle des vumètres et leurs canaux. */
   readonly ampli: {
     readonly volume: string;
+    /** Ce que disent, à qui ne les voit pas, les deux moitiés du bouton du volume. */
+    readonly baisser: string;
+    readonly monter: string;
     readonly allume: string;
     readonly sigle: string;
     readonly canaux: readonly [string, string];
@@ -179,6 +185,9 @@ export interface Textes {
     readonly jouables: string;
     readonly spotify: string;
     readonly choisir: string;
+    /** Aux « Prêtes à jouer » : ce qu'on fait d'abord, et la touche qui tire une playlist du genre. */
+    readonly toucheUnGenre: string;
+    readonly auHasard: string;
     /** Ce qu'on lit sur la playlist choisie, sous son titre : combien de titres elle a. */
     readonly titres: string;
     /** Pendant que la recherche fouille le bac, puis quand elle n'a rien trouvé. */

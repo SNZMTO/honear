@@ -20,7 +20,7 @@ export const LEXIQUE = {
   nappe: 'La zone plus claire que la lampe pose sur le bois, en deux paliers.',
   platine: 'Au centre du meuble : c’est la manche.',
   bac: 'Le bac à disques, à gauche : ce sont les playlists.',
-  ampli: 'À droite : c’est le son. « Allume l’ampli » sert de test du son ; son gros bouton règle le volume.',
+  ampli: 'À droite : c’est le son. Il s’allume tout seul ; son gros bouton règle le volume de ce téléphone.',
   vumetre: 'L’un des deux cadrans de l’ampli, gauche et droite : son aiguille dit le son, sans jamais l’analyser.',
   aiguille: 'L’aiguille d’un vumètre : nerveuse, elle monte vite, retombe moins vite, et passe dans le rouge à la fin d’un extrait.',
   voyant: 'La petite lampe de l’ampli : sombre éteint, miel allumé. Jamais de halo.',

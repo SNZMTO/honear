@@ -6,7 +6,7 @@
 
 import { MODES_PAR_CRAN } from '../../regles/modes';
 import type { SonDeLaRoom } from '../../regles/partie';
-import { COULEURS_DES_PLAYLISTS, COULEURS_DES_THEMES, PLAYLISTS_PAR_THEME, type CleDeTheme } from '../../ressources/bac';
+import { COULEURS_DES_THEMES, PLAYLISTS_PAR_THEME, type CleDeTheme } from '../../ressources/bac';
 import type { Densite } from '../../ressources/densites';
 import { PLATINE } from '../../ressources/platine';
 import { REGLAGES } from '../../ressources/reglages';
@@ -139,11 +139,11 @@ export function bacDesPlaylistsPretes(textes: Textes, sortie?: { readonly theme:
     const titre = textes.bac.themes[cle];
     if (titre === undefined) throw new Error(`Le thème « ${cle} » n'a pas de titre dans les textes (${textes.langue}).`);
     const teinte = COULEURS_DES_THEMES[cle];
+    // Derrière chaque intercalaire, les disques de ses playlists, vus par la tranche : les pochettes, elles, sont les joueurs.
     const playlists = Array.from({ length: PLAYLISTS_PAR_THEME[cle] }, (_, n): Rangee => {
-      const autres = COULEURS_DES_PLAYLISTS.filter((c) => c !== teinte);
       // La première playlist du thème qu'on a touché sort du bac.
       const leve = sortie?.theme === cle && n === 0 ? { leve: sortie.leve } : {};
-      return { genre: 'pochette', cle: `playlist-${++rang}`, teinte: autres[(rang * 3) % autres.length] ?? 'creme', ...leve };
+      return { genre: 'pochette', cle: `playlist-${++rang}`, teinte: 'vinyle', ...leve };
     });
     return [{ genre: 'intercalaire', cle, titre, teinte }, ...playlists];
   });

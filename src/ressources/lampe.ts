@@ -43,18 +43,17 @@ export const LAMPE = {
   },
 
   /**
-   * La nappe de lumière posée sur le bois, en deux paliers. Elle est attachée au meuble :
-   * ses mesures sont dans le plan du meuble, en px. Son grand axe est couché le long de la lumière,
-   * de la lampe vers le bas à droite : c'est la direction de la lampe qui le donne.
-   * Son centre est au fond à gauche, hors du meuble ; la platine est en plein dedans, et son bord
-   * traverse le bois en biais sous elle, loin de ses arêtes.
+   * La nappe de lumière posée sur le bois, en fondu. Elle est attachée au meuble : ses mesures sont dans le plan du meuble, en px.
+   * Son grand axe est couché le long de la lumière, de la lampe vers le bas à droite : c'est la direction de la lampe qui le donne.
+   * Son centre est au fond à gauche, hors du meuble ; la platine est en plein dedans. Le bois s'y éclaircit peu à peu : des
+   * ellipses de bois clair, chacune à peine opaque, de la plus large (`du`, rayons du grand et du petit axe) à la plus étroite
+   * (`au`), tant de pas : leur pile fait le fondu, sans marche qu'on voie.
    */
   nappe: {
     centre: [374, -156],
-    /** Rayons (grand axe, petit axe) des deux paliers, du plus large au plus clair. */
-    paliers: [
-      [1177, 965],
-      [1000, 820],
-    ],
+    du: [1260, 1035],
+    au: [560, 460],
+    pas: 24,
+    opacite: 0.06,
   },
 } as const;
