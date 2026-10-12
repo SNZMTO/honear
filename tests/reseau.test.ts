@@ -15,6 +15,7 @@ import { pochetteDExemple } from '../src/planche/exemples';
 import type { Action, Nouvelle } from '../src/regles/messages';
 import { configuration, lancerLeSite, type ConfigurationDuSite } from '../src/reseau/index';
 import { CHEMIN_DE_LA_LIGNE } from '../src/reseau/ligne';
+import { META_DE_LA_VERSION } from '../src/ressources/reglages';
 import { RESEAU } from '../src/ressources/reseau';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { PLAYLIST_D_ESSAI } from '../src/serveur/sources/essai';
@@ -374,6 +375,31 @@ test('un site sans courrier dit que ses comptes sont fermés', async () => {
     telephone.envoyer({ genre: 'reprendreLeCompte', session: 'abcdefghijklmnopqrstuvwxyz' });
     await telephone.attendre('horsCompte');
     telephone.socket.close();
+  } finally {
+    await site.fermer();
+  }
+});
+
+test('une page d’une autre version que celle du site est priée de se recharger ; celle du site, ou sans version, se branche', async () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'miel-'));
+  const page = join(dossier, 'index.html');
+  writeFileSync(page, `<meta name="${META_DE_LA_VERSION}" content="v2">${PAGE}`);
+  const site = lancerLeSite({ port: 0, hote: '127.0.0.1', origines: [], page, deezer: undefined });
+  try {
+    const port = await site.pret;
+    const brancher = (parametre: string): Promise<number | 'ouverte'> =>
+      new Promise((fini) => {
+        const socket = new WebSocket(`ws://127.0.0.1:${port}${CHEMIN_DE_LA_LIGNE}${parametre}`);
+        socket.once('close', (code) => fini(code));
+        socket.once('message', () => {
+          socket.close();
+          fini('ouverte');
+        });
+        socket.once('open', () => socket.send(JSON.stringify({ genre: 'quelleHeure', depart: 0 })));
+      });
+    assert.equal(await brancher('?v=v1'), 4001);
+    assert.equal(await brancher('?v=v2'), 'ouverte');
+    assert.equal(await brancher(''), 'ouverte');
   } finally {
     await site.fermer();
   }

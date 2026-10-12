@@ -16,7 +16,7 @@ import { createServer, type IncomingMessage } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hitParade } from '../regles/partie';
-import { APPLICATION, PAGES_LEGALES } from '../ressources/reglages';
+import { APPLICATION, META_DE_LA_VERSION, PAGES_LEGALES } from '../ressources/reglages';
 import { RESEAU } from '../ressources/reseau';
 import type { Textes } from '../ressources/textes';
 import { demarrerLeServeur } from '../serveur/serveur';
@@ -286,8 +286,12 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
     reveil = setTimeout(avancer, attente);
   };
 
+  const page = readFileSync(c.page, 'utf8');
+  // La version de la page, qu'elle porte dans son en-tête (voir la construction) : la ligne la compare à celle des pages qui se branchent.
+  const version = new RegExp(`<meta name="${META_DE_LA_VERSION}" content="([^"]+)">`).exec(page)?.[1];
   const ligne = ouvrirLaLigne({
     serveur,
+    ...(version !== undefined ? { version } : {}),
     maintenant,
     origines: c.origines,
     aChaqueAction: avancer,
@@ -297,7 +301,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
   });
   const http = createServer(
     ouvrirLaPorte({
-      page: readFileSync(c.page, 'utf8'),
+      page,
       legales: pagesLegales(c),
       fichiers: fichiersDeLApplication(c),
       // Ce que le site dit de lui-même : de quoi vérifier une mise en place d'un coup d'œil.

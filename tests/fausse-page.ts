@@ -97,6 +97,10 @@ export class FauxElement {
   clientHeight = 0;
   offsetWidth = 0;
   offsetHeight = 0;
+  /** La boîte de l'élément dans la page : celle de ses mesures fixées à la main. */
+  getBoundingClientRect(): { readonly x: number; readonly y: number; readonly width: number; readonly height: number } {
+    return { x: 0, y: 0, width: this.clientWidth, height: this.clientHeight };
+  }
   /** Ce qu'on a peint sur cette toile, ou sur l'image qu'elle montre : le nombre de remplissages et de traits. */
   peints = 0;
   /** L'image figée que cette toile montre, si elle ne fait que montrer : on ne peut plus y peindre. */

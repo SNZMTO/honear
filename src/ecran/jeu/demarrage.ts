@@ -9,7 +9,7 @@ import { MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { estUnePochette } from '../../regles/pochette';
 import { PLAYLIST_D_ESSAI } from '../../ressources/bac';
 import { GRAND_ECRAN } from '../../ressources/ecran';
-import { PARTIE, REGLAGES } from '../../ressources/reglages';
+import { META_DE_LA_VERSION, PARTIE, REGLAGES } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
 import { CARACTERES } from '../../ressources/typo';
 import { VERSO_DU_JEU } from '../../scene/disque/verso';
@@ -26,7 +26,13 @@ import { brancherEnLigne } from '../telephone/websocket';
 import { creerLeVibreur } from '../vibreur';
 
 /** Les noms sous lesquels le navigateur garde la room de cet onglet, la pochette de cet appareil, et la session de son compte. */
-const GARDE = { room: 'honear.room', pochette: 'honear.pochette', session: 'honear.session', tuto: 'honear.tuto' } as const;
+const GARDE = {
+  room: 'honear.room',
+  pochette: 'honear.pochette',
+  session: 'honear.session',
+  tuto: 'honear.tuto',
+  rechargee: 'honear.rechargee',
+} as const;
 
 /** Un secret de compte, tel que le serveur les donne (voir `regles/messages.ts`). */
 const SECRET = /^[A-Za-z0-9_-]{20,64}$/;
@@ -240,9 +246,18 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
   };
 
   const vibreur = creerLeVibreur(window.navigator);
-  const ligne = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ligne`;
+  // La page donne sa version en se branchant : si le site a changé depuis qu'elle est ouverte, le serveur lui demande de se recharger.
+  // Une fois par version : une page que le navigateur rendrait encore ancienne ne se recharge pas en boucle.
+  const version = document.querySelector<HTMLMetaElement>(`meta[name="${META_DE_LA_VERSION}"]`)?.content;
+  const dejaRechargee = version !== undefined && lire(enSession, GARDE.rechargee) === version;
+  const parametre = version !== undefined && !dejaRechargee ? `?v=${encodeURIComponent(version)}` : '';
+  const ligne = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}/ligne${parametre}`;
+  const recharger = (): void => {
+    ecrire(enSession, GARDE.rechargee, version);
+    window.location.reload();
+  };
   ouvrirLeTelephone(cadre, {
-    brancher: brancherEnLigne(ligne),
+    brancher: brancherEnLigne(ligne, recharger),
     horloge: horlogeDuNavigateur(),
     ecritoire: { textes, encrier, site: window.location.host },
     preparatifs,
