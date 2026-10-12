@@ -28,3 +28,9 @@ export function kraftDuSalon(a: Ecritoire, lien: string, etat: EtatDeLaPartie): 
   const bandes = bandesDuQr(lien, T.qr.cote).map((b) => placer(b, { en: centre, angle: k.angle }));
   return [kraft.ombre, kraft.corps, kraft.devant, { ...aPlatSurLeMeuble('kraft-qr', KRAFT.tranche, [aplat(bandes, 'expresso', 1)]), role: 'decor' }];
 }
+
+/** La pochette kraft telle qu'elle attend au début d'une piste : ce qu'elle occupe sur le meuble, pour qu'on ne pose rien dessus. */
+export function kraftAuRepos(a: Ecritoire): Calque[] {
+  const kraft = dessinerLaPochetteKraft({ ...kraftDeLaPiste(poseDeDepart(false)), piste: { numero: 1, sur: 1 } }, a.textes, a.encrier.largeur);
+  return [kraft.ombre, kraft.corps, kraft.devant];
+}
