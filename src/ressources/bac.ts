@@ -85,5 +85,13 @@ export const PLAYLISTS_PAR_THEME: Readonly<Record<CleDeTheme, number>> = {
   hitsDuMoment: 1,
 };
 
+/**
+ * Les playlists qu'un thème propose en premier, avant ce que la recherche de Deezer trouve : leur numéro chez Deezer.
+ * Les génériques : « Anime Essentials », de la rédaction de Deezer, les vrais génériques d'animés, pas des reprises.
+ */
+export const PLAYLISTS_EPINGLEES: Readonly<Partial<Record<CleDeTheme, readonly string[]>>> = {
+  generiques: ['9016993522'],
+};
+
 /** La playlist que le bac donne en attendant Deezer : la source d'essai du serveur la connaît sous ce nom. */
 export const PLAYLIST_D_ESSAI = 'essai';

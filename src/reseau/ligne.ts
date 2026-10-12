@@ -157,7 +157,7 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       if (d.genre === 'chercher') {
         let playlists: PlaylistTrouvee[] = [];
         try {
-          if (musique !== undefined) playlists = await musique.chercher(d.recherche);
+          if (musique !== undefined) playlists = await musique.chercher(d.recherche, d.theme);
         } catch {
           // Deezer ne répond pas, ou on lui demande trop : rien dans le bac, pour cette fois.
         }

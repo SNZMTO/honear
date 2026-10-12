@@ -87,7 +87,7 @@ const SOIREE = { lien: 'deezer:4242', titre: 'Soirée 2000', total: 24 };
 
 test('dans le bac, un thème cherche ses playlists et les montre en disques : on en touche une, ou « Au hasard » ; une recherche aussi', () => {
   let s = toucher(auBac('pretes'), { genre: 'theme', cle: 'annees80', recherche: 'Années 80' }, 0, PREPARATIFS);
-  assert.deepEqual(s.actions, [{ genre: 'chercher', recherche: 'Années 80' }]);
+  assert.deepEqual(s.actions, [{ genre: 'chercher', recherche: 'Années 80', theme: 'annees80' }]);
   const AUTRE = { ...SOIREE, lien: 'deezer:7', titre: 'Années 80, la totale' };
   let m = recevoir(s.memoire, { genre: 'playlists', heure: 1, recherche: 'Années 80', playlists: [SOIREE, AUTRE] });
   assert.equal(bacDe(m)?.choisie, undefined, 'rien n’est choisi d’office');
