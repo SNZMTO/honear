@@ -257,7 +257,8 @@ export const TEXTES: Textes = {
       essai: 'Si tu lis ceci, le courrier de ton site marche : les liens de connexion des comptes partiront bien.',
       dortSujet: 'Ton compte Miel d’oreilles va être effacé',
       dort: 'Personne n’est entré dans ton compte Miel d’oreilles depuis presque deux ans. Dans un mois, il sera effacé, avec ta pochette et tes scores : on ne garde pas ce qui ne sert plus.',
-      dortGarder: 'Pour le garder, il suffit d’y revenir : ouvre le site sur ton téléphone, ou demande un lien de connexion. Pour le laisser partir, ne fais rien.',
+      dortGarder:
+        'Pour le garder, il suffit d’y revenir : ouvre le site sur ton téléphone, ou demande un lien de connexion. Pour le laisser partir, ne fais rien.',
     },
   },
 
@@ -329,9 +330,7 @@ export const TEXTES: Textes = {
         },
         {
           titre: 'Où',
-          paragraphes: [
-            'Le serveur est loué à OVHcloud, en France (Strasbourg). Le site ne transfère aucune donnée hors de l’Union européenne.',
-          ],
+          paragraphes: ['Le serveur est loué à OVHcloud, en France (Strasbourg). Le site ne transfère aucune donnée hors de l’Union européenne.'],
         },
         {
           titre: 'Tes droits',

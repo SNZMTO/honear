@@ -33,9 +33,7 @@ export function pageLegale(textes: Textes, cle: CleDePageLegale): string {
   const L = textes.legal;
   const page: PageLegale = L[cle];
   const autre: CleDePageLegale = cle === 'confidentialite' ? 'mentions' : 'confidentialite';
-  const parties = page.parties
-    .map((p) => `<h2>${enXml(p.titre)}</h2>${p.paragraphes.map((x) => `<p>${enXml(x)}</p>`).join('')}`)
-    .join('\n');
+  const parties = page.parties.map((p) => `<h2>${enXml(p.titre)}</h2>${p.paragraphes.map((x) => `<p>${enXml(x)}</p>`).join('')}`).join('\n');
   return `<!doctype html>
 <html lang="${textes.langue}">
 <head>

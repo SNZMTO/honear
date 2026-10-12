@@ -153,7 +153,14 @@ test('les pages légales se servent à leur adresse, avec l’adresse du site et
   const page = join(dossier, 'index.html');
   writeFileSync(page, PAGE);
   writeFileSync(join(dossier, 'confidentialite.html'), '<p>Le site {site}, le contact {contact}.</p>');
-  const site = lancerLeSite({ port: 0, hote: '127.0.0.1', origines: ['https://miel-doreilles.fr'], page, deezer: undefined, contact: 'moi@exemple.fr' });
+  const site = lancerLeSite({
+    port: 0,
+    hote: '127.0.0.1',
+    origines: ['https://miel-doreilles.fr'],
+    page,
+    deezer: undefined,
+    contact: 'moi@exemple.fr',
+  });
   try {
     const base = `http://127.0.0.1:${await site.pret}`;
     const r = await fetch(`${base}/confidentialite`);
