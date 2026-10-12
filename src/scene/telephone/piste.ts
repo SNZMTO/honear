@@ -37,6 +37,8 @@ export type CeQuOnRepond =
       readonly clavier: boolean;
       /** Le dessus du vrai clavier, en px depuis le haut du regard, quand la page sait le lire ; sans lui, celui d'un clavier ordinaire. */
       readonly dessus?: number;
+      /** Vrai un instant après qu'on a validé ce qu'on a tapé : l'étiquette s'enfonce, la réponse part. */
+      readonly enfoncee?: boolean;
     }
   | { readonly genre: 'choix'; readonly proposes: readonly Reponse[]; readonly touchee?: number };
 
@@ -96,50 +98,70 @@ export const dessusDuClavier = (regard: Regard, vrai: number | undefined): numbe
 export const lignesDeLaPiste = (textes: Textes, o: AutourDeLaPiste): LigneDuClassement[] =>
   lignesDuClassement(o.etat, textes, o.revelee !== undefined ? 'points' : 'trouvailles', o.revelee !== undefined ? o.avantLExtrait : undefined);
 
-/**
- * Les objets posés autour de la piste, dans ce regard.
- * @param classementAilleurs vrai quand le classement se lit ailleurs (sous le bac, sur un grand écran) : ici, l'éventail des pochettes.
- */
-export function autourDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste, classementAilleurs = false): Calque[] {
-  const { revelee, repondre } = o;
+/** Où se tient l'étiquette, et l'éventail, quand le clavier est ouvert : remontés au-dessus de lui. */
+function auDessusDuClavier(regard: Regard, o: AutourDeLaPiste): { readonly ouvert: boolean; readonly dessus: number; readonly remonte: number } {
+  const { repondre } = o;
   const ouvert = repondre.genre === 'saisie' && repondre.clavier;
   // Un vrai clavier plus haut qu'un clavier ordinaire remonte l'éventail et l'étiquette d'autant : ils restent au-dessus de lui.
   const dessus = dessusDuClavier(regard, repondre.genre === 'saisie' ? repondre.dessus : undefined);
-  const remonte = dessus - (regard.hauteur - T.clavier.hauteur);
-  const objets: Calque[] = [];
+  return { ouvert, dessus, remonte: dessus - (regard.hauteur - T.clavier.hauteur) };
+}
+
+/**
+ * La tablée de la piste : le classement, sous la platine (à plus de six, les premiers et soi) ; ou l'éventail des pochettes, quand
+ * le clavier ouvert prend la place, ou que le classement se lit ailleurs. Elle ne change qu'avec les points et les trouvailles.
+ * @param classementAilleurs vrai quand le classement se lit ailleurs (sous le bac, sur un grand écran).
+ */
+export function tableeDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste, classementAilleurs = false): Calque[] {
+  const { ouvert, remonte } = auDessusDuClavier(regard, o);
   if (ouvert || classementAilleurs) {
     // Le clavier ouvert prend le bas de l'écran : l'éventail remonte au-dessus de l'étiquette, sans la kraft.
-    const joueurs = eventail(o.etat, a.textes, revelee !== undefined ? 'points' : 'trouvailles', revelee !== undefined ? o.avantLExtrait : undefined);
+    const revelee = o.revelee !== undefined;
+    const joueurs = eventail(o.etat, a.textes, revelee ? 'points' : 'trouvailles', revelee ? o.avantLExtrait : undefined);
     const places = placesEnEventail(joueurs.length, ouvert).map((p) => (ouvert ? { ...p, en: [p.en[0], T.clavier.eventail + remonte] as const } : p));
-    objets.push(...dessinerLaTablee(joueurs, places, T.eventail.taille, regard, T.trouve, a.encrier.largeur));
+    return dessinerLaTablee(joueurs, places, T.eventail.taille, regard, T.trouve, a.encrier.largeur);
   }
-  // Le classement, en jeu : chacun sa ligne, son nom et ses points, sous la platine ; à plus de six, les premiers et soi. Le clavier
-  // ouvert prend la place.
-  else {
-    const C = T.classement.piste;
-    const lignes = lesPremiersEtToi(lignesDeLaPiste(a.textes, o), o.toi, C.parColonne);
-    objets.push(...dessinerLeClassement(lignes, C, regard, a.textes, a.encrier.largeur, 'joueur'));
-  }
+  const C = T.classement.piste;
+  return dessinerLeClassement(lesPremiersEtToi(lignesDeLaPiste(a.textes, o), o.toi, C.parColonne), C, regard, a.textes, a.encrier.largeur, 'joueur');
+}
+
+/**
+ * Ce qu'on touche et ce qu'on lit pendant la piste : l'étiquette vierge où l'on tape (enfoncée un instant quand la réponse part),
+ * ou les quatre étiquettes à toucher ; la phrase d'un état ; le clavier ouvert. Cela change à chaque lettre tapée.
+ */
+export function pouceDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste): Calque[] {
+  const { revelee, repondre } = o;
+  const { ouvert, dessus, remonte } = auDessusDuClavier(regard, o);
+  const objets: Calque[] = [];
   if (repondre.genre === 'choix') {
     objets.push(...etiquettesAToucher(a, regard, repondre.proposes, revelee, revelee !== undefined ? undefined : repondre.touchee));
     return objets;
   }
-  if (revelee === undefined) {
-    if (o.phrase === undefined)
-      objets.push(
-        ...etiquetteDeReponse(
-          a,
-          regard,
-          repondre.tape,
-          o.etat.piste?.trouve[o.toi] ?? [],
-          repondre.mot,
-          ouvert ? T.clavier.reponse + remonte : undefined,
-        ),
-      );
-  }
+  if (revelee === undefined && o.phrase === undefined)
+    objets.push(
+      ...etiquetteDeReponse(
+        a,
+        regard,
+        repondre.tape,
+        o.etat.piste?.trouve[o.toi] ?? [],
+        repondre.mot,
+        ouvert ? T.clavier.reponse + remonte : undefined,
+        undefined,
+        repondre.enfoncee === true,
+      ),
+    );
   // La pochette de la réponse est au milieu du disque retourné : rien d'autre ne se pose à côté de la kraft.
   const M = T.message;
   if (o.phrase !== undefined) objets.push(...phrase(o.phrase, regard, a.encrier, M.en, M.largeur));
   if (ouvert) objets.push(clavier(regard, dessus));
   return objets;
 }
+
+/**
+ * Les objets posés autour de la piste, dans ce regard : la tablée, puis ce qu'on touche.
+ * @param classementAilleurs vrai quand le classement se lit ailleurs (sous le bac, sur un grand écran) : ici, l'éventail des pochettes.
+ */
+export const autourDeLaPiste = (a: Ecritoire, regard: Regard, o: AutourDeLaPiste, classementAilleurs = false): Calque[] => [
+  ...tableeDeLaPiste(a, regard, o, classementAilleurs),
+  ...pouceDeLaPiste(a, regard, o),
+];
