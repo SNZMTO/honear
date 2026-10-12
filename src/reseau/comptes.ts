@@ -4,6 +4,7 @@
  * le téléphone reçoit alors le secret d'une session, qu'il garde pour revenir. Le serveur ne garde de ces secrets que leur
  * empreinte : qui lirait son fichier n'entrerait dans aucun compte. Les liens vivent en mémoire ; les comptes et les sessions,
  * dans un fichier, réécrit en entier quand ils changent (ils sont peu). On limite les envois : par adresse, par téléphone, par jour.
+ * Un compte dont personne ne se sert pendant deux ans s'efface tout seul ; un mois avant, une lettre prévient son adresse.
  */
 
 import type { CompteVu } from '../regles/messages';
@@ -29,6 +30,8 @@ export interface OptionsDesComptes {
   readonly poster: Poster | undefined;
   /** La lettre qui porte un lien de connexion, à cette adresse. */
   readonly lettre: (email: string, lien: string) => Lettre;
+  /** La lettre qui prévient un compte qui dort qu'il va être effacé ; rien : on efface sans prévenir. */
+  readonly avertissement?: (email: string) => Lettre;
 }
 
 /** Ce qu'on peut répondre à qui demande un lien. */
@@ -58,6 +61,8 @@ export interface Comptes {
   faceFinie(code: string, classement: readonly { readonly joueur: string; readonly premier: boolean }[]): void;
   /** Ce que le téléphone voit d'un compte. */
   vu(id: string): CompteVu | undefined;
+  /** Le ménage : efface les comptes qui dorment depuis trop longtemps, et prévient ceux qui vont l'être. */
+  entretenir(): Promise<void>;
 }
 
 interface CompteGarde {
@@ -67,6 +72,10 @@ interface CompteGarde {
   readonly pochette?: Pochette;
   readonly parties: number;
   readonly victoires: number;
+  /** La dernière fois qu'on y est entré ou revenu ; sans elle, sa création. */
+  readonly vuLe?: number;
+  /** Quand on a prévenu son adresse qu'il allait être effacé, s'il dort depuis. */
+  readonly prevenuLe?: number;
 }
 
 interface SessionGardee {
@@ -96,7 +105,7 @@ function relire(texte: string | undefined): { comptes: CompteGarde[]; sessions: 
   const objet = typeof lu === 'object' && lu !== null ? (lu as Record<string, unknown>) : {};
   const comptes = (Array.isArray(objet['comptes']) ? (objet['comptes'] as unknown[]) : []).flatMap((x): CompteGarde[] => {
     const c = typeof x === 'object' && x !== null ? (x as Record<string, unknown>) : {};
-    const { id, email, creeLe, pochette, parties, victoires } = c;
+    const { id, email, creeLe, pochette, parties, victoires, vuLe, prevenuLe } = c;
     if (typeof id !== 'string' || typeof email !== 'string' || typeof creeLe !== 'number') return [];
     return [
       {
@@ -106,6 +115,8 @@ function relire(texte: string | undefined): { comptes: CompteGarde[]; sessions: 
         ...(estUnePochette(pochette) ? { pochette } : {}),
         parties: typeof parties === 'number' ? parties : 0,
         victoires: typeof victoires === 'number' ? victoires : 0,
+        ...(typeof vuLe === 'number' ? { vuLe } : {}),
+        ...(typeof prevenuLe === 'number' ? { prevenuLe } : {}),
       },
     ];
   });
@@ -193,11 +204,11 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
       liens.delete(e);
       const t = o.monde();
       if (envoye === undefined || envoye.jusqua <= t) return undefined;
-      let compte = [...comptes.values()].find((c) => c.email === envoye.email);
-      if (compte === undefined) {
-        compte = { id: o.identifiant(), email: envoye.email, creeLe: t, parties: 0, victoires: 0 };
-        comptes.set(compte.id, compte);
-      }
+      const deja = [...comptes.values()].find((c) => c.email === envoye.email);
+      // On y entre : il est vu aujourd'hui, et ne dort plus.
+      const compte: CompteGarde =
+        deja !== undefined ? revu(deja, t) : { id: o.identifiant(), email: envoye.email, creeLe: t, parties: 0, victoires: 0, vuLe: t };
+      comptes.set(compte.id, compte);
       const session = o.secret();
       sessions.set(o.empreinte(session), { empreinte: o.empreinte(session), compte: compte.id, jusqua: t + C.session });
       enregistrer();
@@ -212,9 +223,10 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
         if (s !== undefined) sessions.delete(e);
         return undefined;
       }
-      // Elle se prolonge à chaque retour : on n'en réécrit le fichier qu'une fois par jour au plus.
+      // Elle se prolonge à chaque retour, et le compte est vu : on n'en réécrit le fichier qu'une fois par jour au plus.
       if (s.jusqua - t < C.session - UN_JOUR) {
         sessions.set(e, { ...s, jusqua: t + C.session });
+        comptes.set(compte.id, revu(compte, t));
         enregistrer();
       }
       return { id: compte.id, compte: vu(compte) };
@@ -257,7 +269,37 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
       const c = comptes.get(id);
       return c !== undefined ? vu(c) : undefined;
     },
+    async entretenir() {
+      const t = o.monde();
+      const I = C.inactif;
+      let change = false;
+      for (const c of [...comptes.values()]) {
+        const dort = t - (c.vuLe ?? c.creeLe);
+        if (dort >= I.efface) {
+          comptes.delete(c.id);
+          for (const [e, s] of sessions) if (s.compte === c.id) sessions.delete(e);
+          change = true;
+          continue;
+        }
+        if (dort < I.efface - I.prevenu || c.prevenuLe !== undefined || o.poster === undefined || o.avertissement === undefined) continue;
+        try {
+          await o.poster(o.avertissement(c.email));
+          const encore = comptes.get(c.id);
+          if (encore !== undefined) comptes.set(c.id, { ...encore, prevenuLe: t });
+          change = true;
+        } catch {
+          // Le courrier ne part pas : on réessaiera au prochain ménage.
+        }
+      }
+      if (change) enregistrer();
+    },
   };
+}
+
+/** Un compte vu à cette heure : il ne dort plus, l'avertissement qu'on lui a peut-être envoyé ne vaut plus. */
+function revu(c: CompteGarde, t: number): CompteGarde {
+  const { prevenuLe: _prevenu, ...reste } = c;
+  return { ...reste, vuLe: t };
 }
 
 /** Un texte qu'on pose dans du HTML : ses signes qui y veulent dire quelque chose, échappés. */
@@ -289,4 +331,25 @@ export function lettreDuLien(textes: Textes['compte']['courrier'], site: string)
       ].join(''),
     };
   };
+}
+
+/**
+ * La lettre qui prévient un compte qui dort : dans un mois, il sera effacé ; pour le garder, il suffit d'y revenir.
+ * @param site l'adresse publique du site : « https://miel-doreilles.fr ».
+ */
+export function lettreDAvertissement(textes: Textes['compte']['courrier'], site: string): (email: string) => Lettre {
+  const T = textes;
+  const P = PALETTE;
+  return (email) => ({
+    a: email,
+    sujet: T.dortSujet,
+    texte: [T.bonjour, '', T.dort, '', T.dortGarder, site, '', `— ${T.signature}`, ''].join('\n'),
+    html: [
+      '<!doctype html><html><head><meta charset="utf-8"></head>',
+      `<body style="margin:0;padding:24px;background:${P.creme};color:${P.expresso};font-family:Georgia,serif;font-size:17px;line-height:1.5">`,
+      `<p>${enHtml(T.bonjour)}</p><p>${enHtml(T.dort)}</p><p>${enHtml(T.dortGarder)}</p>`,
+      `<p><a href="${enHtml(site)}" style="color:${P.expresso}">${enHtml(site.replace(/^https?:\/\//, ''))}</a></p>`,
+      `<p>— ${enHtml(T.signature)}</p></body></html>`,
+    ].join(''),
+  });
 }

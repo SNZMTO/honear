@@ -16,13 +16,14 @@ import { createServer, type IncomingMessage } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hitParade } from '../regles/partie';
+import { PAGES_LEGALES } from '../ressources/reglages';
 import { RESEAU } from '../ressources/reseau';
 import type { Textes } from '../ressources/textes';
 import { demarrerLeServeur } from '../serveur/serveur';
 import { API_DE_DEEZER } from '../serveur/sources/deezer';
 import { PAGES_DE_SPOTIFY } from '../serveur/sources/spotify';
 import { PISTES_D_ESSAI, PLAYLIST_D_ESSAI } from '../serveur/sources/essai';
-import { adresseEmail, enHtml, lettreDuLien, ouvrirLesComptes, type Comptes } from './comptes';
+import { adresseEmail, enHtml, lettreDAvertissement, lettreDuLien, ouvrirLesComptes, type Comptes } from './comptes';
 import { posterParSmtp, type ConfigurationDuCourrier, type Poster } from './courrier';
 import { dateDuCourrier, heureDuMonde, horlogeDuServeur } from './horloge';
 import { ouvrirLaLigne } from './ligne';
@@ -34,6 +35,8 @@ const tirage = (): number => randomBytes(4).readUInt32BE(0) / 2 ** 32;
 
 /** Les textes du compte, pour les lettres : c'est la construction du serveur qui les y met (voir outils/construire.ts). */
 declare const TEXTES_DU_COMPTE: Textes['compte'] | undefined;
+/** Ce que les pages légales disent quand on ne connaît pas d'adresse où écrire : la construction du serveur l'y met aussi. */
+declare const TEXTES_DU_CONTACT: string | undefined;
 
 /** Ce que le site lit dans son environnement. */
 export interface ConfigurationDuSite {
@@ -45,6 +48,8 @@ export interface ConfigurationDuSite {
   readonly deezer: string | undefined;
   /** Le site des pages publiques de Spotify. */
   readonly spotify?: string;
+  /** L'adresse où écrire à l'éditeur, que disent les pages légales (CONTACT, sinon celle qui envoie les liens des comptes). */
+  readonly contact?: string;
   /**
    * Les comptes : le fichier où ils se gardent, l'adresse publique du site (celle des liens), le serveur d'envoi des lettres (rien :
    * les comptes sont fermés ; « journal » : les liens s'écrivent dans le journal du serveur), et les textes des lettres. Rien : pas de comptes.
@@ -65,7 +70,10 @@ function configuration(): ConfigurationDuSite {
     .split(',')
     .map((o) => o.trim())
     .filter((o) => o !== '');
+  const courrier = courrierDeLEnvironnement();
+  const contact = process.env['CONTACT'] ?? (typeof courrier === 'object' && courrier.de !== '' ? courrier.de : undefined);
   return {
+    ...(contact !== undefined ? { contact } : {}),
     port: Number(process.env['PORT'] ?? 8080),
     hote: process.env['HOTE'] ?? '127.0.0.1',
     origines,
@@ -77,7 +85,7 @@ function configuration(): ConfigurationDuSite {
           comptes: {
             fichier: process.env['COMPTES'] ?? join(process.env['STATE_DIRECTORY'] ?? ici, 'comptes.json'),
             site: process.env['SITE'] ?? origines[0] ?? 'http://localhost:8080',
-            courrier: courrierDeLEnvironnement(),
+            courrier,
             textes: TEXTES_DU_COMPTE,
           },
         }
@@ -135,8 +143,28 @@ function comptesDansUnFichier(c: NonNullable<ConfigurationDuSite['comptes']>): C
     },
     poster,
     lettre: lettreDuLien(c.textes.courrier, c.site),
+    avertissement: lettreDAvertissement(c.textes.courrier, c.site),
   });
 }
+
+/**
+ * Les pages légales, lues à côté de la page du jeu (« /confidentialite » dans confidentialite.html), l'adresse du site et celle où
+ * écrire à l'éditeur écrites dedans. Celles qui manquent ne sont pas servies.
+ */
+function pagesLegales(c: ConfigurationDuSite): Record<string, string> {
+  const site = (c.comptes?.site ?? c.origines[0] ?? '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  const contact = c.contact ?? (typeof TEXTES_DU_CONTACT !== 'undefined' ? TEXTES_DU_CONTACT : undefined) ?? '';
+  const pages: Record<string, string> = {};
+  for (const chemin of Object.values(PAGES_LEGALES)) {
+    const fichier = join(dirname(c.page), `${chemin.slice(1)}.html`);
+    if (!existsSync(fichier)) continue;
+    pages[chemin] = readFileSync(fichier, 'utf8').replace(/\{site\}/g, enHtml(site)).replace(/\{contact\}/g, enHtml(contact));
+  }
+  return pages;
+}
+
+/** Entre deux ménages des comptes, en millisecondes. */
+const MENAGE = RESEAU.comptes.inactif.menage * 1000;
 
 /** Ce qu'on laisse à Deezer, à Spotify, pour répondre, en millisecondes. */
 const PATIENCE = RESEAU.deezer.attente * 1000;
@@ -202,6 +230,11 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
   const maintenant = horlogeDuServeur();
   const musique = c.deezer !== undefined ? musiqueEnLigne({ deezer: c.deezer, spotify: c.spotify ?? PAGES_DE_SPOTIFY }, maintenant) : undefined;
   const comptes = c.comptes !== undefined ? comptesDansUnFichier(c.comptes) : undefined;
+  // Le ménage des comptes qui dorment : au démarrage, puis une fois par jour.
+  const faireLeMenage = (): void => void comptes?.entretenir();
+  faireLeMenage();
+  const menage = comptes !== undefined ? setInterval(faireLeMenage, MENAGE) : undefined;
+  menage?.unref();
   const serveur = demarrerLeServeur({
     maintenant,
     tirage,
@@ -242,6 +275,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
   const http = createServer(
     ouvrirLaPorte({
       page: readFileSync(c.page, 'utf8'),
+      legales: pagesLegales(c),
       // Ce que le site dit de lui-même : de quoi vérifier une mise en place d'un coup d'œil.
       sante: () => ({
         rooms: serveur.rooms,
@@ -265,6 +299,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
       new Promise<void>((fini) => {
         ferme = true;
         if (reveil !== undefined) clearTimeout(reveil);
+        if (menage !== undefined) clearInterval(menage);
         ligne.fermer();
         http.close(() => fini());
         // Les navigateurs gardent leurs connexions ouvertes pour la suite : on ne les attend pas.

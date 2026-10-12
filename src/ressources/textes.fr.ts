@@ -255,6 +255,125 @@ export const TEXTES: Textes = {
       signature: 'Miel d’oreilles',
       essaiSujet: 'Miel d’oreilles : l’e-mail d’essai',
       essai: 'Si tu lis ceci, le courrier de ton site marche : les liens de connexion des comptes partiront bien.',
+      dortSujet: 'Ton compte Miel d’oreilles va être effacé',
+      dort: 'Personne n’est entré dans ton compte Miel d’oreilles depuis presque deux ans. Dans un mois, il sera effacé, avec ta pochette et tes scores : on ne garde pas ce qui ne sert plus.',
+      dortGarder: 'Pour le garder, il suffit d’y revenir : ouvre le site sur ton téléphone, ou demande un lien de connexion. Pour le laisser partir, ne fais rien.',
+    },
+  },
+
+  legal: {
+    liens: { confidentialite: 'Confidentialité', mentions: 'Mentions légales' },
+    retour: 'Revenir au jeu',
+    sansContact: 'l’adresse que l’éditeur a donnée à l’hébergeur',
+    confidentialite: {
+      titre: 'Confidentialité',
+      date: 'Mise à jour le 12 octobre 2026',
+      parties: [
+        {
+          titre: 'En deux mots',
+          paragraphes: [
+            'Miel d’oreilles ({site}) est un blind test entre potes, gratuit, sans publicité, sans cookie et sans mesure d’audience. On ne garde que ce qu’il faut pour jouer, et rien n’est vendu ni prêté à personne.',
+            'Le responsable de ces données est l’éditeur du site, un particulier (voir les mentions légales). Pour toute question, ou pour exercer tes droits : {contact}.',
+          ],
+        },
+        {
+          titre: 'Si tu joues sans compte',
+          paragraphes: [
+            'Ton nom d’artiste et ta pochette restent sur ton téléphone, dans son stockage local. Pendant une partie, le serveur les connaît, avec tes réponses et tes points, le temps que la room existe : ils ne vivent qu’en mémoire et disparaissent quand elle se ferme. Rien n’en est écrit sur disque.',
+          ],
+        },
+        {
+          titre: 'Si tu ouvres un compte (c’est facultatif)',
+          paragraphes: [
+            'Un compte garde ton adresse e-mail, ta pochette, le nombre de parties que tu as jouées et gagnées, sa date de création et celle de ta dernière visite. C’est tout.',
+            'Il n’y a pas de mot de passe : tu entres par un lien envoyé à ton adresse. Le serveur ne garde de ce lien, et du secret de ta session, qu’une empreinte qu’on ne peut pas retourner : qui lirait le fichier des comptes n’entrerait dans aucun.',
+            'Base légale : le service que tu demandes en ouvrant ton compte (article 6, 1, b, du RGPD).',
+          ],
+        },
+        {
+          titre: 'L’adresse de ton téléphone sur le réseau',
+          paragraphes: [
+            'Le serveur lit l’adresse IP de ton téléphone pour limiter les abus : pas plus de trente téléphones à la fois depuis une même adresse, pas plus de dix liens de connexion par heure. Il ne l’écrit nulle part : il la garde en mémoire tant que ton téléphone est branché, et une heure au plus quand il a demandé un lien.',
+            'Base légale : l’intérêt légitime à protéger le jeu (article 6, 1, f, du RGPD).',
+          ],
+        },
+        {
+          titre: 'Les e-mails',
+          paragraphes: [
+            'Le site n’envoie que deux sortes d’e-mails, et seulement à qui a un compte : le lien de connexion que tu demandes, et un avertissement si ton compte dort depuis presque deux ans. Jamais de lettre d’information ni de publicité. Ils partent par le service de messagerie de notre hébergeur, OVHcloud.',
+          ],
+        },
+        {
+          titre: 'La musique : Deezer',
+          paragraphes: [
+            'Les extraits de 30 secondes et les pochettes, ton téléphone les lit directement chez Deezer (sur dzcdn.net). Deezer reçoit donc l’adresse IP de ton téléphone, comme pour n’importe quelle page web, et la traite selon sa propre politique de confidentialité. Le site ne lui transmet rien d’autre te concernant.',
+            'Une playlist Spotify que tu colles est lue par le serveur, sur sa page publique : Spotify n’apprend rien de toi.',
+          ],
+        },
+        {
+          titre: 'Ce que le site garde sur ton téléphone',
+          paragraphes: [
+            'Ni cookie, ni traceur, ni outil tiers. Le site garde dans le stockage local de ton navigateur seulement ce qu’il faut pour marcher : ta pochette, la room où tu joues (pour y revenir si la page se recharge), et le secret de ta session si tu as un compte.',
+            'Ces informations, strictement nécessaires au jeu que tu demandes, ne demandent pas ton consentement (article 82 de la loi Informatique et Libertés). Tu peux les effacer quand tu veux, en effaçant les données du site dans ton navigateur.',
+          ],
+        },
+        {
+          titre: 'Combien de temps',
+          paragraphes: [
+            'Une room et ce qui s’y joue : tant qu’elle existe, en mémoire.',
+            'Un lien de connexion : un quart d’heure, et il ne sert qu’une fois.',
+            'Une session : six mois, prolongée à chaque visite ; oubliée dès que tu te déconnectes.',
+            'Un compte : tant que tu t’en sers. Après deux ans sans visite, il est effacé tout seul, avec ta pochette et tes scores ; un e-mail te prévient un mois avant. Tu peux aussi l’effacer toi-même, tout de suite : « Mon compte », puis « Effacer mon compte ».',
+            'L’adresse IP de ton téléphone : en mémoire seulement, le temps de ta connexion (une heure au plus pour un lien demandé). Les journaux techniques du serveur (ses erreurs, ses redémarrages) ne gardent rien plus de six mois.',
+          ],
+        },
+        {
+          titre: 'Où',
+          paragraphes: [
+            'Le serveur est loué à OVHcloud, en France (Strasbourg). Le site ne transfère aucune donnée hors de l’Union européenne.',
+          ],
+        },
+        {
+          titre: 'Tes droits',
+          paragraphes: [
+            'Tu peux accéder à tes données, les faire corriger ou effacer, en limiter l’usage, t’y opposer, et les récupérer dans un format lisible : écris à {contact}, on te répond sous un mois. Pour effacer ton compte, pas besoin d’écrire : « Mon compte », puis « Effacer mon compte ».',
+            'Si tu estimes que tes droits ne sont pas respectés, tu peux t’adresser à la CNIL (cnil.fr).',
+          ],
+        },
+        {
+          titre: 'Moins de 15 ans',
+          paragraphes: ['On peut jouer à tout âge, sans compte. Si tu as moins de 15 ans, demande à un de tes parents avant d’ouvrir un compte.'],
+        },
+      ],
+    },
+    mentions: {
+      titre: 'Mentions légales',
+      date: 'Mise à jour le 12 octobre 2026',
+      parties: [
+        {
+          titre: 'L’éditeur',
+          paragraphes: [
+            'Miel d’oreilles ({site}) est édité à titre non professionnel par un particulier, qui a choisi de ne pas publier son identité, comme la loi le permet (article 1-1, II, de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l’économie numérique) : il l’a communiquée à l’hébergeur. Pour le joindre : {contact}.',
+          ],
+        },
+        {
+          titre: 'L’hébergeur',
+          paragraphes: ['OVH SAS, 2 rue Kellermann, 59100 Roubaix, France. Téléphone : 1007. Site : ovhcloud.com.'],
+        },
+        {
+          titre: 'La musique',
+          paragraphes: [
+            'Les extraits de 30 secondes, les pochettes et les titres viennent de l’API de Deezer et appartiennent à leurs ayants droit. Ici, on ne les écoute qu’en extraits, pour un usage privé et non commercial, entre proches, comme le demandent les conditions de Deezer. Deezer n’a ni approuvé ni parrainé ce site.',
+          ],
+        },
+        {
+          titre: 'Le reste',
+          paragraphes: [
+            'Le jeu, ses dessins, son logo et ses textes sont l’œuvre de son auteur. Ses polices, Caprasimo et Barlow Condensed, sont sous licence SIL Open Font License.',
+            'Le site est gratuit, sans publicité, et ne vend rien.',
+          ],
+        },
+      ],
     },
   },
 

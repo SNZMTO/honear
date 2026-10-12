@@ -223,7 +223,25 @@ export interface Textes {
       /** L'e-mail d'essai, que la mise en place envoie pour vérifier que le courrier part. */
       readonly essaiSujet: string;
       readonly essai: string;
+      /** La lettre qui prévient un compte qui dort depuis presque deux ans qu'il sera bientôt effacé. */
+      readonly dortSujet: string;
+      readonly dort: string;
+      readonly dortGarder: string;
     };
+  };
+
+  /**
+   * Les pages légales, servies à part, sans script : la confidentialité et les mentions légales. Chacune a un titre, une date,
+   * et des parties, chacune ses paragraphes. « {site} » s'y remplace par l'adresse du site, « {contact} » par l'adresse où écrire
+   * (celle que le serveur connaît). Les liens qui y mènent, en bas de l'accueil.
+   */
+  readonly legal: {
+    readonly liens: { readonly confidentialite: string; readonly mentions: string };
+    readonly retour: string;
+    readonly confidentialite: PageLegale;
+    readonly mentions: PageLegale;
+    /** Quand le serveur ne connaît pas d'adresse où écrire. */
+    readonly sansContact: string;
   };
 
   /**
@@ -239,4 +257,11 @@ export interface Textes {
     /** Une piste avec un feat, pour montrer la troisième partie à trouver en saisie libre. */
     readonly avecUnFeat: { readonly titre: string; readonly interprete: string; readonly feat: string; readonly saisie: string };
   };
+}
+
+/** Une page légale : son titre, sa date, ses parties. */
+export interface PageLegale {
+  readonly titre: string;
+  readonly date: string;
+  readonly parties: readonly { readonly titre: string; readonly paragraphes: readonly string[] }[];
 }
