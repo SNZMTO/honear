@@ -91,6 +91,7 @@ import {
   type Toucher,
 } from './memoire';
 import { ecranDuTelephone, type EcranDuTelephone } from './route';
+import { ouvrirLeDiagnostic } from './diagnostic';
 import { poserDesImages, type ImagePosee } from './images';
 import { brancherLeHautParleur, sonVoulu, type HautParleur } from './son';
 import { choseATouche } from './touchers';
@@ -407,30 +408,16 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   }
 
   // Le diagnostic : les lignes s'amassent, et partent par paquets, quand la ligne est là, sans gêner les actions du jeu.
-  const aEnvoyer: string[] = [];
   let enLigne = false;
-  let paquetPrevu = false;
-  const depuisLOuverture = o.horloge.maintenant();
-  function envoyerLeDiagnostic(): void {
-    paquetPrevu = false;
-    if (!enLigne) return;
-    while (aEnvoyer.length > 0) {
-      let texte = '';
-      while (aEnvoyer.length > 0 && texte.length + (aEnvoyer[0]?.length ?? 0) < TELEPHONE.diagnostic.paquet) texte += `${aEnvoyer.shift() ?? ''}\n`;
-      if (texte === '') texte = (aEnvoyer.shift() ?? '').slice(0, TELEPHONE.diagnostic.paquet);
-      connexion?.envoyer({ genre: 'diagnostic', texte });
-    }
-  }
-  const noter =
+  const diagnostic =
     o.diagnostic === true
-      ? (texte: string): void => {
-          aEnvoyer.push(`${(o.horloge.maintenant() - depuisLOuverture).toFixed(2)} ${texte}`);
-          if (aEnvoyer.length > TELEPHONE.diagnostic.enAttente) aEnvoyer.shift();
-          if (paquetPrevu) return;
-          paquetPrevu = true;
-          window.setTimeout(envoyerLeDiagnostic, TELEPHONE.diagnostic.envoi * MS_PAR_SECONDE);
-        }
+      ? ouvrirLeDiagnostic(o.horloge, (texte) => {
+          if (!enLigne || connexion === undefined) return false;
+          connexion.envoyer({ genre: 'diagnostic', texte });
+          return true;
+        })
       : undefined;
+  const noter = diagnostic?.noter;
   noter?.(`page : ${navigator.userAgent} ; fenêtre ${window.innerWidth}×${window.innerHeight}, écran ${window.screen.width}×${window.screen.height}`);
 
   // Le haut-parleur : il joue l'extrait de la piste à l'heure du serveur, et dit quand il l'a chargé ; on le dit alors prêt.
@@ -500,7 +487,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       changer(horsLigne(memoire, !oui));
       enLigne = oui;
       if (!oui) return;
-      envoyerLeDiagnostic();
+      diagnostic?.envoyer();
       for (const quoi of aSignaler.splice(0)) signaler(quoi);
       // La ligne revient : on redemande l'heure, d'affilée ; on rentre dans son compte, et l'on redonne son jeton.
       questions = TELEPHONE.horloge.auDebut;
@@ -523,7 +510,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
 
   /** La définition des toiles, à l'échelle où le cadre montre la scène. */
   /** La largeur exacte du cadre, en px de la page (pas arrondie : voir le plan). */
-  const largeurDuCadre = (): number => cadre.getBoundingClientRect().width;
+  // Lue une fois par image (la boucle l'oublie à chacune) : la lire force la page à se recalculer, après ce qu'on y a écrit.
+  let largeurLue: number | undefined;
+  const largeurDuCadre = (): number => (largeurLue ??= cadre.getBoundingClientRect().width);
   const definition = (regard: Regard): number =>
     factureVoulue(o.options.allegements, largeurDuCadre() > 0 ? largeurDuCadre() / regard.largeur : 1, o.densiteDeLEcran()).definition;
 
@@ -931,8 +920,10 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     envoyer(suite.actions);
     // La réponse est partie ; ce qu'on tape ensuite la remplace : on garde le clavier ouvert, prêt pour un autre essai.
     if (champ.dataset['pour'] === 'reponse') champ.select();
-    // Le nom est écrit : le clavier se ferme, la pochette se voit en entier.
-    if (champ.dataset['pour'] === 'nom') champ.blur();
+    // Le nom est écrit : le clavier se ferme, la pochette se voit en entier. La recherche part, ou le lien : le clavier se ferme
+    // sur ce qu'ils trouvent, qu'il cachait.
+    const pour = champ.dataset['pour'];
+    if (pour === 'nom' || pour === 'recherche' || pour === 'lien') champ.blur();
   };
   /** Un lien collé part tout seul : on n'a pas à chercher la touche « OK » d'un clavier. */
   let colle = false;
@@ -1029,10 +1020,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     vider(coucheDeLaTablee);
   }
 
-  function montrerUnEcran(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>): void {
+  /** @param cle celle de l'écran à cette proportion de la fenêtre (voir `cleDe`) : le même écran ne se remonte pas. */
+  function montrerUnEcran(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>, p: number | undefined, cle: string): void {
     if (piste !== undefined) fermerLaPiste();
-    const p = proportion();
-    const cle = cleDe(e, p);
     if (ecranMonte?.cle === cle) {
       ecranMonte.plan.suivreLeCadre();
       return;
@@ -1251,8 +1241,19 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     // Par-dessus les zones de l'écran : ce qui serait dessous (un intercalaire du bac) ne lui prend pas le doigt.
     zone.style.cssText = `position:absolute;z-index:1;left:${part(e.x - r.origine[0], r.largeur)};top:${part(y, r.hauteur)};width:${part(e.largeur, r.largeur)};height:${part(h, r.hauteur)};`;
   }
-  function poserLeVolume(): void {
-    const r = regardMonte;
+  /** Où se pose le bouton du volume dans un regard : on ne le cherche qu'une fois par regard, pas à chaque image. */
+  let placeDuVolume: { readonly regard: Regard; readonly ou: PlaceDuVolume } | undefined;
+  function ouPoserLeVolume(r: Regard): PlaceDuVolume {
+    const avant = placeDuVolume?.regard;
+    if (
+      placeDuVolume !== undefined &&
+      avant !== undefined &&
+      avant.origine[0] === r.origine[0] &&
+      avant.origine[1] === r.origine[1] &&
+      avant.largeur === r.largeur &&
+      avant.hauteur === r.hauteur
+    )
+      return placeDuVolume.ou;
     // Sur l'ampli s'il est en vue ; sinon sur le coin de la platine, s'il l'est ; sinon dans le coin du cadre.
     const enVue = (objets: readonly Calque[]): boolean => {
       const e = empriseDe(objets, a.encrier.largeur);
@@ -1269,6 +1270,12 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       : enVue(boutonDuVolume(a, r, volume, 'platine'))
         ? 'platine'
         : 'coin';
+    placeDuVolume = { regard: r, ou };
+    return ou;
+  }
+  function poserLeVolume(): void {
+    const r = regardMonte;
+    const ou = ouPoserLeVolume(r);
     const d = definition(r);
     const enRoom = memoire.room !== undefined;
     const hote = memoire.room !== undefined && partieA(memoire.room.journal, Infinity).hote === memoire.room.toi;
@@ -1278,7 +1285,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const sur = bords().sur * r.largeur;
     const auCoin = hauteurDuCoin();
     const cle = JSON.stringify([ou, r, d, enRoom, hote, bacOuvert, revenir, sur, auCoin]);
-    zoneDuVolume.setAttribute('aria-valuenow', String(Math.round(volume * POUR_CENT)));
+    const pourCent = String(Math.round(volume * POUR_CENT));
+    if (zoneDuVolume.getAttribute('aria-valuenow') !== pourCent) zoneDuVolume.setAttribute('aria-valuenow', pourCent);
     if (volumeMonte?.cle === cle) {
       volumeMonte.plan.suivreLeCadre();
       tournerLeVolume(volumeMonte.montage);
@@ -1426,6 +1434,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   }
 
   const boucle = lancerLaBoucle(() => {
+    largeurLue = undefined;
     demanderLHeure();
     const t = heure();
     const suite = avancer(memoire, t);
@@ -1434,9 +1443,15 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     ecouter(t);
     if (document.activeElement === champ || glisse !== 0) suivreLeClavier();
     const e = ecranDuTelephone(memoire, t, o.preparatifs, a.textes);
-    if (enfoncer(e.genre === 'piste' ? undefined : cleDe(e, proportion()))) return true;
-    if (e.genre === 'piste') montrerLaPiste(e, t);
-    else montrerUnEcran(e);
+    if (e.genre === 'piste') {
+      if (enfoncer(undefined)) return true;
+      montrerLaPiste(e, t);
+    } else {
+      const p = proportion();
+      const cle = cleDe(e, p);
+      if (enfoncer(cle)) return true;
+      montrerUnEcran(e, p, cle);
+    }
     poserLeVolume();
     tournerLesBoutons();
     clignoter();
@@ -1465,6 +1480,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
    * fait son petit bruit, et l'action part.
    */
   const presser = (z: { readonly toucher: Toucher; readonly nom: NomDeCalque }, dejaEnfoncee = false): void => {
+    // Une touche ne prend pas le clavier : on le ferme nous-mêmes, pour voir ce qu'elle fait (un disque choisi, la pochette tirée).
+    if (document.activeElement === champ) champ.blur();
     if (!dejaEnfoncee || enfoncee?.nom !== z.nom) enfoncerLaTouche(z);
     if (z.nom.startsWith('touche-')) o.vibrer?.('touche');
     hautParleur.cliquer(z.nom.startsWith('bouton-') ? 'cran' : 'touche');

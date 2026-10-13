@@ -490,8 +490,8 @@ src/
     statistiques/               La page des statistiques, pour l'éditeur seul : son gabarit, son tableau.
     telephone/                  Le client du téléphone : sa mémoire (`memoire.ts` : ce que le serveur lui a dit, ce qu'on y fait), l'écran
                                 qu'elle donne (`route.ts`), ce qu'on y touche (`touchers.ts`), et la page (`client.ts`) ; l'heure du
-                                serveur (`heure.ts`), la ligne qui se rebranche (`websocket.ts`), le haut-parleur (`son.ts`), et les vraies
-                                pochettes posées par-dessus la scène (`images.ts`).
+                                serveur (`heure.ts`), la ligne qui se rebranche (`websocket.ts`), le haut-parleur (`son.ts`), les vraies
+                                pochettes posées par-dessus la scène (`images.ts`), et le diagnostic envoyé au journal (`diagnostic.ts`).
 
   reseau/                       Le site en ligne : `index.ts` (l'entrée, la minuterie), `porte.ts` (HTTP), `ligne.ts` (WebSocket), `horloge.ts` ;
                                 `musique.ts` (les appels à Deezer et les pages de Spotify, sous leur limite de débit, et ce qu'on en garde) ;
@@ -954,15 +954,21 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
     sur la platine ne repeignent plus que le devant. Fondu de 0,18 s, touche tenue 0,05 s. Sur une page qui défile (l'accueil, le
     compte), la touche s'enfonce au doigt posé et agit au doigt levé sans avoir glissé : faire glisser la page ne lance plus rien.
   - *Le son* : les téléphones d'une room se rattrapent sans saut, en pressant ou ralentissant un rien l'extrait (8 % au plus,
-    `TELEPHONE.son`) ; ils ne font plus écho. Un son que le navigateur refuse se dit (« Pas de son ? Touche l'écran. »).
+    `TELEPHONE.son`) ; ils ne font plus écho. Un son que le navigateur refuse se dit (« Pas de son ? Touche l'écran. »). Un extrait
+    n'est « fini » que lorsque l'heure a passé sa durée (l'iPhone le dit parfois fini juste après l'avoir amorcé).
   - *Le clavier* : le vrai clavier ne se dessine plus (on voyait sa place, moins large que l'écran, le temps qu'il monte) ; le code
-    entre de lui-même à sa quatrième lettre.
+    entre de lui-même à sa quatrième lettre ; une touche pressée, une recherche ou un lien envoyés ferment le clavier (il cachait
+    ce qu'ils trouvaient) ; les étiquettes du code et de l'adresse ont, vides, la largeur d'un champ.
   - *Ce qu'on voit* : la citrouille ne se glisse plus sous une touche, ni sous la barre de Safari (elle se pose dans ce qu'on voit,
     ou pas du tout) ; les disques de la finale sortent de derrière les pochettes, sans cacher les visages ; « 0 pt », « 1 pt » ;
     qui reste à zéro ne « descend » pas au premier hit-parade ; dans le bac, la playlist choisie est miel, « Au hasard » et
     « Celle-là » ne se touchent plus, « Retour » ne couvre plus « Extraits de 30 secondes » ; le tutoriel et les liens du bas
-    s'écrivent dans les caractères du jeu (les polices embarquées, `font-src data:`).
-  - *Le code* : les vraies pochettes ont leur module (`ecran/telephone/images.ts`) ; trois fonctions que personne n'appelait s'en vont.
+    s'écrivent dans les caractères du jeu (les polices embarquées, `font-src data:`). Au salon, l'invité lit qui va lancer la face ;
+    les titres revus à la finale ne passent plus sous « Quitter ».
+  - *Le code* : les vraies pochettes et le diagnostic ont leur module (`ecran/telephone/images.ts`, `diagnostic.ts`) ; le client
+    ne lit plus la taille du cadre qu'une fois par image, ni ne cherche la place du volume à chaque image ; trois fonctions que
+    personne n'appelait s'en vont. Au téléphone, un meuble voisin dont on ne verrait qu'un bord ne se dessine pas (la platine
+    coupée à côté du bac, une lisière de l'ampli) : la table continue.
 
 ## Ce qui attend les étapes suivantes
 

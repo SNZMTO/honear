@@ -130,15 +130,16 @@ export function meubleAutour(
     ...(deja.has('platine') || !platine ? [] : [platineArretee(a)]),
     ...(deja.has('ampli') ? [] : [ampliDessine(a, aiguilles, echelles)]),
   ];
-  // Ce que le regard ne voit pas ne se dessine pas : une fenêtre de téléphone ne voit ni le bac ni l'ampli.
+  // Ce que le regard ne voit pas ne se dessine pas : une fenêtre de téléphone ne voit ni le bac ni l'ampli. Ni ce dont il ne voit
+  // qu'un bord : au téléphone, une fenêtre un peu plus large que l'écran (Safari et ses barres) montrait une lisière de l'ampli, ou
+  // la platine coupée à côté du bac ; la table continue, simplement.
   return candidats.filter((c) => {
     const e = empriseDe([c], a.encrier.largeur);
-    return (
-      e !== undefined &&
-      e.x < regard.origine[0] + regard.largeur &&
-      e.x + e.largeur > regard.origine[0] &&
-      e.y < regard.origine[1] + regard.hauteur &&
-      e.y + e.hauteur > regard.origine[1]
-    );
+    if (e === undefined) return false;
+    const vu = Math.min(e.x + e.largeur, regard.origine[0] + regard.largeur) - Math.max(e.x, regard.origine[0]);
+    return vu >= e.largeur * PART_VUE_AU_MOINS && e.y < regard.origine[1] + regard.hauteur && e.y + e.hauteur > regard.origine[1];
   });
 }
+
+/** La part de sa largeur qu'un meuble voisin doit montrer dans le regard pour s'y dessiner. */
+const PART_VUE_AU_MOINS = 0.3;
