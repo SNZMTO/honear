@@ -12,7 +12,7 @@ import { PLAYLIST_D_ESSAI } from '../../ressources/bac';
 import { GRAND_ECRAN } from '../../ressources/ecran';
 import { META_DE_LA_VERSION, PARTIE, REGLAGES } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
-import { CARACTERES } from '../../ressources/typo';
+import { CARACTERES, ROLES_DE_TEXTE } from '../../ressources/typo';
 import { VERSO_DU_JEU } from '../../scene/disque/verso';
 import { remplir } from '../../scene/phrases';
 import { PROPORTION_DU_TELEPHONE } from '../../scene/telephone/grand';
@@ -195,6 +195,23 @@ function brancherLeTuto(textes: Textes, signaler: Telephone['signaler']): void {
   if (lire(surLAppareil, GARDE.tuto) !== true) ouvrir(true);
 }
 
+/**
+ * Les caractères du jeu pour ce que la page écrit elle-même (le tutoriel, les liens du bas) : les polices embarquées dans le script,
+ * données à sa feuille de style. Un navigateur qui les refuse écrit dans les siennes.
+ */
+function donnerLesPolices(polices: Readonly<Record<string, string>>): void {
+  const regles = ROLES_DE_TEXTE.flatMap((role) => {
+    const { famille, trace, graisse } = CARACTERES[role];
+    const code = polices[trace];
+    return code === undefined
+      ? []
+      : [`@font-face{font-family:'${famille}';src:url(data:font/woff;base64,${code}) format('woff');font-weight:${graisse};font-display:swap}`];
+  });
+  const style = document.createElement('style');
+  style.textContent = regles.join('');
+  document.head.append(style);
+}
+
 /** Un nombre que personne d'autre n'a tiré : la graine des pochettes de ce téléphone. */
 function graineDeLAppareil(): number {
   const tirage = new Uint32Array(1);
@@ -211,6 +228,7 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     cadre.textContent = `${N.titre} ${N.conseil} ${remplir(N.detail, { manques: manques.map((m) => N.manques[m]).join(N.entreDeuxManques) })}`;
     return;
   }
+  donnerLesPolices(polices);
   // Des titres, des noms d'artistes, ce qu'on tape : un signe que les polices n'ont pas se remplace, il n'arrête pas le jeu.
   const encrier = creerLEncrier(CARACTERES, policesEmbarquees(polices), textes.langue, true);
   const premierMode: CleDeMode = (MODES_PAR_CRAN[0]?.cle as CleDeMode | undefined) ?? 'libre';
