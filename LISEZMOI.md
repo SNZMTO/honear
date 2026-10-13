@@ -45,7 +45,7 @@ npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
 docker build -t honear .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
 npm run controle    # passe les contrôles du rendu sur les 196 images, et dit ce qu'ils ont mesuré
-npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 511 tests
+npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 515 tests
 npm run format      # Prettier
 ```
 
@@ -968,7 +968,8 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   - *Le code* : les vraies pochettes et le diagnostic ont leur module (`ecran/telephone/images.ts`, `diagnostic.ts`) ; le client
     ne lit plus la taille du cadre qu'une fois par image, ni ne cherche la place du volume à chaque image ; trois fonctions que
     personne n'appelait s'en vont. Au téléphone, un meuble voisin dont on ne verrait qu'un bord ne se dessine pas (la platine
-    coupée à côté du bac, une lisière de l'ampli) : la table continue.
+    coupée à côté du bac, une lisière de l'ampli) : la table continue. Le client du téléphone a enfin ses tests dans la fausse
+    page (`tests/telephone-en-page.test.ts`) : une partie au doigt, de l'accueil au hit-parade.
 
 ## Ce qui attend les étapes suivantes
 
