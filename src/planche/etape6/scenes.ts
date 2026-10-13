@@ -18,7 +18,7 @@ import {
 } from '../../regles/partie';
 import type { Reponse } from '../../regles/piste';
 import { SITE } from '../../ressources/reglages';
-import { TABLEE, type Place } from '../../ressources/tablee';
+import { TABLEE } from '../../ressources/tablee';
 import type { Textes } from '../../ressources/textes';
 import { dessinerLAmpli } from '../../scene/ampli';
 import { aiguillesA } from '../../scene/ampli/danse';
@@ -26,7 +26,7 @@ import { dessinerLeBac } from '../../scene/bac';
 import type { Calque } from '../../scene/calque';
 import { VERSO_DU_JEU } from '../../scene/disque/verso';
 import { dessinerLeMeuble, regardSurLeMeuble, surLeBois, type Regard } from '../../scene/meuble';
-import { remplir } from '../../scene/phrases';
+import { pointsEcrits, remplir } from '../../scene/phrases';
 import { dessinerLaVraiePochette } from '../../scene/pochette/dos';
 import { dessinerUnDisqueDeRecompense } from '../../scene/recompense';
 import type { Encrier } from '../../scene/rendu/texte';
@@ -230,7 +230,7 @@ function finaleEnGrand(a: Ecritoire): ImageDePlanche {
     expression: rang === 1 ? 'content' : joueur.expression === 'endormi' ? 'endormi' : 'depite',
     pastilles: [pastille],
   });
-  const enTete = classes.slice(0, premiers.length).map((c) => pose(c, remplir(a.textes.partie.points, { points: c.joueur.points })));
+  const enTete = classes.slice(0, premiers.length).map((c) => pose(c, pointsEcrits(a.textes, c.joueur.points)));
   const derriere = classes.slice(premiers.length).map((c) => pose(c, String(c.joueur.points)));
   const remis = classes.slice(0, premiers.length).flatMap(({ joueur }, rang) => {
     const genre = disques[joueur.id];
@@ -250,9 +250,9 @@ function finaleEnGrand(a: Ecritoire): ImageDePlanche {
   return image('hote-finale', L.images.finale, [
     ...bacEtAmpli(a, [0, 0]),
     platineArretee(a),
+    ...remis,
     ...dessinerLaTablee(enTete, premiers, F.suivants.taille, SUR_LE_MEUBLE, H.pastille, a.encrier.largeur, 'finale'),
     ...dessinerLaTablee(derriere, suivants, F.suivants.taille, SUR_LE_MEUBLE, H.trouve, a.encrier.largeur, 'suivant'),
-    ...remis,
     ...papier(
       'etiquette-titres',
       SUR_LE_MEUBLE,
@@ -288,6 +288,3 @@ export function imagesDeLHote(textes: Textes, encrier: Encrier): ImageDePlanche[
     finaleEnGrand(a),
   ];
 }
-
-/** La place d'une pochette de la tablée de l'hôte, pour les tests. */
-export const placeDeLaTablee = (rang: number): Place | undefined => placesDeLaTablee(rang + 1)[rang];

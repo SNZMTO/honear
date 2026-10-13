@@ -51,6 +51,8 @@ export function ouvrirLaPorte(contenus: Contenus): (requete: IncomingMessage, re
     "default-src 'none'",
     `script-src ${empreintesDesScripts(contenus.page).join(' ')}`,
     "style-src 'unsafe-inline'",
+    // Les polices embarquées dans le script, données à la feuille de la page (le tutoriel, les liens du bas).
+    'font-src data:',
     `img-src ${IMAGES}`,
     `media-src ${EXTRAITS}`,
     "connect-src 'self'",

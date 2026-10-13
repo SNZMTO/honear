@@ -45,7 +45,7 @@ npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
 docker build -t honear .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
 npm run controle    # passe les contrôles du rendu sur les 196 images, et dit ce qu'ils ont mesuré
-npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 433 tests
+npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 511 tests
 npm run format      # Prettier
 ```
 
@@ -490,7 +490,8 @@ src/
     statistiques/               La page des statistiques, pour l'éditeur seul : son gabarit, son tableau.
     telephone/                  Le client du téléphone : sa mémoire (`memoire.ts` : ce que le serveur lui a dit, ce qu'on y fait), l'écran
                                 qu'elle donne (`route.ts`), ce qu'on y touche (`touchers.ts`), et la page (`client.ts`) ; l'heure du
-                                serveur (`heure.ts`), la ligne qui se rebranche (`websocket.ts`), et le haut-parleur (`son.ts`).
+                                serveur (`heure.ts`), la ligne qui se rebranche (`websocket.ts`), le haut-parleur (`son.ts`), et les vraies
+                                pochettes posées par-dessus la scène (`images.ts`).
 
   reseau/                       Le site en ligne : `index.ts` (l'entrée, la minuterie), `porte.ts` (HTTP), `ligne.ts` (WebSocket), `horloge.ts` ;
                                 `musique.ts` (les appels à Deezer et les pages de Spotify, sous leur limite de débit, et ce qu'on en garde) ;
@@ -821,7 +822,7 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **La fenêtre, quelle qu'elle soit** : le jeu la remplit toujours, sans changer d'échelle (`regardPourLaFenetre`). Une fenêtre de
   téléphone montre l'écran du téléphone ; plus elle s'élargit, plus le regard s'ouvre sur le meuble, jusqu'au meuble entier sur un
   ordinateur, où ce qu'on touche se range sous le vinyle (`rangerSousLeDisque`). Le meuble que le regard voit est posé au repos.
-- **D'un écran à l'autre, un fondu** de 0,22 s (`TELEPHONE.fondu`) ; la piste apparaît sur le noir. Rien en version sobre.
+- **D'un écran à l'autre, un fondu** (`TELEPHONE.fondu`) ; la piste apparaît sur le noir. Rien en version sobre.
 - **Les pochettes sont les joueurs, les disques la musique** : dans le bac (peint en crème), des disques derrière les intercalaires ;
   un genre touché étale ses playlists Deezer en disques, avec leur nom, et « Au hasard » (`scene/telephone/choisie.ts`) ; la
   choisie se soulève. La recherche montre aussi des disques. Chaque pochette de joueur a son disque qui dépasse, et ses quatre coins
@@ -946,6 +947,22 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Honear** : le jeu ne s'appelle plus « Miel d'oreilles » (honey + ear) ; l'expéditeur des e-mails prend le nom des textes.
 - **honear.fr** est l'adresse du jeu ; mateosan.fr, sur le même VPS, montre une page d'attente et ne mène pas au jeu : il
   accueillera un autre site.
+
+- **L'audit de la version mobile** (le 13) :
+  - *Réactif* : un écran posé sur le meuble a deux couches, le meuble (la platine, le bac, la kraft, gardés tout faits pour les
+    mêmes réglages : `lesDerniers`, `platineArretee`, `bacDessine`) et ce qu'on pose devant ; une lettre tapée, un écran qui reste
+    sur la platine ne repeignent plus que le devant. Fondu de 0,18 s, touche tenue 0,05 s. Sur une page qui défile (l'accueil, le
+    compte), la touche s'enfonce au doigt posé et agit au doigt levé sans avoir glissé : faire glisser la page ne lance plus rien.
+  - *Le son* : les téléphones d'une room se rattrapent sans saut, en pressant ou ralentissant un rien l'extrait (8 % au plus,
+    `TELEPHONE.son`) ; ils ne font plus écho. Un son que le navigateur refuse se dit (« Pas de son ? Touche l'écran. »).
+  - *Le clavier* : le vrai clavier ne se dessine plus (on voyait sa place, moins large que l'écran, le temps qu'il monte) ; le code
+    entre de lui-même à sa quatrième lettre.
+  - *Ce qu'on voit* : la citrouille ne se glisse plus sous une touche, ni sous la barre de Safari (elle se pose dans ce qu'on voit,
+    ou pas du tout) ; les disques de la finale sortent de derrière les pochettes, sans cacher les visages ; « 0 pt », « 1 pt » ;
+    qui reste à zéro ne « descend » pas au premier hit-parade ; dans le bac, la playlist choisie est miel, « Au hasard » et
+    « Celle-là » ne se touchent plus, « Retour » ne couvre plus « Extraits de 30 secondes » ; le tutoriel et les liens du bas
+    s'écrivent dans les caractères du jeu (les polices embarquées, `font-src data:`).
+  - *Le code* : les vraies pochettes ont leur module (`ecran/telephone/images.ts`) ; trois fonctions que personne n'appelait s'en vont.
 
 ## Ce qui attend les étapes suivantes
 

@@ -178,7 +178,13 @@ export interface Memoire {
   readonly mesPlaylists: readonly PlaylistTrouvee[];
   /** L'heure du serveur où l'on a copié le lien de la room : le papier du lien le dit un instant. */
   readonly lienCopieA?: number;
+  /** Vrai quand le navigateur a refusé de jouer l'extrait faute d'un geste : l'écran demande qu'on le touche. */
+  readonly sonBloque?: boolean;
 }
+
+/** Le navigateur refuse le son tant qu'on n'a pas touché l'écran, ou le laisse partir. */
+export const sonBloque = (m: Memoire, bloque: boolean): Memoire =>
+  bloque ? { ...m, sonBloque: true } : (({ sonBloque: _avant, ...reste }) => reste)(m);
 
 /** Le lien de la room vient d'être copié, à cette heure : le papier du lien le dit un instant. */
 export const lienCopie = (m: Memoire, heure: number): Memoire => ({ ...m, lienCopieA: heure });
