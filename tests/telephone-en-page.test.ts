@@ -1,8 +1,9 @@
 /**
  * Le client du téléphone, ouvert pour de bon sur la fausse page, contre le serveur et les cinq potes du prototype : on touche ses
  * zones, on tape dans son champ, et l'on regarde ses couches. Le meuble (la platine) ne se repeint pas d'une lettre à l'autre, ni
- * d'un écran à l'autre quand il ne change pas ; sur une page qui défile, une touche n'agit qu'au doigt levé sans avoir glissé ; la
- * partie va jusqu'au hit-parade ; fermé, le téléphone ne laisse rien.
+ * d'un écran à l'autre quand il ne change pas ; sur une page qu'on fait glisser, une touche n'agit qu'au doigt levé sans avoir
+ * glissé ; « Retour » ramène à l'étape d'avant ; « Quitter » agit au doigt levé, sans attendre de clic ; au téléphone, pas de
+ * bouton du volume ; la partie va jusqu'au hit-parade ; fermé, le téléphone ne laisse rien.
  */
 
 import assert from 'node:assert/strict';
@@ -150,7 +151,9 @@ function unTelephone() {
   };
   /** Le meuble monté, tel qu'il est dans sa couche : le même élément, c'est qu'il n'a pas été repeint. */
   const meuble = (): FauxElement | undefined => couche('meuble').children.at(-1);
-  return { telephone, cadre, genres, images, zone, toucher, champ, taper, meuble, couche };
+  /** Les zones des touches du coin (« Quitter », « Autre playlist »). */
+  const coins = (): FauxElement[] => couche('zones').children.filter((e) => e.dataset['coin'] !== undefined);
+  return { telephone, cadre, genres, images, zone, toucher, champ, taper, meuble, couche, coins };
 }
 
 test('la platine ne se repeint ni d’une lettre tapée à l’autre, ni de l’accueil à la saisie du code, où elle ne change pas', () => {
@@ -183,23 +186,60 @@ test('le code entre de lui-même à sa quatrième lettre', () => {
   tel.telephone.fermer();
 });
 
-test('à l’accueil, qui défile, une touche s’enfonce au doigt posé mais n’agit qu’au clic : un doigt qui fait glisser la page ne lance rien', () => {
+test('à l’accueil, qu’on fait glisser, une touche s’enfonce au doigt posé mais n’agit qu’au doigt levé : un doigt qui glisse ne lance rien', () => {
   const tel = unTelephone();
   tel.images(3);
   const poser = tel.zone(TEXTES.touches.poserUnDisque);
+  // Le navigateur reprend le doigt : rien.
   poser.envoyer('pointerdown', { ...DOIGT });
   tel.images(10);
-  // La page glisse : le navigateur reprend le doigt, et ne clique pas.
   poser.envoyer('pointercancel', { ...DOIGT });
   tel.images(10);
+  // Le doigt glisse vers le haut (la page monte vers son pied), puis se lève : rien, et pas de clic non plus.
+  poser.envoyer('pointerdown', { ...DOIGT, pointerId: 2, clientX: 200, clientY: 600 });
+  poser.envoyer('pointermove', { ...DOIGT, pointerId: 2, clientX: 202, clientY: 560 });
+  poser.envoyer('pointerup', { ...DOIGT, pointerId: 2, clientX: 202, clientY: 560 });
+  poser.envoyer('click', { detail: 1 });
+  tel.images(10);
   assert.deepEqual(tel.genres, ['accueil']);
-  tel.toucher(TEXTES.touches.poserUnDisque);
+  // Un toucher, le doigt levé là où il s'est posé, sans clic (l'iPhone ne le donne pas toujours) : on pose un disque.
+  poser.envoyer('pointerdown', { ...DOIGT, pointerId: 3, clientX: 200, clientY: 600 });
+  poser.envoyer('pointerup', { ...DOIGT, pointerId: 3, clientX: 203, clientY: 598 });
   tel.images(6);
   assert.equal(tel.genres.at(-1), 'pochette');
   tel.telephone.fermer();
 });
 
-test('une partie au doigt, de l’accueil au hit-parade : pendant la piste, le meuble n’a plus de couche à lui ; fermé, rien ne reste', () => {
+test('« Retour », au bout de chaque étape avant la room (sa pochette, le bac, les réglages), ramène à l’étape d’avant', () => {
+  const tel = unTelephone();
+  tel.images(3);
+  tel.toucher(TEXTES.touches.poserUnDisque);
+  tel.images(6);
+  assert.equal(tel.genres.at(-1), 'pochette');
+  tel.toucher(TEXTES.partie.retour);
+  tel.images(6);
+  assert.equal(tel.genres.at(-1), 'accueil');
+  tel.toucher(TEXTES.touches.poserUnDisque);
+  tel.images(6);
+  tel.taper('Mateo');
+  tel.images(3);
+  tel.toucher(TEXTES.touches.cEstMoi);
+  tel.images(6);
+  tel.toucher(TEXTES.playlists.choisir);
+  tel.images(6);
+  assert.equal(tel.genres.at(-1), 'reglages');
+  tel.toucher(TEXTES.partie.retour);
+  tel.images(6);
+  assert.equal(tel.genres.at(-1), 'bac');
+  tel.toucher(TEXTES.partie.retour);
+  tel.images(6);
+  assert.equal(tel.genres.at(-1), 'pochette');
+  // Avant la room, rien au coin : chaque « Retour » est sur l'écran, au bout.
+  assert.ok(tel.coins().every((z) => z.hidden === true));
+  tel.telephone.fermer();
+});
+
+test('dans une room, « Quitter », au coin, agit au doigt levé dessus, sans attendre de clic ; « Autre playlist » ouvre le bac, qui a son « Retour »', () => {
   const tel = unTelephone();
   tel.images(3);
   tel.toucher(TEXTES.touches.poserUnDisque);
@@ -211,19 +251,97 @@ test('une partie au doigt, de l’accueil au hit-parade : pendant la piste, le m
   tel.toucher(TEXTES.playlists.choisir);
   tel.images(6);
   tel.toucher(TEXTES.partie.ouvrirLeSalon);
-  tel.images(150);
-  tel.toucher(TEXTES.touches.lancer);
-  tel.images(100);
-  assert.equal(tel.genres.at(-1), 'piste');
-  assert.equal(tel.couche('meuble').children.length, 0);
-  const reponse = tel.champ();
-  assert.equal(reponse.dataset['pour'], 'reponse');
-  tel.taper('images');
-  reponse.envoyer('keydown', { key: 'Enter' });
-  tel.images(600);
-  assert.deepEqual(tel.genres, ['accueil', 'pochette', 'bac', 'reglages', 'salon', 'piste', 'hitParade']);
-  assert.ok(tel.meuble() !== undefined, 'le hit-parade a de nouveau son meuble');
-  assert.ok(fondus > 0, 'd’un écran à l’autre, un fondu');
+  tel.images(20);
+  assert.equal(tel.genres.at(-1), 'salon');
+  const coin = (libelle: string): FauxElement => {
+    const z = tel.coins().find((e) => e.getAttribute('aria-label') === libelle);
+    assert.ok(z !== undefined && z.hidden !== true, `pas de « ${libelle} » au coin`);
+    return z;
+  };
+  const leverDessus = (z: FauxElement): void => {
+    z.envoyer('pointerdown', { ...DOIGT, pointerId: 5, clientX: 40, clientY: 30 });
+    z.envoyer('pointerup', { ...DOIGT, pointerId: 5, clientX: 41, clientY: 31 });
+  };
+  leverDessus(coin(TEXTES.partie.autrePlaylist));
+  tel.images(6);
+  assert.equal(tel.genres.at(-1), 'bac');
+  assert.ok(
+    tel.coins().every((z) => z.hidden === true),
+    'le bac ouvert, rien au coin',
+  );
+  tel.toucher(TEXTES.partie.retour);
+  tel.images(6);
+  assert.equal(tel.genres.at(-1), 'salon');
+  leverDessus(coin(TEXTES.partie.quitter));
+  tel.images(6);
+  assert.equal(tel.genres.at(-1), 'accueil');
   tel.telephone.fermer();
-  assert.equal(tel.cadre.children.length, 0);
 });
+
+test('au téléphone, pas de bouton du volume : ce sont ceux du téléphone qui règlent le son ; sur un ordinateur, il est là', () => {
+  const volume = (tel: ReturnType<typeof unTelephone>): FauxElement | undefined =>
+    tel.couche('zones').children.find((e) => e.dataset['volume'] !== undefined);
+  for (const telephone of [false, true]) {
+    const tel = auDoigt(telephone, unTelephone);
+    tel.images(3);
+    assert.equal(volume(tel)?.hidden, telephone);
+    // Sans bouton, l'image va jusqu'au bout : la page sait quel écran elle montre (et l'accueil a son pied).
+    assert.deepEqual(tel.genres, ['accueil']);
+    tel.telephone.fermer();
+  }
+});
+
+/** Ouvre un téléphone, ou un ordinateur : au téléphone (un pointeur grossier, le doigt), le jeu ne pose pas de bouton du volume. */
+function auDoigt<T>(oui: boolean, faire: () => T): T {
+  const requete = PAGE.fenetre['matchMedia'] as (q: string) => { readonly matches: boolean };
+  if (oui) PAGE.fenetre['matchMedia'] = (q: string) => (q === '(pointer: coarse)' ? { ...requete(q), matches: true } : requete(q));
+  try {
+    return faire();
+  } finally {
+    PAGE.fenetre['matchMedia'] = requete;
+  }
+}
+
+for (const telephone of [false, true])
+  test(`une partie au doigt${telephone ? ', au téléphone (sans bouton du volume)' : ''}, de l’accueil au hit-parade : chaque écran se dit à la page ; pendant la piste, le meuble n’a plus de couche à lui ; fermé, rien ne reste`, () => {
+    const tel = auDoigt(telephone, unTelephone);
+    tel.images(3);
+    tel.toucher(TEXTES.touches.poserUnDisque);
+    tel.images(6);
+    tel.taper('Mateo');
+    tel.images(3);
+    tel.toucher(TEXTES.touches.cEstMoi);
+    tel.images(6);
+    tel.toucher(TEXTES.playlists.choisir);
+    tel.images(6);
+    // Aux réglages, le bouton des secondes tourne d'un cran à chaque toucher, et le dit ; trois crans, et il revient où il était.
+    const secondes = (): string | null | undefined =>
+      tel
+        .couche('zones')
+        .children.find((e) => e.getAttribute('aria-label')?.startsWith(`${TEXTES.commandes.extrait} : `) === true)
+        ?.getAttribute('aria-label');
+    const vus = [secondes()];
+    for (let cran = 0; cran < 3; cran++) {
+      tel.toucher(vus.at(-1) ?? '');
+      tel.images(20);
+      vus.push(secondes());
+    }
+    assert.equal(new Set(vus).size, 3, `le bouton des secondes n’a pas tourné : ${vus.join(', ')}`);
+    assert.equal(vus.at(-1), vus[0]);
+    tel.toucher(TEXTES.partie.ouvrirLeSalon);
+    tel.images(150);
+    tel.toucher(TEXTES.touches.lancer);
+    tel.images(100);
+    assert.equal(tel.genres.at(-1), 'piste');
+    assert.equal(tel.couche('meuble').children.length, 0);
+    const reponse = tel.champ();
+    assert.equal(reponse.dataset['pour'], 'reponse');
+    tel.taper('images');
+    reponse.envoyer('keydown', { key: 'Enter' });
+    tel.images(600);
+    assert.deepEqual(tel.genres, ['accueil', 'pochette', 'bac', 'reglages', 'salon', 'piste', 'hitParade']);
+    assert.ok(tel.meuble() !== undefined, 'le hit-parade a de nouveau son meuble');
+    assert.ok(fondus > 0, 'd’un écran à l’autre, un fondu');
+    tel.telephone.fermer();
+    assert.equal(tel.cadre.children.length, 0);
+  });

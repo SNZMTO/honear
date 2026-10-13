@@ -35,6 +35,11 @@ export const TELEPHONE = {
   reconnexion: { debut: 0.5, auPlus: 8 },
   /** Une zone à toucher fait au moins ce côté, en px du téléphone : celle d'une petite commande déborde autour d'elle. */
   zoneAuMoins: 44,
+  /**
+   * Un doigt posé qui glisse de plus que ça, en px de la page, ne touche plus rien : il fait glisser la page (à l'accueil, vers son
+   * pied), ou il a changé d'avis.
+   */
+  doigt: { glisse: 10 },
   /** Une touche enfoncée reste ce temps au fond de sa course avant que l'écran d'après n'arrive : on voit qu'elle a été pressée. */
   tenue: 0.05,
   /** D'un écran à l'autre, le nouveau se fond sur l'ancien en ce temps-là (rien, quand on a demandé moins d'animations). */
@@ -59,22 +64,23 @@ export const TELEPHONE = {
   curseur: { demiPeriode: 0.53 },
   /** Le tutoriel : le voile sombre qu'il pose sur le jeu, de cette opacité. */
   tuto: { voile: 0.9 },
+  /** Le pied de la page (l'accueil et le compte, au téléphone) : lâchée, la page se pose ouverte ou fermée en ce temps-là. */
+  pied: { pose: 0.25 },
   /**
-   * Le son, joué en même temps par tous les téléphones d'une room : un extrait qui s'écarte de plus que `ecartAdmis` de là où il
-   * devrait en être, à l'heure du serveur, y est remis d'un saut, au plus une fois en `entreDeuxSauts` secondes : chaque saut
-   * s'entend (le remettre trop vite, trop souvent, le faisait saccader). Un écart plus petit se rattrape sans saut : le son va
-   * un rien plus vite ou plus lentement (de `vitesse` au plus, la hauteur gardée), assez pour le rattraper en `rattrapage`
-   * secondes, jusqu'à moins de `accord` d'écart ; deux téléphones posés côte à côte ne font plus écho. Après un départ ou un saut,
-   * on attend `tenue` secondes que sa position suive avant de la lire. Il se tait en `fondu`, là où il le laisse baisser.
+   * Le son : un extrait qui s'écarte de plus que ce temps de là où il devrait en être, à l'heure du serveur, y est remis, au plus
+   * une fois en tant de secondes : chaque saut s'entend (l'iPhone met un moment à repartir, et sa position à se mettre à jour ;
+   * le remettre trop vite, trop souvent, le faisait saccader ; lui changer sa vitesse aussi). Il se tait en ce temps-là, là où le
+   * téléphone laisse baisser le volume.
    */
-  son: { ecartAdmis: 0.5, entreDeuxSauts: 5, fondu: 0.6, vitesse: 0.08, rattrapage: 2, accord: 0.03, tenue: 0.6 },
+  son: { ecartAdmis: 0.6, entreDeuxSauts: 5, fondu: 0.6 },
   /**
-   * Le volume de ce téléphone, de 0 à 1 : à 30 % en arrivant, pour ne pas agresser les oreilles. L'oreille l'entend à cette
-   * puissance (un volume « cubique », comme sur les ordinateurs) ; les petits bruits des touches ne se taisent jamais tout à fait.
-   * On tourne le bouton en glissant le doigt (vers la droite ou vers le haut, il monte) : tant de px de la page le font aller
-   * d'un bout à l'autre ; un toucher sans glisser, ou une flèche du clavier, le change d'un pas.
+   * Le volume du bouton, de 0 à 1, là où il y en a un (un ordinateur ; au téléphone, ce sont ses boutons à lui) : aux deux tiers
+   * en arrivant, assez pour qu'on entende, sans agresser les oreilles. L'oreille l'entend à cette puissance (un volume « cubique »,
+   * comme sur les ordinateurs : à 30 %, on n'entendait presque rien) ; les petits bruits des touches ne se taisent jamais tout à
+   * fait. On tourne le bouton en glissant (vers la droite ou vers le haut, il monte) : tant de px de la page le font aller d'un
+   * bout à l'autre ; un clic sans glisser, ou une flèche du clavier, le change d'un pas.
    */
-  volume: { depart: 0.3, courbe: 3, bruitsAuMoins: 0.3, pas: 0.1, course: 160 },
+  volume: { depart: 0.7, courbe: 3, bruitsAuMoins: 0.3, pas: 0.1, course: 160 },
 } as const;
 
 /**

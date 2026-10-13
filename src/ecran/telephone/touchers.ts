@@ -152,6 +152,10 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
       return de({ genre: 'entrer' }, textes.partie.rejoindre);
     case 'touche-laisser-code':
       return de({ genre: 'laisserLeCode' }, textes.partie.retour);
+    case 'touche-revenir':
+      return de({ genre: 'revenir' }, textes.partie.retour);
+    case 'touche-fermer-bac':
+      return de({ genre: 'fermerLeBac' }, textes.partie.retour);
     case 'touche-choix-tete':
       return de({ genre: 'ouvrirLeChoix', choix: 'tete' }, P.choix.tete);
     case 'touche-choix-dessus':
