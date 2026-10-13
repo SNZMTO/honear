@@ -69,7 +69,7 @@ export function vueDuCompte(a: Ecritoire, c: CompteOuvertAuTelephone): VueDuTele
           { contenu: tape === '' ? ' ' : tape, role: 'titrage', auPlus: 'intertitre' },
         ],
         a.encrier,
-        { curseur: c.enAttente !== true, alignement: 'debut', ancre: 'milieu' },
+        { curseur: c.enAttente !== true, alignement: 'debut', ancre: 'milieu', auMoins: T.adresse.auMoins },
       ).calques,
     );
   };

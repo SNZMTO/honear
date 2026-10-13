@@ -341,6 +341,12 @@ export function vueDuSalon(
     objets.push(touche('touche-ma-pochette', 'cran', libelle, r, [S.pochette[0] + largeur / 2, S.pochette[1]], a.encrier, 'repos', true));
   }
   if (qui !== 'invite') objets.push(toucheAuBord('touche-lancer', 'principale', lancer, r, S.lancer, a.encrier));
+  else {
+    // L'invité n'a rien à lancer : on lui dit qui le fera, plutôt que de le laisser devant un salon muet.
+    const hote = etat.joueurs.find((j) => j.id === etat.hote)?.pochette.artiste;
+    if (hote !== undefined && hote !== '')
+      objets.push(...phrase(remplir(a.textes.partie.onAttend, { hote, face: etat.face }), r, a.encrier, S.attente.en, S.attente.largeur));
+  }
   return { regard: r, objets };
 }
 
@@ -375,7 +381,7 @@ export function vueDeLaSaisie(a: Ecritoire, tape: string, refus?: 'codeInconnu' 
       ],
       a.encrier,
       // Sur la colonne, comme le reste : son papier garde son bord gauche pendant qu'on tape.
-      { curseur: refus === undefined, alignement: 'debut', ancre: 'milieu' },
+      { curseur: refus === undefined, alignement: 'debut', ancre: 'milieu', auMoins: S.auMoins },
     ).calques,
   ];
   if (refus !== undefined) objets.push(...phrase(a.textes.etats[refus], r, a.encrier, S.message));

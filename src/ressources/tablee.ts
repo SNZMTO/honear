@@ -130,7 +130,8 @@ export const TABLEE = {
       papier: { en: [195, 548], largeur: 300 },
       /** Le lien parti : un papier plus large, qui laisse à l'adresse toute une ligne. */
       envoye: { en: [195, 552], largeur: 336 },
-      adresse: { en: [195, 630], largeur: 300, angle: -1 },
+      /** L'étiquette où l'on tape son adresse (ou son mot de passe), de toute sa largeur avant qu'on y tape : c'est là qu'on écrit. */
+      adresse: { en: [195, 630], largeur: 300, auMoins: 300, angle: -1 },
       /** La hauteur de la touche de l'étape (entrer par le lien…) ; des deux touches de la question avant d'effacer. */
       action: 734,
       deux: [650, 728],
@@ -146,12 +147,19 @@ export const TABLEE = {
       nouveau: { papier: [195, 530], etiquette: [195, 618], action: 708 },
     },
     /** La saisie du code : le papier, ses quatre cases, la touche qui entre, et « Retour » au bout, qui ramène à l'accueil. */
-    saisie: { en: [195, 566], largeur: 260, angle: -1.5, cases: 4, entrer: 734, retour: 806, message: [195, 646] },
+    /** La saisie du code : son papier, assez large pour qu'on voie où taper avant d'y avoir rien tapé (`auMoins`). */
+    saisie: { en: [195, 566], largeur: 260, auMoins: 220, angle: -1.5, cases: 4, entrer: 734, retour: 806, message: [195, 646] },
     /**
      * Le salon : l'éventail des pochettes, le lien à copier, l'ampli à allumer, et la touche de l'hôte, en colonne ; les touches
      * par leur bord gauche. Le QR code est sur la kraft.
      */
-    salon: { lien: { en: [132, 640], largeur: 228 }, lancer: [18, 792], pochette: [19, 565] },
+    salon: {
+      lien: { en: [132, 640], largeur: 228 },
+      lancer: [18, 792],
+      pochette: [19, 565],
+      /** Chez l'invité, à la place de la touche qui lance la face : qui va la lancer. */
+      attente: { en: [132, 770], largeur: 228 },
+    },
     /** Le QR code imprimé sur la pochette kraft, dans le tiers qu'on en voit : son centre depuis celui de la pochette, et son côté. */
     qr: { en: [-100, 12], cote: 66 },
     /** Le bac, chez l'hôte : les trois façons de choisir, en crans au-dessus du bac, et ce qui se pose dessous. */
@@ -237,7 +245,8 @@ export const TABLEE = {
      * en deux au-delà ; « Retour » dessous. En px dans le regard.
      */
     titres: {
-      papier: { gauche: 14, haut: 34, largeur: 362, bas: 744, angle: -0.8, marge: 14 },
+      /** Son haut laisse la place aux petites touches du coin (« Quitter », celle de l'hôte), qui en couvraient le titre. */
+      papier: { gauche: 14, haut: 78, largeur: 362, bas: 744, angle: -0.8, marge: 14 },
       /** L'écart sous le titre, entre deux colonnes ; la plus grande pochette et le plus grand pas d'une ligne à l'autre ; l'écart du texte. */
       sousLeTitre: 18,
       entreColonnes: 12,

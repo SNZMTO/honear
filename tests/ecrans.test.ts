@@ -123,12 +123,13 @@ test('une piste avec un feat : l’étiquette porte les trois pastilles, et le c
   assert.ok(!textesDe('libre-trouve').some((t) => t.contenu === TEXTES.partie.feat), 'sans feat, pas de pastille Feat');
 });
 
-test('les champs où l’on tape sont taillés à leur texte, et les crans du bac ne se chevauchent pas', () => {
-  // Le papier du code est moins large que sa largeur au plus : il épouse « Le code de la partie ».
+test('les champs où l’on tape sont assez larges pour qu’on voie où taper, sans dépasser leur place, et les crans du bac ne se chevauchent pas', () => {
+  // Le papier du code, vide, a déjà la largeur d'un champ : plus large que « Le code de la partie », moins que sa place.
   const code = posesSur('saisie', /^etiquette-saisie$/)[0];
   assert.ok(code !== undefined);
   const e = empriseDe([code], ENCRIER.largeur);
-  assert.ok(e !== undefined && e.largeur < TABLEE.telephone.saisie.largeur - 40, `${e?.largeur}`);
+  const S = TABLEE.telephone.saisie;
+  assert.ok(e !== undefined && e.largeur >= S.auMoins && e.largeur <= S.largeur + 20, `${e?.largeur}`);
   for (const fichier of ['bac-pretes', 'bac-chercher', 'bac-laMienne']) {
     const crans = posesSur(fichier, /^touche-bac-[a-zA-Z]+$/).map((c) => empriseDe([c], ENCRIER.largeur));
     assert.equal(crans.length, 3, fichier);

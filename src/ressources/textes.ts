@@ -183,6 +183,7 @@ export interface Textes {
     readonly retour: string;
     readonly points: string;
     readonly unPoint: string;
+    readonly onAttend: string;
     readonly spectateur: string;
   };
 

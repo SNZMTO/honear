@@ -280,7 +280,9 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number, 
       if (voulu === undefined) return taire();
       if (voulu.adresse !== adresse || voulu.lanceeA !== lancee) charger(voulu);
       const position = voulu.depuis !== undefined ? heure - voulu.depuis : undefined;
-      const fini = audio.ended || (Number.isFinite(audio.duration) && position !== undefined && position >= audio.duration);
+      // Fini quand l'heure a passé sa durée : l'iPhone dit parfois l'extrait « fini » juste après l'avoir amorcé, à 0 s ; s'y fier
+      // le laissait muet toute la piste.
+      const fini = Number.isFinite(audio.duration) && position !== undefined && position >= audio.duration;
       if (position === undefined || position < 0 || fini || (voulu.jusqua !== undefined && heure >= voulu.jusqua)) return taire();
       enJeu = true;
       // C'est l'heure : s'il chargeait en sourdine, il s'entend désormais.
