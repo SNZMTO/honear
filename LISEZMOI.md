@@ -866,9 +866,9 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   ce que les bords cachent (marges de sûreté, barre de Safari) est mesuré (`bords`) : le jeu y dessine (la platine en haut, la table
   en bas) sans rien y poser à toucher, et les petites touches du coin descendent sous l'encoche. Le haut du regard reste le bord de
   la platine (plus de bande de bois que Safari reprenait pour teinter sa barre). Posé sur l'écran d'accueil, la barre d'état est
-  transparente (`black-translucent`). Dans Safari (hors écran d'accueil), la barre d'état et le bas sous la barre d'outils ne sont pas à la page : Safari les peint de la
-  couleur de ce qui touche le bord (un élément `fixed`, son fond), et prenait le fond sombre de la page. Deux rebords de 4 px, au
-  vert de la platine en haut et au noyer de la table en bas (`gabarit.ts`, `.rebord`), lui donnent les bonnes couleurs.
+  transparente (`black-translucent`). Puis la table continue au-dessus de la platine, entière (`TELEPHONE.boisAuDessus` à 0), et sous l'encoche sur l'écran
+  d'accueil (le regard monte d'autant, `dansLaFenetre`). Dans Safari, la barre d'état et le bas sous la barre d'outils ne sont pas
+  à la page : Safari les peint du fond de la page, le noyer de la table (il était sombre : deux bandes noires).
 - **« Retour » à chaque étape** : avant la room, au coin haut gauche (à la place de « Quitter »), sur la pochette (vers l'accueil, ou
   vers le code tapé), le bac (vers la pochette) et les réglages (vers le bac tel qu'on l'a laissé) : `etapeDAvant`, `toucheRevenir`.
 - **Ce qu'on tape** : revenir dans l'étiquette de la réponse la vide quand elle montre la réponse qu'on vient d'envoyer (un brouillon

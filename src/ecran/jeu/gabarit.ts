@@ -17,22 +17,17 @@ const INTERLIGNE = 1.45;
 
 /**
  * La feuille de la page : le cadre du téléphone, ses zones à toucher (rien de dessiné), le champ où tape le clavier (rien de visible).
- * Et deux rebords, au haut et au bas d'un écran de téléphone, aux couleurs de ce que le jeu y dessine (le vert de la platine, le
- * noyer de la table) : Safari peint la bande de la barre d'état et celle de sa barre d'outils de la couleur de ce qui touche le
- * bord de la page (un élément posé en `fixed`, son fond) ; sans eux, il prenait le fond de la page, et le jeu semblait encadré.
+ * Le fond de la page est le noyer de la table : dans Safari, la bande de la barre d'état et celle sous la barre d'outils ne sont pas
+ * à la page, et Safari les peint de ce fond ; la table, qui borde le jeu en haut et en bas, y continue.
  */
 const STYLE = `
 :root{color-scheme:dark;--fond:${couleur('vinyle', 1)};--encre:${couleur('creme')};--doux:${couleur('creme', 1)};--miel:${couleur('miel')};--expresso:${couleur('expresso')};--laque:${couleur('laque')};--table:${couleur('noyer')}}
 *{box-sizing:border-box}
 html,body{height:100%;overscroll-behavior:none}
-body{margin:0;background:var(--laque);color:var(--encre);font:16px/${INTERLIGNE} system-ui,sans-serif;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
+body{margin:0;background:var(--table);color:var(--encre);font:16px/${INTERLIGNE} system-ui,sans-serif;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
 body.grand{align-items:center}
 .telephone{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100lvh;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .bords{position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-.rebord{display:none;position:fixed;left:0;right:0;height:4px}
-.rebord.haut{top:0;background:var(--laque)}
-.rebord.bas{bottom:0;background:var(--table)}
-@media (max-width:600px){body:not(.grand) .rebord{display:block}}
 .telephone .attente,.telephone .manque{margin:0;padding:24px 18px;color:var(--doux);max-width:32ch}
 .telephone .zone{background:transparent;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .telephone .zone:focus-visible{outline:2px solid var(--miel);outline-offset:2px;border-radius:4px}
@@ -71,7 +66,7 @@ export function pageDuJeu(textes: Textes, script: string, version = ''): string 
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual">
-<meta name="theme-color" content="${couleur('laque')}">${version !== '' ? `\n<meta name="${META_DE_LA_VERSION}" content="${enXml(version)}">` : ''}
+<meta name="theme-color" content="${couleur('noyer')}">${version !== '' ? `\n<meta name="${META_DE_LA_VERSION}" content="${enXml(version)}">` : ''}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -84,7 +79,6 @@ export function pageDuJeu(textes: Textes, script: string, version = ''): string 
 <body>
 <div class="bords" aria-hidden="true"></div>
 <main class="telephone" data-telephone role="application" aria-label="${enXml(textes.logo.nom)}"><p class="attente">${enXml(N.enAttendant)}</p></main>
-<div class="rebord haut" aria-hidden="true"></div><div class="rebord bas" aria-hidden="true"></div>
 <nav class="legal"><button type="button" data-tuto>${enXml(textes.tuto.lien)}</button><a href="${PAGES_LEGALES.confidentialite}">${enXml(textes.legal.liens.confidentialite)}</a><a href="${PAGES_LEGALES.mentions}">${enXml(textes.legal.liens.mentions)}</a></nav>
 <div class="tuto" role="dialog" aria-modal="true" aria-labelledby="tuto-titre" hidden><div class="carte"><div class="points"></div><h2 id="tuto-titre"></h2><p></p><div class="touches"><button type="button" class="passer"></button><span><button type="button" class="precedent"></button> <button type="button" class="suivant"></button></span></div></div></div>
 <noscript><p class="manque">${enXml(N.sansScript.titre)} ${enXml(N.sansScript.conseil)}</p></noscript>

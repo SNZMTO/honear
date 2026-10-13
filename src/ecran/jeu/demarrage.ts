@@ -98,7 +98,9 @@ function suivreLaFenetre(cadre: HTMLElement): {
     const style = sonde !== null ? window.getComputedStyle(sonde) : undefined;
     const sur = Number.parseFloat(style?.paddingTop ?? '') || 0;
     const sous = Math.max(Number.parseFloat(style?.paddingBottom ?? '') || 0, hc - Math.min(hc, h));
-    const libre = hc - sous;
+    // Ce qu'on voit sans rien dessus : entre l'encoche (ou la barre d'état) et le bas ; le jeu y pose son écran, et dessine la table
+    // au-delà.
+    const libre = hc - sur - sous;
     bords = lc > 0 ? { sur: Math.round(sur) / lc, sous: Math.round(sous) / lc } : { sur: 0, sous: 0 };
     // Arrondie au centième : une fenêtre qu'on étire ne remonte pas la scène à chaque pixel.
     proportion = libre > 0 ? Math.round((lc / libre) * CENTIEMES) / CENTIEMES : PROPORTION_DU_TELEPHONE;

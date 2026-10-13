@@ -39,8 +39,11 @@ export const TELEPHONE = {
   tenue: 0.07,
   /** D'un écran à l'autre, le nouveau se fond sur l'ancien en ce temps-là (rien, quand on a demandé moins d'animations). */
   fondu: 0.22,
-  /** Au téléphone, le bois qu'on ne montre pas au-dessus de la platine, en px de la scène : l'écran commence au bord de la platine. */
-  boisAuDessus: 28,
+  /**
+   * Au téléphone, le bois qu'on ne montre pas au-dessus de la platine, en px de la scène : aucun. L'écran commence sur la table,
+   * la platine entière dessous ; la barre d'état (que Safari peint du fond de la page, le noyer) continue la table.
+   */
+  boisAuDessus: 0,
   /** Un bouton rond qu'on tourne d'un cran (Pistes, Extrait, Mode, le volume) y va en ce temps-là, en ralentissant. */
   tourne: 0.25,
   /**

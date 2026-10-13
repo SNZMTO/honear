@@ -133,7 +133,8 @@ export interface OptionsDuTelephone {
   /**
    * Ce que l'écran cache sur ses bords, en part de la largeur du cadre : en haut, l'encoche ou la Dynamic Island (`sur`) ; en bas,
    * la barre de Safari ou le trait de l'iPhone (`sous`). Le jeu dessine jusqu'aux bords, mais n'y pose rien à toucher : la table
-   * continue sous la barre, et les petites touches du coin descendent sous l'encoche. Sans eux, aucun bord n'est caché.
+   * continue sous l'encoche et sous la barre, la platine entière dessous, et les petites touches du coin descendent sous l'encoche.
+   * Sans eux, aucun bord n'est caché.
    */
   readonly bords?: () => { readonly sur: number; readonly sous: number };
   /**
@@ -566,12 +567,18 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   const proportion = (): number | undefined => o.fenetre?.();
   /** Le regard qui remplit la fenêtre, posé sur ce regard du téléphone. */
   const bords = (): { readonly sur: number; readonly sous: number } => o.bords?.() ?? { sur: 0, sous: 0 };
-  /** Le regard qui remplit la fenêtre : celui de la zone où l'on touche, prolongé sous elle jusqu'au bas de l'écran. */
+  /**
+   * Le regard qui remplit la fenêtre : celui de la zone où l'on touche, prolongé au-dessus jusqu'au haut de l'écran (sous l'encoche,
+   * la table continue) et dessous jusqu'à son bas.
+   */
   const dansLaFenetre = (r: Regard, p: number | undefined): Regard => {
     if (p === undefined) return r;
     const regard = regardPourLaFenetre(p, r);
-    const sous = bords().sous * regard.largeur;
-    return sous > 0 ? { ...regard, hauteur: regard.hauteur + sous } : regard;
+    const { sur, sous } = bords();
+    const [dessus, dessous] = [sur * regard.largeur, sous * regard.largeur];
+    return dessus > 0 || dessous > 0
+      ? { origine: [regard.origine[0], regard.origine[1] - dessus], largeur: regard.largeur, hauteur: regard.hauteur + dessus + dessous }
+      : regard;
   };
   /** Tout ce que le regard parcourt pendant une piste, dans la fenêtre : du regard sur la platine à celui arrêté sur le disque. */
   const parcouru = (p: number): Regard => {
