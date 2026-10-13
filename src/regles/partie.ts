@@ -376,6 +376,8 @@ export function mouvementsDuClassement(avant: EtatDeLaPartie, apres: EtatDeLaPar
     const de = rangsAvant[j.id];
     const a = rangsApres[j.id];
     if (precedent === undefined || de === undefined || a === undefined) continue;
+    // Toujours à zéro : il n'est pas encore entré au classement, il n'en descend pas (au départ, tous sont premiers ex æquo).
+    if (precedent.points === 0 && j.points === 0) continue;
     if (precedent.points === 0 && j.points > 0) mouvements[j.id] = { genre: 'entree' };
     else if (a < de) mouvements[j.id] = { genre: 'monte', places: de - a };
     else if (a > de) mouvements[j.id] = { genre: 'descend', places: a - de };

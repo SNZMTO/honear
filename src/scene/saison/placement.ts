@@ -85,16 +85,6 @@ export function unPlan(cadre: Emprise, pas: number, obstacles: readonly Emprise[
   };
 }
 
-/** Vrai si ce rectangle ne touche aucune case prise du plan (ce qui sort du cadre ne compte pas). */
-export function estLibre(plan: PlanDuCadre, r: Emprise): boolean {
-  const { cadre, pas } = plan;
-  const c0 = Math.max(0, Math.floor((r.x - cadre.x) / pas));
-  const c1 = Math.min(plan.colonnes - 1, Math.ceil((r.x + r.largeur - cadre.x) / pas) - 1);
-  const r0 = Math.max(0, Math.floor((r.y - cadre.y) / pas));
-  const r1 = Math.min(plan.rangees - 1, Math.ceil((r.y + r.hauteur - cadre.y) / pas) - 1);
-  return c0 > c1 || r0 > r1 || plan.libre(c0, r0, c1 - c0 + 1, r1 - r0 + 1);
-}
-
 /** La place libre la plus proche de celle qu'on vise, dans le plan, marge comprise ; ou rien s'il n'y en a pas. */
 export function placeLibre(boite: Boite, vise: Vec2, plan: PlanDuCadre, marge: number): Vec2 | undefined {
   const { cadre, pas } = plan;

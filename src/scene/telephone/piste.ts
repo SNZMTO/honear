@@ -40,6 +40,11 @@ export type CeQuOnRepond =
       readonly dessus?: number;
       /** Vrai un instant après qu'on a validé ce qu'on a tapé : l'étiquette s'enfonce, la réponse part. */
       readonly enfoncee?: boolean;
+      /**
+       * Vrai quand c'est le vrai clavier du téléphone qui s'ouvre : il se montre lui-même, on ne le dessine pas (dessiné, il se
+       * voyait le temps qu'il monte ou qu'il descende, moins large que l'écran). Sans lui, le clavier qui tape tout seul se dessine.
+       */
+      readonly vrai?: boolean;
     }
   | { readonly genre: 'choix'; readonly proposes: readonly Reponse[]; readonly touchee?: number };
 
@@ -154,7 +159,7 @@ export function pouceDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste)
   // La pochette de la réponse est au milieu du disque retourné : rien d'autre ne se pose à côté de la kraft.
   const M = T.message;
   if (o.phrase !== undefined) objets.push(...phrase(o.phrase, regard, a.encrier, M.en, M.largeur));
-  if (ouvert) objets.push(clavier(regard, dessus));
+  if (ouvert && !(repondre.genre === 'saisie' && repondre.vrai === true)) objets.push(clavier(regard, dessus));
   return objets;
 }
 

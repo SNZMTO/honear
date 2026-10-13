@@ -160,7 +160,14 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
 }
 
 /** La piste en cours, et tout ce qui se pose autour : ce que le journal en dit depuis son lancer, et ce qu'on y fait au pouce. */
-function ecranDeLaPiste(m: Memoire, room: RoomConnue, etat: EtatDeLaPartie, heure: number, textes: Textes): EcranDuTelephone | undefined {
+function ecranDeLaPiste(
+  m: Memoire,
+  room: RoomConnue,
+  etat: EtatDeLaPartie,
+  heure: number,
+  textes: Textes,
+  vraiClavier: boolean,
+): EcranDuTelephone | undefined {
   const piste = room.seance.reduce(jouer, undefined);
   const lanceeA = room.seance.find((a) => a.genre === 'lancer')?.a;
   if (piste === undefined || lanceeA === undefined) return undefined;
@@ -188,13 +195,17 @@ function ecranDeLaPiste(m: Memoire, room: RoomConnue, etat: EtatDeLaPartie, heur
           ? textes.piste.raye
           : undefined;
   const personne = revelee !== undefined && etat.trouvees[etat.trouvees.length - 1] === false;
+  // Le navigateur refuse l'extrait faute d'un geste : on le dit, à la place de l'étiquette ; un toucher n'importe où le laisse partir.
+  const sansSon = m.sonBloque === true && extrait !== undefined && revelee === undefined;
   const phrase = m.horsLigne
     ? textes.etats.connexionPerdue
     : moi?.spectateur === true
       ? textes.partie.spectateur
-      : personne
-        ? textes.etats.personne
-        : undefined;
+      : sansSon
+        ? textes.etats.sonBloque
+        : personne
+          ? textes.etats.personne
+          : undefined;
   const repondre: AutourDeLaPiste['repondre'] =
     mode.sousLePouce === 'etiquettesAToucher'
       ? { genre: 'choix', proposes: extrait?.piste.choix ?? [], ...(pouce?.touchee !== undefined ? { touchee: pouce.touchee } : {}) }
@@ -206,6 +217,7 @@ function ecranDeLaPiste(m: Memoire, room: RoomConnue, etat: EtatDeLaPartie, heur
           ...(pouce?.dessusDuClavier !== undefined ? { dessus: pouce.dessusDuClavier } : {}),
           // La réponse vient de partir : l'étiquette s'enfonce un instant.
           ...(pouce?.valideeA !== undefined && heure - pouce.valideeA < TELEPHONE.reponseEnfoncee ? { enfoncee: true } : {}),
+          ...(vraiClavier ? { vrai: true } : {}),
         };
   return {
     genre: 'piste',
@@ -241,7 +253,7 @@ export function ecranDuTelephone(m: Memoire, heure: number, p: Preparatifs, text
   const etat = partieA(room.journal, Infinity);
   // L'hôte a ouvert le bac pour changer de playlist, même en pleine piste : il y choisit la suivante.
   if (m.preparation.ecran === 'bac' && etat.hote === room.toi) return ecranDeLaPreparation(m, p);
-  const piste = ecranDeLaPiste(m, room, etat, heure, textes);
+  const piste = ecranDeLaPiste(m, room, etat, heure, textes, p.clavier === undefined);
   if (piste !== undefined) return piste;
   // Entre deux pistes, on refait sa pochette ; la piste suivante passe avant, et l'on y revient après.
   const prep = m.preparation;

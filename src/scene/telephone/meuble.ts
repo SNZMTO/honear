@@ -11,7 +11,7 @@ import type { Densite } from '../../ressources/densites';
 import { PLATINE } from '../../ressources/platine';
 import { REGLAGES } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
-import type { EtatDeLAmpli } from '../ampli';
+import { dessinerLAmpli, type EtatDeLAmpli } from '../ampli';
 import type { EtatDuBac, Rangee } from '../bac';
 import type { Calque, Mesure } from '../calque';
 import { dessinerLeDisque, type Disque } from '../disque';
@@ -21,6 +21,8 @@ import type { Etiquette } from '../etiquette/papier';
 import type { DecorDeLaPiste } from '../piste/dessin';
 import { CENTRE_DU_PLATEAU, dessinerLaPlatine, HAUTEURS, type EtatDeLaPlatine } from '../platine';
 import { DIRECTIONS, type EtatDInterrupteur } from '../platine/interrupteur';
+import { lesDerniers, uneFoisPar } from '../memoire';
+import { dessinerLeBac } from '../bac';
 import { DENSITE, type Ecritoire } from './pieces';
 
 /** Le nom gravé d'un mode, dans la langue des textes. */
@@ -91,8 +93,20 @@ export interface PlatineALArret {
 const cranDe = (choix: readonly number[], valeur: number, defaut: number): number =>
   choix.includes(valeur) ? choix.indexOf(valeur) : choix.indexOf(defaut);
 
-/** La platine à l'arrêt, avec un disque sur le plateau : celui du logo, ou celui du salon qui porte le code ; son sélecteur sur un mode. */
+/** Combien de platines, de bacs, de kraft d'écrans récents on garde tout faits : de quoi aller et venir entre les écrans. */
+const GARDES = 6;
+/** Pour chaque écritoire, ses derniers meubles faits. */
+const meublesDe = uneFoisPar((_a: Ecritoire) => lesDerniers<Calque>(GARDES));
+
+/**
+ * La platine à l'arrêt, avec un disque sur le plateau : celui du logo, ou celui du salon qui porte le code ; son sélecteur sur un mode.
+ * Faite une fois pour ces réglages, puis redonnée telle quelle : une lettre tapée ne la rebâtit plus, ni ne la fait repeindre.
+ */
 export function platineArretee(a: Ecritoire, { code, mode = MODES_PAR_CRAN[0]?.cran ?? 0, reglages }: PlatineALArret = {}): Calque {
+  return meublesDe(a)(JSON.stringify(['platine', code, mode, reglages]), () => platineFaite(a, code, mode, reglages));
+}
+
+function platineFaite(a: Ecritoire, code: PlatineALArret['code'], mode: number, reglages: PlatineALArret['reglages']): Calque {
   const etiquette =
     code === undefined
       ? disqueDeLAccueil(a.textes, DENSITE, a.encrier.largeur).etiquette
@@ -132,6 +146,14 @@ export function ampliDuSalon(
   return { allume, aiguilles, echelles, volume: 12, inscriptions: { ...textes.ampli, marque: textes.logo.nom } };
 }
 
+/** L'ampli du salon, allumé, dessiné : fait une fois pour ces aiguilles et ces cadrans, puis redonné. */
+export const ampliDessine = (
+  a: Ecritoire,
+  aiguilles?: readonly [number, number],
+  echelles?: readonly [readonly string[], readonly string[]],
+): Calque =>
+  meublesDe(a)(JSON.stringify(['ampli', aiguilles, echelles]), () => dessinerLAmpli(ampliDuSalon(a.textes, true, aiguilles, echelles), DENSITE));
+
 /**
  * Les nombres des cadrans de l'ampli, pour une face de tant de titres et des extraits de tant de secondes : de zéro au bout, de
  * pas en pas (un extrait court, de cinq en cinq).
@@ -144,6 +166,10 @@ export function echellesDeLAmpli(
   const deZeroA = (fin: number, pas: number): string[] => Array.from({ length: Math.floor(fin / pas) + 1 }, (_, k) => String(k * pas));
   return [deZeroA(titres, C.titres.pas), deZeroA(secondes, secondes > C.secondes.pas ? C.secondes.pas : C.secondes.pasCourt)];
 }
+
+/** Le bac des playlists « Prêtes à jouer », dessiné, l'intercalaire de ce thème sorti s'il y en a un : fait une fois, puis redonné. */
+export const bacDessine = (a: Ecritoire, sorti?: string): Calque =>
+  meublesDe(a)(JSON.stringify(['bac', sorti]), () => dessinerLeBac(bacDesPlaylistsPretes(a.textes, undefined, sorti), DENSITE, a.encrier.largeur));
 
 /**
  * Le bac des playlists « Prêtes à jouer », rangées derrière l'intercalaire de leur thème, de l'avant vers le fond. Chacune n'est ici

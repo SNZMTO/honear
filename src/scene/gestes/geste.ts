@@ -139,10 +139,6 @@ export function aLInstant<N extends string>(geste: Geste<N>, t: number, sobre = 
 export const finDuGeste = <N extends string>(geste: Geste<N>): number =>
   Math.max(0, ...Object.values<RoleDuGeste>(geste.roles).flatMap((r) => r.pas.map((p) => p.a + dureeDuPas(p))));
 
-/** L'instant où le dernier pas du geste part : après lui, plus rien ne commence. */
-export const dernierDepart = <N extends string>(geste: Geste<N>): number =>
-  Math.max(...Object.values<RoleDuGeste>(geste.roles).flatMap((r) => r.pas.map((p) => p.a)));
-
 /** Une grandeur qui suit, à partir de l'instant a, une loi écrite du temps écoulé, et finit à une valeur. */
 export const selon = (a: number, loi: (ecoule: number) => number, arrivee: number, duree = 0, courbe: CourbeDUneLoi = 'ecrite'): Pas => ({
   a,

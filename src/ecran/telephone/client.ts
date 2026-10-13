@@ -9,7 +9,6 @@
  */
 
 import type { NomDeCalque } from '../../lexique';
-import { couleur } from '../../lowpoly/tons';
 import type { Action, Brancher, CeQueLeTelephoneCompte, Connexion, PlaylistTrouvee } from '../../regles/messages';
 import { partieA } from '../../regles/partie';
 import { avancementDeLExtrait, type Reponse } from '../../regles/piste';
@@ -43,6 +42,7 @@ import { decorDeLaPiste } from '../../scene/telephone/meuble';
 import { dessinerLeClassement, lignesDuClassement } from '../../scene/classement';
 import {
   classementSousLeBac,
+  estDuMeuble,
   glissementSousLeDisque,
   glisserSousLeDisque,
   meubleAutour,
@@ -82,6 +82,7 @@ import {
   revenir,
   SAISIE_AU_PLUS,
   saisir,
+  sonBloque,
   toucher,
   valider,
   type ChampDeSaisie,
@@ -90,6 +91,7 @@ import {
   type Toucher,
 } from './memoire';
 import { ecranDuTelephone, type EcranDuTelephone } from './route';
+import { poserDesImages, type ImagePosee } from './images';
 import { brancherLeHautParleur, sonVoulu, type HautParleur } from './son';
 import { choseATouche } from './touchers';
 
@@ -146,20 +148,6 @@ export interface OptionsDuTelephone {
    * serveur, qui l'écrit dans son journal. De quoi comprendre un navigateur qu'on n'a pas sous la main.
    */
   readonly diagnostic?: boolean;
-}
-
-/**
- * Une image posée par-dessus la scène : son adresse, son centre et son côté en px dans le regard, ses coins, son angle, son écrasement ;
- * et le trou de l'axe, en part de son côté, si elle est posée sur un disque.
- */
-interface ImagePosee {
-  readonly adresse: string;
-  readonly centre: readonly [number, number];
-  readonly cote: number;
-  readonly coin?: number;
-  readonly angle?: number;
-  readonly ecrasement: number;
-  readonly trou?: number;
 }
 
 /** Un téléphone muet : rien à jouer, toujours prêt. */
@@ -250,6 +238,17 @@ const CLAVIERS: Readonly<Record<SorteDeChamp, { readonly touche: string; readonl
   email: { touche: 'send', majuscules: 'none', sorteDeClavier: 'email' },
   nom: { touche: 'done', majuscules: 'words', sorteDeClavier: 'text' },
   motDePasse: { touche: 'go', majuscules: 'none', sorteDeClavier: 'text' },
+};
+
+/** Ce qu'un champ laisse taper, au plus : quatre lettres pour un code, une adresse entière, un nom qui tient sur sa pochette… */
+const LONGUEURS_AU_PLUS: Readonly<Record<SorteDeChamp, number>> = {
+  reponse: SAISIE_AU_PLUS,
+  code: PARTIE.code.longueur,
+  recherche: SAISIE_AU_PLUS,
+  lien: SAISIE_AU_PLUS,
+  email: ADRESSE_AU_PLUS,
+  nom: NOM_AU_PLUS,
+  motDePasse: MOT_DE_PASSE.auPlus,
 };
 
 /** Combien de défilements de la page le diagnostic note, au plus. */
@@ -349,6 +348,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   const a = o.ecritoire;
   vider(cadre);
   cadre.style.position = 'relative';
+  // Un écran posé sur le meuble a deux couches : le meuble (la table, la platine, le bac…), qui ne change pas d'une lettre tapée à
+  // l'autre, ni souvent d'un écran à l'autre ; et ce qu'on y pose devant (les papiers, les touches), dans la couche de la scène.
+  const coucheDuMeuble = couche(cadre, 'meuble');
   const scene = couche(cadre, 'scene');
   // Autour de la piste, deux couches : la tablée (le classement, le décor de saison), qui ne change qu'avec les points ; et ce qu'on
   // touche, qui change à chaque lettre tapée. Une lettre ne redessine plus le classement.
@@ -366,7 +368,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   let questions: number = TELEPHONE.horloge.auDebut;
   let prochaineQuestion = 0;
 
+  /** Ce qu'on a posé devant le meuble, sur l'écran montré (ses touches, ses papiers) ; et le meuble dessous. */
   let ecranMonte: Montee | undefined;
+  let meubleMonte: Montee | undefined;
   let piste: { readonly lanceeA: number; readonly ecran: EcranDeLaPiste; readonly fenetre: string } | undefined;
   let posees: Montee | undefined;
   let tablee: Montee | undefined;
@@ -390,58 +394,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   champ.setAttribute('autocorrect', 'off');
   zones.append(champ);
 
-  // Les vraies pochettes : l'image que la source donne d'un titre, posée sur ce qu'on a dessiné à sa place (sa vignette, en attendant),
-  // de travers et écrasée comme lui ; à la révélation, et sur le dos des titres joués. Chacune ne se montre qu'une fois chargée ; si
-  // elle ne vient pas, la vignette reste.
-  couverture.style.pointerEvents = 'none';
-  const images: HTMLImageElement[] = [];
-  /** Une image de plus, cachée tant qu'elle n'a pas chargé celle qu'on lui demande. */
-  function nouvelleImage(): HTMLImageElement {
-    const image = document.createElement('img');
-    image.alt = '';
-    image.decoding = 'async';
-    image.referrerPolicy = 'no-referrer';
-    image.hidden = true;
-    image.addEventListener('load', () => {
-      image.hidden = image.getAttribute('src') !== image.dataset['pour'];
-    });
-    image.addEventListener('error', () => {
-      image.hidden = true;
-    });
-    couverture.append(image);
-    images.push(image);
-    return image;
-  }
-
-  /** Pose ces images dans ce regard, à la place des précédentes ; celles qui étaient déjà là ne se rechargent pas. */
-  function poserLesImages(posees: readonly ImagePosee[], r: Regard): void {
-    const voulues = posees.filter((p) => p.adresse.startsWith('https://'));
-    for (const [rang, p] of voulues.entries()) {
-      const image = images[rang] ?? nouvelleImage();
-      const { centre, cote, coin = 0, angle = 0, ecrasement, trou } = p;
-      // Le trou de l'axe : l'axe de la platine passe au travers de l'image, comme au travers du papier.
-      const plein = couleur('vinyle');
-      const masque = trou !== undefined ? `radial-gradient(circle closest-side,transparent ${trou * 200}%,${plein} ${trou * 200}%)` : undefined;
-      const style =
-        `position:absolute;left:${part(centre[0] - cote / 2, r.largeur)};top:${part(centre[1] - cote / 2, r.hauteur)};` +
-        `width:${part(cote, r.largeur)};height:${part(cote, r.hauteur)};border-radius:${part(coin, cote)};object-fit:cover;` +
-        `transform:scaleY(${ecrasement}) rotate(${angle}deg);transform-origin:50% 50%;` +
-        (masque !== undefined ? `-webkit-mask-image:${masque};mask-image:${masque};` : '');
-      if (image.dataset['pour'] === p.adresse && image.dataset['place'] === style) continue;
-      image.dataset['place'] = style;
-      image.style.cssText = style;
-      if (image.dataset['pour'] === p.adresse) continue;
-      image.hidden = true;
-      image.dataset['pour'] = p.adresse;
-      image.src = p.adresse;
-    }
-    for (const image of images.slice(voulues.length)) {
-      image.hidden = true;
-      image.removeAttribute('src');
-      delete image.dataset['pour'];
-      delete image.dataset['place'];
-    }
-  }
+  const poserLesImages = poserDesImages(couverture);
 
   /**
    * La vraie pochette révélée, s'il y en a une, au milieu du disque retourné : rien avant que le disque ne soit à plat, son verso
@@ -591,6 +544,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       ? { origine: [regard.origine[0], regard.origine[1] - dessus], largeur: regard.largeur, hauteur: regard.hauteur + dessus + dessous }
       : regard;
   };
+  /** Ce qu'on voit de ce regard du téléphone dans la fenêtre, sans ce que cachent ses bords (l'encoche, la barre de Safari). */
+  const enVue = (r: Regard, p: number | undefined): Regard => (p === undefined ? r : regardPourLaFenetre(p, r));
   /** Tout ce que le regard parcourt pendant une piste, dans la fenêtre : du regard sur la platine à celui arrêté sur le disque. */
   const parcouru = (p: number): Regard => {
     const [debut, fin] = [0, AMPLEURS.regardSurLaReponse].map((glisse) => dansLaFenetre(regardDeLaPiste({ regard: glisse }), p));
@@ -623,6 +578,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     d: number,
     touches: ReadonlyMap<NomDeCalque, Calque>,
     fondre = false,
+    croiser = false,
   ): Montee {
     const plan = poserUnPlan(dans, regard);
     plan.suivreLeCadre();
@@ -640,8 +596,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     plan.element.append(montage.element);
     montage.regarder(regard.origine);
     faireTourner(montage, boutons);
-    if (fondre && fondreSur(dans, plan.element, avant)) return { cle, plan, montage, touches, curseurs, babioles };
-    if (dans === scene) finirLeFondu();
+    if (fondre && fondreSur(dans, plan.element, avant, croiser)) return { cle, plan, montage, touches, curseurs, babioles };
+    finirLeFondu(dans);
     avant?.montage.demonter();
     vider(dans).append(plan.element);
     return { cle, plan, montage, touches, curseurs, babioles };
@@ -734,33 +690,46 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     }
   }
 
-  /** Le fondu d'un écran à l'autre en cours, et ce qui reste à faire quand il finit : un autre écran qui arrive le termine net. */
-  let fondu: { readonly animation: Animation; readonly fin: () => void } | undefined;
-  function finirLeFondu(): void {
-    const f = fondu;
-    fondu = undefined;
-    if (f === undefined) return;
-    f.animation.cancel();
-    f.fin();
+  /**
+   * Les fondus d'un écran à l'autre en cours, un par couche, et ce qui reste à faire quand chacun finit : un autre écran qui arrive
+   * dans la même couche le termine net.
+   */
+  const fondus = new Map<HTMLElement, { readonly animations: readonly Animation[]; readonly fin: () => void }>();
+  /** Termine net le fondu de cette couche ; sans couche, ceux de toutes. */
+  function finirLeFondu(dans?: HTMLElement): void {
+    for (const [couche, f] of [...fondus]) {
+      if (dans !== undefined && couche !== dans) continue;
+      fondus.delete(couche);
+      for (const animation of f.animations) animation.cancel();
+      f.fin();
+    }
   }
   /**
    * D'un écran à l'autre, le nouveau se pose par-dessus l'ancien et s'y fond : le meuble qui ne change pas reste où il est, seul ce qui
    * change apparaît. Rien quand on a demandé moins d'animations, ni dans un navigateur qui ne sait pas animer.
+   * @param croiser vrai pour ce qui se pose devant le meuble : l'ancien s'efface pendant que le nouveau vient, sans quoi ce qu'il
+   * montrait là où le nouveau ne montre rien resterait jusqu'au bout du fondu, puis disparaîtrait d'un coup.
    * @returns faux si l'on n'a pas fondu : c'est alors à l'appelant de poser le nouvel écran.
    */
-  function fondreSur(dans: HTMLElement, nouveau: HTMLElement, avant: Montee | undefined): boolean {
-    finirLeFondu();
+  function fondreSur(dans: HTMLElement, nouveau: HTMLElement, avant: Montee | undefined, croiser = false): boolean {
+    finirLeFondu(dans);
     if (o.options.sobre || typeof nouveau.animate !== 'function') return false;
     for (const enfant of Array.from(dans.children)) if (enfant !== avant?.plan.element) enfant.remove();
     dans.append(nouveau);
-    const animation = nouveau.animate([{ opacity: 0 }, { opacity: 1 }], { duration: TELEPHONE.fondu * MS_PAR_SECONDE, easing: 'ease-out' });
+    const duree = { duration: TELEPHONE.fondu * MS_PAR_SECONDE, easing: 'ease-out' };
+    const animation = nouveau.animate([{ opacity: 0 }, { opacity: 1 }], duree);
+    const ancien = croiser ? avant?.plan.element : undefined;
+    const effacement =
+      ancien !== undefined && typeof ancien.animate === 'function'
+        ? ancien.animate([{ opacity: 1 }, { opacity: 0 }], { ...duree, fill: 'forwards' })
+        : undefined;
     const fin = (): void => {
       avant?.montage.demonter();
       avant?.plan.element.remove();
     };
-    fondu = { animation, fin };
+    fondus.set(dans, { animations: [animation, ...(effacement !== undefined ? [effacement] : [])], fin });
     animation.onfinish = () => {
-      if (fondu?.animation === animation) finirLeFondu();
+      if (fondus.get(dans)?.animations[0] === animation) finirLeFondu(dans);
     };
     return true;
   }
@@ -825,44 +794,35 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     }
   }
 
+  /** Ce que la mémoire a gardé de ce qu'on a tapé dans ce champ : le champ, posé de nouveau, le reprend. */
+  function dejaTape(sorte: SorteDeChamp): string {
+    const prep = memoire.preparation;
+    switch (sorte) {
+      case 'reponse':
+        return memoire.pouce.tape;
+      case 'code':
+        return prep.ecran === 'saisie' ? prep.tape : '';
+      case 'email':
+        return prep.ecran === 'compte' ? prep.email : '';
+      case 'motDePasse':
+        return prep.ecran === 'compte' ? (prep.motDePasse ?? '') : '';
+      case 'nom':
+        return prep.ecran === 'pochette' ? prep.pochette.artiste : '';
+      case 'lien':
+        return prep.ecran === 'bac' ? prep.bac.lien : '';
+      case 'recherche':
+        return prep.ecran === 'bac' ? prep.bac.recherche : '';
+    }
+  }
+
   /** Pose le champ du clavier sur une étiquette, avec ce qu'on y a déjà tapé, sans toucher à ce qu'on est en train d'y taper. */
   function poserLeChamp(sorte: SorteDeChamp, cle: string, place: string, libelle: string): void {
     const prep = memoire.preparation;
     if (champ.dataset['cle'] !== cle) {
       champ.dataset['cle'] = cle;
       champ.dataset['pour'] = sorte;
-      champ.value =
-        sorte === 'code'
-          ? prep.ecran === 'saisie'
-            ? prep.tape
-            : ''
-          : sorte === 'reponse'
-            ? memoire.pouce.tape
-            : sorte === 'email' || sorte === 'motDePasse'
-              ? prep.ecran === 'compte'
-                ? sorte === 'email'
-                  ? prep.email
-                  : (prep.motDePasse ?? '')
-                : ''
-              : sorte === 'nom'
-                ? prep.ecran === 'pochette'
-                  ? prep.pochette.artiste
-                  : ''
-                : prep.ecran === 'bac'
-                  ? sorte === 'lien'
-                    ? prep.bac.lien
-                    : prep.bac.recherche
-                  : '';
-      champ.maxLength =
-        sorte === 'code'
-          ? PARTIE.code.longueur
-          : sorte === 'email'
-            ? ADRESSE_AU_PLUS
-            : sorte === 'nom'
-              ? NOM_AU_PLUS
-              : sorte === 'motDePasse'
-                ? MOT_DE_PASSE.auPlus
-                : SAISIE_AU_PLUS;
+      champ.value = dejaTape(sorte);
+      champ.maxLength = LONGUEURS_AU_PLUS[sorte];
       // Une adresse e-mail, le téléphone sait la proposer, et un mot de passe, son trousseau : celui avec lequel on entre, ou un
       // nouveau, qu'il peut proposer et garder. Le reste, il ne doit rien deviner. Un mot de passe ne s'affiche pas, même invisible.
       const nouveau = prep.ecran === 'compte' && prep.etape === 'nouveauMotDePasse';
@@ -983,7 +943,14 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     changer(saisir(memoire, champ.value, champPose()));
     // Le code s'écrit en capitales, sans les lettres qu'on confond ; un nom, sans ce que les polices n'ont pas : le champ montre ce
     // que la mémoire a gardé.
-    if (champ.dataset['pour'] === 'code' && memoire.preparation.ecran === 'saisie') champ.value = memoire.preparation.tape;
+    if (champ.dataset['pour'] === 'code' && memoire.preparation.ecran === 'saisie') {
+      champ.value = memoire.preparation.tape;
+      // Les quatre lettres sont là : on entre, sans chercher la touche « OK » du clavier.
+      if (memoire.preparation.tape.length === PARTIE.code.longueur) {
+        validerLeChamp();
+        return;
+      }
+    }
     if (champ.dataset['pour'] === 'nom' && memoire.preparation.ecran === 'pochette' && champ.value !== memoire.preparation.pochette.artiste)
       champ.value = memoire.preparation.pochette.artiste;
     if (colle) {
@@ -1088,27 +1055,66 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const touches = new Map(vue.objets.filter((objet) => objet.nom.startsWith('touche-')).map((objet) => [objet.nom, objet] as const));
     // Un autre écran se fond sur l'ancien ; le même, qui change (une lettre tapée, un cran tourné), se repose tel quel.
     const fondre = e.genre !== genre;
-    // Le décor de saison, s'il y en a un : sous ce que l'écran montre, ou par-dessus, là où rien ne se tient (ni les touches du coin).
-    const saison = decorDeLaSaison(regard, [...objets, ...touchesDuCoin(regard)], a.encrier.largeur);
+    // Le décor de saison, s'il y en a un : sous ce que l'écran montre, ou par-dessus, là où rien ne se tient (ni les touches du coin),
+    // dans ce qu'on voit (ni sous l'encoche, ni sous la barre de Safari).
+    const saison = decorDeLaSaison(enVue(vue.regard, p), [...objets, ...touchesDuCoin(regard)], a.encrier.largeur);
+    // Le meuble (ce qui vient d'abord : la platine, le bac, la kraft…) dans sa couche, sous tout le reste ; il n'est repeint que s'il
+    // a changé. Les écrans le redonnent tel quel quand rien ne le change (voir `platineArretee`) : une lettre tapée, un écran qui
+    // reste sur la platine ne le font plus repeindre.
+    const auMeuble = objets.findIndex((objet) => !estDuMeuble(objet));
+    const [meuble, devant] = auMeuble < 0 ? [objets, []] : [objets.slice(0, auMeuble), objets.slice(auMeuble)];
+    const d = definition(regard);
+    const cleDuMeuble = JSON.stringify([meuble.map(numeroDe), regard, d]);
+    if (meubleMonte?.cle !== cleDuMeuble)
+      meubleMonte = monterDans(
+        coucheDuMeuble,
+        meubleMonte,
+        cleDuMeuble,
+        dessinerLeMeuble({ regard, densite: DENSITE, objets: meuble }),
+        regard,
+        d,
+        new Map(),
+        fondre,
+      );
+    else meubleMonte.plan.suivreLeCadre();
     ecranMonte = monterDans(
       scene,
       ecranMonte,
       cle,
-      dessinerLeMeuble({ regard, densite: DENSITE, objets: [...saison.dessous, ...objets, ...saison.dessus] }),
+      calque('regard-devant', [...saison.dessous, ...devant, ...saison.dessus]),
       regard,
-      definition(regard),
+      d,
       touches,
       fondre,
+      true,
     );
     poserLesZones(rangees, regard, e);
   }
 
-  function montrerLaPiste(e: Extract<EcranDuTelephone, { readonly genre: 'piste' }>, t: number): void {
-    if (ecranMonte !== undefined) {
-      finirLeFondu();
-      ecranMonte.montage.demonter();
-      ecranMonte = undefined;
+  /** Un numéro par calque, tant qu'il existe : deux écrans qui ont le même meuble (le même objet) ont les mêmes numéros. */
+  const numeros = new WeakMap<Calque, number>();
+  let dernierNumero = 0;
+  const numeroDe = (c: Calque): number => {
+    let n = numeros.get(c);
+    if (n === undefined) {
+      n = ++dernierNumero;
+      numeros.set(c, n);
     }
+    return n;
+  };
+
+  /** Ce qu'on a monté d'un écran posé sur le meuble s'en va : une piste arrive, ou le téléphone se ferme. */
+  function fermerLEcran(): void {
+    finirLeFondu();
+    ecranMonte?.montage.demonter();
+    ecranMonte = undefined;
+    meubleMonte?.montage.demonter();
+    meubleMonte = undefined;
+    vider(coucheDuMeuble);
+  }
+
+  function montrerLaPiste(e: Extract<EcranDuTelephone, { readonly genre: 'piste' }>, t: number): void {
+    if (ecranMonte !== undefined || meubleMonte !== undefined) fermerLEcran();
     const p = proportion();
     const fenetre = JSON.stringify([p, bords()]);
     // Une autre piste, ou une fenêtre qui change de proportion : la scène se remonte.
@@ -1176,7 +1182,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       // Le décor de saison : pendant la piste, le regard glisse sous ce qu'on pose ; rien de posé sur le bois, loin du meuble et de la
       // kraft, ni de ce qu'on touche.
       const eviter = [...objets, ...glisserSousLeDisque(pouceLePlusGrand, glissementDeLaPiste), ...meubleAutour(a, [], regard), ...kraftAuRepos(a)];
-      const saison = decorDeLaSaison(regard, [...eviter, ...touchesDuCoin(regard)], a.encrier.largeur, false);
+      const saison = decorDeLaSaison(enVue(SUR_LA_PLATINE, p), [...eviter, ...touchesDuCoin(regard)], a.encrier.largeur, false);
       const arbre = calque('regard-tablee', [...saison.dessous, ...objets, ...saison.dessus]);
       tablee = monterDans(coucheDeLaTablee, tablee, cleDeLaTablee, arbre, regard, d, new Map());
     } else tablee.plan.suivreLeCadre();
@@ -1408,11 +1414,12 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   function ecouter(t: number): void {
     const voulu = sonVoulu(memoire);
     hautParleur.suivre(voulu, t);
-    // Le navigateur a bloqué le son : on le compte, une fois.
+    // Le navigateur a bloqué le son : on le compte, une fois ; et l'écran demande qu'on le touche, tant qu'il le bloque.
     if (hautParleur.bloque && !sonBloqueDit) {
       sonBloqueDit = true;
       signaler('sonBloque');
     }
+    if (hautParleur.bloque !== (memoire.sonBloque === true)) changer(sonBloque(memoire, hautParleur.bloque));
     if (voulu === undefined || voulu.depuis !== undefined || pretPour === voulu.lanceeA || !hautParleur.pret(voulu.adresse)) return;
     pretPour = voulu.lanceeA;
     envoyer([{ genre: 'pret' }]);
@@ -1449,15 +1456,26 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const zone = cible instanceof HTMLElement ? cible.closest<HTMLElement>('[data-zone]') : null;
     return zone !== null ? choses[Number(zone.dataset['zone'])] : undefined;
   };
-  const presser = (z: { readonly toucher: Toucher; readonly nom: NomDeCalque }): void => {
-    if (z.nom.startsWith('touche-')) {
-      enfoncee = { nom: z.nom, depuis: o.horloge.maintenant(), montree: 0 };
-      o.vibrer?.('touche');
-    }
+  /** La touche touchée s'enfonce ; l'écran d'après attendra qu'on l'ait vue au fond de sa course. */
+  const enfoncerLaTouche = (z: { readonly nom: NomDeCalque }): void => {
+    if (z.nom.startsWith('touche-')) enfoncee = { nom: z.nom, depuis: o.horloge.maintenant(), montree: 0 };
+  };
+  /**
+   * Une zone pressée : sa touche s'enfonce (sauf si elle l'est déjà, enfoncée au doigt posé), le téléphone vibre un rien, le bouton
+   * fait son petit bruit, et l'action part.
+   */
+  const presser = (z: { readonly toucher: Toucher; readonly nom: NomDeCalque }, dejaEnfoncee = false): void => {
+    if (!dejaEnfoncee || enfoncee?.nom !== z.nom) enfoncerLaTouche(z);
+    if (z.nom.startsWith('touche-')) o.vibrer?.('touche');
     hautParleur.cliquer(z.nom.startsWith('bouton-') ? 'cran' : 'touche');
     if (z.toucher.genre === 'partagerLeLien') partagerLeLien();
     agir(z.toucher);
   };
+  /**
+   * La zone qu'un doigt a enfoncée sur une page qui défile, et qui attend qu'il se lève sans avoir glissé (le clic) pour agir :
+   * un doigt qui se pose sur une touche de l'accueil veut peut-être faire glisser la page jusqu'à son pied.
+   */
+  let enAttente: { readonly toucher: Toucher; readonly nom: NomDeCalque } | undefined;
   /**
    * Le lien de la room : au téléphone, son partage (WhatsApp, Messages…) ; sur un ordinateur, ou sans partage, copié, et le papier le
    * dit un instant. Il faut le geste fini pour cela (le doigt levé, le clic) : il part au clic, pas au doigt posé.
@@ -1492,6 +1510,15 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       avaler = false;
       return;
     }
+    enAttente = undefined;
+    // La page défile : la touche s'enfonce tout de suite, et agit au doigt levé (elle vibre alors) ; une page qu'on fait glisser ne
+    // clique pas.
+    if (z !== undefined && o.defile?.() === true) {
+      avaler = false;
+      enAttente = z;
+      enfoncerLaTouche(z);
+      return;
+    }
     avaler = z !== undefined;
     if (z !== undefined) presser(z);
   };
@@ -1503,7 +1530,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     }
     if (surLeVolume(ev.target)) return;
     const z = zoneDe(ev.target);
-    if (z !== undefined) presser(z);
+    const dejaEnfoncee = z !== undefined && z.nom === enAttente?.nom;
+    enAttente = undefined;
+    if (z !== undefined) presser(z, dejaEnfoncee);
   };
   zones.addEventListener('pointerdown', auToucher);
   zones.addEventListener('click', auClic);
@@ -1544,7 +1573,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       connexion = undefined;
       hautParleur.fermer();
       fermerLaPiste();
-      ecranMonte?.montage.demonter();
+      fermerLEcran();
       volumeMonte?.montage.demonter();
       vider(cadre);
     },

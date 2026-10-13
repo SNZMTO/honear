@@ -102,7 +102,8 @@ export function playlistsDuGenre(
       L.angles[rang] ?? 0,
       [{ contenu: p.titre, role: elue ? 'techniqueFort' : 'technique', auPlus: 'mention' }],
       a.encrier,
-      { ancre: 'debut', role: 'mobile' },
+      // La choisie se voit d'un coup d'œil : son papier est miel, comme la touche qui la prend.
+      { ancre: 'debut', role: 'mobile', ...(elue ? { teinte: L.teinteDeLaChoisie } : {}) },
     ).calques;
     return [...disqueDePlaylist(`disque-playlist-${rang + 1}`, regard, [L.disque.x, y], COULEURS_DES_THEMES[theme], elue ? L.leve : 0), ...nom];
   });

@@ -167,6 +167,11 @@ test('après la dernière piste, c’est la fin : diamant pour le premier, plati
   assert.deepEqual(disquesDeLaFinale(egalite), { a: 'diamant', b: 'diamant' });
 });
 
+test('au premier hit-parade, qui reste à zéro n’en descend pas : il n’y est pas encore entré', () => {
+  const premiere: EvenementDePartie[] = [...arrivent('a', 'b', 'c'), extrait(10), tape(11, 'a', 'images'), { genre: 'revelation', a: 20 }];
+  assert.deepEqual(mouvementsDuClassement(partieA(premiere, 9), partieA(premiere, 25)), { a: { genre: 'entree' } });
+});
+
 test('le hit-parade range du premier au dernier, ex æquo dans l’ordre d’arrivée ; il bouge comme au hit-parade', () => {
   const avant: EvenementDePartie[] = [
     ...arrivent('a', 'b', 'c', 'd'),

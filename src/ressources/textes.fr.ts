@@ -239,6 +239,8 @@ export const TEXTES: Textes = {
     revoir: 'Touche pour revoir les pochettes',
     retour: 'Retour',
     points: '{points} pts',
+    /** Zéro ou un point : au singulier. */
+    unPoint: '{points} pt',
     spectateur: 'Piste en cours. Tu joues la suivante.',
   },
 
@@ -249,6 +251,7 @@ export const TEXTES: Textes = {
     connexionPerdue: 'Connexion perdue. On garde ta pochette au chaud.',
     patronSorti: 'Le patron est sorti. C’est toi qui tiens la platine.',
     personne: 'Personne. Même pas honte ?',
+    sonBloque: 'Pas de son ? Touche l’écran.',
     introuvable: 'Ce disque est introuvable. Vérifie le lien.',
   },
 

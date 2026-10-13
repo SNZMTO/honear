@@ -163,8 +163,8 @@ export const TABLEE = {
       message: { en: [195, 664], largeur: 300 },
       /** « Mes playlists », sous l'étiquette du lien : un disque et son papier par rangée, à ces hauteurs. */
       miennes: { y: [628, 680, 732] },
-      /** La hauteur de la touche qui choisit, au milieu. */
-      choisir: 792,
+      /** La hauteur de la touche qui choisit, au milieu, assez bas pour ne pas toucher « Au hasard ». */
+      choisir: 798,
       /** La playlist choisie, sous les résultats ; aux « Prêtes à jouer », de combien elle sort du bac ; d'où viennent les extraits. */
       choisie: { en: [195, 730], largeur: 300 },
       /**
@@ -173,19 +173,21 @@ export const TABLEE = {
        * d'autant. « Au hasard », dessous, à cette hauteur.
        */
       playlists: {
-        y: [518, 570, 622, 674],
+        y: [512, 562, 612, 662],
         angles: [-1, 0.8, -0.6, 1],
         disque: { x: 62, rayon: 23 },
         papier: { x: 222, largeur: 252 },
         leve: 12,
-        auHasard: 730,
+        teinteDeLaChoisie: 'miel',
+        auHasard: 722,
       },
       /** Le regard sur le bac descend sous le haut de ses intercalaires, de cette marge : on lit tous les thèmes. */
       auDessus: 30,
       /** Les petites touches du coin (« Retour », « Quitter »), entre la caisse et ses crans : la hauteur de leur milieu. */
       coin: 414,
       leve: 28,
-      source: { en: [195, 424], largeur: 300 },
+      /** D'où viennent les extraits : à droite de « Retour », qui se pose à la même hauteur, au coin. */
+      source: { en: [242, 424], largeur: 230 },
     },
     /** Les réglages : la touche qui ouvre le salon (par son bord gauche), une fois les commandes de la platine réglées. */
     reglages: { ouvrir: 792 },
@@ -216,8 +218,11 @@ export const TABLEE = {
         { en: [82, 566], angle: 5, taille: 72 },
         { en: [308, 572], angle: -6, taille: 72 },
       ],
-      /** Le disque de chacun, sorti de sa pochette vers le haut à droite : son décalage en part du côté, et son rayon en part du côté. */
-      disque: { decalage: [0.36, -0.36], rayon: 0.42 },
+      /**
+       * Le disque de chacun, derrière sa pochette, qui en sort vers le haut à droite : son décalage en part du côté, et son rayon en
+       * part du côté.
+       */
+      disque: { decalage: [0.44, -0.44], rayon: 0.42 },
       suivants: { y: 640, x: [60, 120, 270, 330], taille: 40 },
       titres: { en: [195, 716], largeur: 300, angle: 1.5 },
       rejouer: [195, 806],

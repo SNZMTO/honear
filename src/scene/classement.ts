@@ -17,7 +17,7 @@ import { CORPS, HAUTEUR_DE_CAPITALE, type Echelon } from '../ressources/typo';
 import { aplat, aPlatSurLeMeuble, type Calque, type Mesure, type Texte } from './calque';
 import { surLeBois, type Regard } from './meuble';
 import { ombreAuPied } from './ombre';
-import { remplir } from './phrases';
+import { pointsEcrits } from './phrases';
 import { dessinerLaTablee, eventail, type JoueurPose } from './tablee';
 import { faireTenir } from './texte';
 
@@ -134,7 +134,7 @@ export function dessinerLeClassement(
     const xPochette = gauche + largeurDuRang + C.ecart + cote / 2;
     places.push({ en: [xPochette, milieu], angle: i % 2 === 0 ? -3 : 3 });
     // À deux colonnes, les points s'écrivent seuls : le nom garde la place.
-    const points = colonnes > 1 ? String(l.points) : remplir(textes.partie.points, { points: String(l.points) });
+    const points = colonnes > 1 ? String(l.points) : pointsEcrits(textes, l.points);
     textesDesLignes.push(ecrit(points, 'techniqueFort', corps, droite, base(corps), 'fin', 'expresso'));
     let finDuNom = droite - mesurer({ contenu: points, role: 'techniqueFort', corps }) - C.ecart;
     // Ce que la piste lui vaut, chaque marque sur une petite pastille miel : on ne la confond pas avec ses points.

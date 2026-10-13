@@ -182,6 +182,7 @@ export interface Textes {
     readonly revoir: string;
     readonly retour: string;
     readonly points: string;
+    readonly unPoint: string;
     readonly spectateur: string;
   };
 
@@ -193,6 +194,7 @@ export interface Textes {
     readonly connexionPerdue: string;
     readonly patronSorti: string;
     readonly personne: string;
+    readonly sonBloque: string;
     /** Un lien qui ne mène à aucune playlist. */
     readonly introuvable: string;
   };

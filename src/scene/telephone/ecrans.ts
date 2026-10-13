@@ -13,17 +13,16 @@ import { TABLEE, type Place } from '../../ressources/tablee';
 import type { Vignette } from '../../ressources/vignettes';
 import { dessinerLAmpli } from '../ampli';
 import { aiguillesA } from '../ampli/danse';
-import { dessinerLeBac } from '../bac';
 import type { Calque } from '../calque';
 import { surLeBois, type Regard } from '../meuble';
-import { remplir } from '../phrases';
+import { pointsEcrits, remplir } from '../phrases';
 import { dessinerUnDisqueDeRecompense } from '../recompense';
 import { empriseDe } from '../rendu/emprise';
 import { dessinerLeClassement, type LigneDuClassement } from '../classement';
 import { dessinerLaTablee, eventail, placesEnEventail, type JoueurPose } from '../tablee';
 import { largeurDeLaTouche } from '../touche';
 import { kraftDuSalon } from './kraft';
-import { ampliDuSalon, bacDesPlaylistsPretes, platineArretee } from './meuble';
+import { ampliDuSalon, bacDessine, platineArretee } from './meuble';
 import { disqueDePlaylist, estUnTheme, playlistsDuGenre, type PlaylistProposee, mesPlaylists } from './choisie';
 import {
   DENSITE,
@@ -124,11 +123,11 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
   const P = a.textes.playlists;
   const B = T.bac;
   // Le bac reste rangé : le thème touché se montre devant lui, sa pochette sur le bois et son disque qui en sort.
-  const auRepos = dessinerLeBac(bacDesPlaylistsPretes(a.textes), DENSITE, a.encrier.largeur);
+  const auRepos = bacDessine(a);
   // L'intercalaire du thème touché sort du bac ; le regard, lui, reste celui du bac au repos.
   // « Mes playlists » ouvertes : c'est la pochette personnalisée qui sort.
   const sorti = bac.cran === 'laMienne' ? 'mesPlaylists' : bac.theme;
-  const meuble = sorti !== undefined ? dessinerLeBac(bacDesPlaylistsPretes(a.textes, undefined, sorti), DENSITE, a.encrier.largeur) : auRepos;
+  const meuble = sorti !== undefined ? bacDessine(a, sorti) : auRepos;
   // Le regard monte sur le bac s'il le faut, assez pour qu'on lise l'onglet de chaque intercalaire.
   const surLeBac = regardSur(auRepos, a.encrier);
   const haut = empriseDe([auRepos], a.encrier.largeur)?.y ?? surLeBac.origine[1];
@@ -437,7 +436,7 @@ export function vueDeLaFinale(
     pastilles: [pastille],
   });
   // Les trois premiers ont leurs points en toutes lettres ; les suivants, sur une petite pastille, le nombre seul.
-  const enTete = classes.slice(0, premiers.length).map((c) => poseDe(c, remplir(a.textes.partie.points, { points: c.joueur.points })));
+  const enTete = classes.slice(0, premiers.length).map((c) => poseDe(c, pointsEcrits(a.textes, c.joueur.points)));
   const derriere = classes.slice(premiers.length).map((c) => poseDe(c, String(c.joueur.points)));
   const remis = classes.slice(0, F.premiers.length).flatMap(({ joueur }, rang) => {
     const genre = disques[joueur.id];
@@ -465,10 +464,10 @@ export function vueDeLaFinale(
     regard: r,
     objets: [
       platineArretee(a),
+      // Les disques remis, glissés derrière la pochette de chacun, qui en sortent par le coin : ils ne cachent plus les visages.
+      ...remis,
       ...dessinerLaTablee(enTete, premiers, F.suivants.taille, r, T.pastille, a.encrier.largeur, 'finale'),
       ...dessinerLaTablee(derriere, suivants, F.suivants.taille, r, T.trouve, a.encrier.largeur, 'suivant'),
-      // Les disques remis, posés à cheval sur le coin de la pochette de chacun.
-      ...remis,
       ...papier(
         'etiquette-titres',
         r,

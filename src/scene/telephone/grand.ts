@@ -10,16 +10,14 @@ import { surLEcran } from '../../lowpoly/projection';
 import { BAC } from '../../ressources/bac';
 import { TELEPHONE } from '../../ressources/ecran';
 import { TABLEE } from '../../ressources/tablee';
-import { dessinerLAmpli } from '../ampli';
-import { dessinerLeBac } from '../bac';
 import type { Calque } from '../calque';
 import type { PlaceDuClassement } from '../classement';
 import { regardSurLeMeuble, type Regard } from '../meuble';
 import { CENTRE_DU_PLATEAU } from '../platine';
 import { empriseDe } from '../rendu/emprise';
 import type { Mesure } from '../calque';
-import { ampliDuSalon, bacDesPlaylistsPretes, platineArretee } from './meuble';
-import { DENSITE, SUR_LA_PLATINE, type Ecritoire } from './pieces';
+import { ampliDessine, bacDessine, platineArretee } from './meuble';
+import { SUR_LA_PLATINE, type Ecritoire } from './pieces';
 
 const MEUBLE: Regard = regardSurLeMeuble();
 /** Le haut du grand regard : celui du meuble entier, au-dessus des intercalaires du bac ; celui du téléphone s'il est plus haut. */
@@ -84,7 +82,7 @@ export function classementSousLeBac(regard: Regard): PlaceDuClassement | undefin
 }
 
 /** Ce qui, sur un écran du téléphone, est le meuble lui-même : il ne bouge pas quand on range ce qu'on y touche. */
-const estDuMeuble = (c: Calque): boolean => c.nom === 'platine' || c.nom === 'bac' || c.nom === 'ampli' || c.nom.startsWith('kraft');
+export const estDuMeuble = (c: Calque): boolean => c.nom === 'platine' || c.nom === 'bac' || c.nom === 'ampli' || c.nom.startsWith('kraft');
 
 /**
  * Sur un grand écran, ce dont glisse ce qu'on touche et ce qu'on lit d'un écran posé sur la platine pour se ranger sous le vinyle :
@@ -128,9 +126,9 @@ export function meubleAutour(
 ): Calque[] {
   const deja = new Set(objets.map((objet) => objet.nom));
   const candidats = [
-    ...(deja.has('bac') ? [] : [dessinerLeBac(bacDesPlaylistsPretes(a.textes), DENSITE, a.encrier.largeur)]),
+    ...(deja.has('bac') ? [] : [bacDessine(a)]),
     ...(deja.has('platine') || !platine ? [] : [platineArretee(a)]),
-    ...(deja.has('ampli') ? [] : [dessinerLAmpli(ampliDuSalon(a.textes, true, aiguilles, echelles), DENSITE)]),
+    ...(deja.has('ampli') ? [] : [ampliDessine(a, aiguilles, echelles)]),
   ];
   // Ce que le regard ne voit pas ne se dessine pas : une fenêtre de téléphone ne voit ni le bac ni l'ampli.
   return candidats.filter((c) => {

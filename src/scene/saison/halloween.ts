@@ -515,9 +515,10 @@ function citrouilleQuiTient(cadre: Emprise, objets: readonly Emprise[]): Calque[
 }
 
 /**
- * Sur un petit regard, la grosse citrouille d'un coin du bas, posée sous ce que l'écran montre, et qui sort du regard. De ses places
- * (à droite, puis à gauche ; tant de sa largeur hors du regard par le côté, tant de sa hauteur par le bas), la première où son
- * visage est le moins caché, par ce que l'écran montre ou par le bord du regard.
+ * Sur un petit regard, la grosse citrouille d'un coin du bas, qui sort du regard. De ses places (à droite, puis à gauche ; tant de
+ * sa largeur hors du regard par le côté, tant de sa hauteur par le bas), la première où son visage est le moins caché par le bord
+ * du regard, parmi celles où rien de ce que l'écran montre ne la touche : glissée sous une touche, elle avait l'air d'un oubli.
+ * S'il n'y en a pas, l'écran n'a pas de citrouille.
  */
 function citrouilleDansUnCoin(cadre: Emprise, objets: readonly Emprise[]): Calque[] {
   const C = H.citrouille.petit;
@@ -543,10 +544,8 @@ function citrouilleDansUnCoin(cadre: Emprise, objets: readonly Emprise[]): Calqu
           aDroite ? cadre.x + cadre.largeur - boite.x - boite.largeur * (1 - cote) : cadre.x - boite.x - boite.largeur * cote,
           cadre.y + cadre.hauteur - boite.y - boite.hauteur * (1 - bas),
         ];
-        const caches = points.filter((p) => {
-          const ici = plus(p, en);
-          return !dans(ici, cadre) || objets.some((o) => dans(ici, o));
-        }).length;
+        if (objets.some((o) => seChevauchent(poseeEn(boite, en), o))) continue;
+        const caches = points.filter((p) => !dans(plus(p, en), cadre)).length;
         if (meilleure === undefined || caches < meilleure.caches) meilleure = { en, caches };
       }
     }

@@ -36,9 +36,9 @@ export const TELEPHONE = {
   /** Une zone à toucher fait au moins ce côté, en px du téléphone : celle d'une petite commande déborde autour d'elle. */
   zoneAuMoins: 44,
   /** Une touche enfoncée reste ce temps au fond de sa course avant que l'écran d'après n'arrive : on voit qu'elle a été pressée. */
-  tenue: 0.07,
+  tenue: 0.05,
   /** D'un écran à l'autre, le nouveau se fond sur l'ancien en ce temps-là (rien, quand on a demandé moins d'animations). */
-  fondu: 0.22,
+  fondu: 0.18,
   /**
    * Au téléphone, le bois qu'on ne montre pas au-dessus de la platine, en px de la scène : aucun. L'écran commence sur la table,
    * la platine entière dessous ; la barre d'état (que Safari peint du fond de la page, le noyer) continue la table.
@@ -60,11 +60,14 @@ export const TELEPHONE = {
   /** Le tutoriel : le voile sombre qu'il pose sur le jeu, de cette opacité. */
   tuto: { voile: 0.9 },
   /**
-   * Le son : un extrait qui s'écarte de plus que ce temps de là où il devrait en être, à l'heure du serveur, y est remis, au plus
-   * une fois en tant de secondes : chaque saut s'entend (l'iPhone met un moment à repartir, et sa position à se mettre à jour ;
-   * le remettre trop vite, trop souvent, le faisait saccader). Il se tait en ce temps-là, là où le téléphone laisse baisser le volume.
+   * Le son, joué en même temps par tous les téléphones d'une room : un extrait qui s'écarte de plus que `ecartAdmis` de là où il
+   * devrait en être, à l'heure du serveur, y est remis d'un saut, au plus une fois en `entreDeuxSauts` secondes : chaque saut
+   * s'entend (le remettre trop vite, trop souvent, le faisait saccader). Un écart plus petit se rattrape sans saut : le son va
+   * un rien plus vite ou plus lentement (de `vitesse` au plus, la hauteur gardée), assez pour le rattraper en `rattrapage`
+   * secondes, jusqu'à moins de `accord` d'écart ; deux téléphones posés côte à côte ne font plus écho. Après un départ ou un saut,
+   * on attend `tenue` secondes que sa position suive avant de la lire. Il se tait en `fondu`, là où il le laisse baisser.
    */
-  son: { ecartAdmis: 0.6, entreDeuxSauts: 5, fondu: 0.6 },
+  son: { ecartAdmis: 0.5, entreDeuxSauts: 5, fondu: 0.6, vitesse: 0.08, rattrapage: 2, accord: 0.03, tenue: 0.6 },
   /**
    * Le volume de ce téléphone, de 0 à 1 : à 30 % en arrivant, pour ne pas agresser les oreilles. L'oreille l'entend à cette
    * puissance (un volume « cubique », comme sur les ordinateurs) ; les petits bruits des touches ne se taisent jamais tout à fait.
