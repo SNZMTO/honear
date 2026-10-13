@@ -31,7 +31,7 @@ const BAS = SUR_LA_PLATINE.origine[1] + SUR_LA_PLATINE.hauteur;
 export const HAUTEUR_DU_GRAND_ECRAN = BAS - HAUT;
 /** La largeur du meuble entier, avec ses marges. */
 export const LARGEUR_DU_MEUBLE = MEUBLE.largeur;
-/** Au téléphone, le bois au-dessus de la platine ne se montre pas : le haut de l'écran est le bord de la platine. */
+/** Au téléphone, ce qu'on ne montre pas du bois au-dessus de la platine (voir `TELEPHONE.boisAuDessus`). */
 const ROGNE = TELEPHONE.boisAuDessus;
 /** Le regard de cet écran est-il celui du téléphone posé sur la platine (le seul qu'on rogne en haut) ? */
 const surLaPlatine = (ecran: Regard): boolean => ecran.origine[0] === SUR_LA_PLATINE.origine[0] && ecran.origine[1] === SUR_LA_PLATINE.origine[1];
@@ -47,7 +47,8 @@ export const ouverture = (proportion: number): number =>
  * Le regard qui remplit une fenêtre de cette proportion (sa largeur sur sa hauteur), posé sur un écran du téléphone, sans bande
  * nulle part : à mesure que la fenêtre s'élargit, il grandit du regard de l'écran jusqu'à la hauteur du grand écran, et son milieu
  * glisse de celui de l'écran vers celui du meuble ; son bas reste celui de l'écran, sous ce qu'on y touche. Au téléphone, il commence
- * au bord de la platine ; une fenêtre plus étroite (un téléphone plus long) garde sa largeur, et descend plus bas sur la table.
+ * sur la table, au-dessus de la platine ; une fenêtre plus étroite (un téléphone plus long) garde sa largeur, et descend plus bas
+ * sur la table.
  */
 export function regardPourLaFenetre(proportion: number, ecran: Regard = SUR_LA_PLATINE): Regard {
   const rogne = surLaPlatine(ecran) ? ROGNE : 0;
@@ -61,8 +62,7 @@ export function regardPourLaFenetre(proportion: number, ecran: Regard = SUR_LA_P
   const milieuDeLEcran = ecran.origine[0] + ecran.largeur / 2;
   const milieu = milieuDeLEcran + t * (MEUBLE.origine[0] + MEUBLE.largeur / 2 - milieuDeLEcran);
   const bas = ecran.origine[1] + ecran.hauteur;
-  // Son haut reste celui de l'écran (au téléphone, le bord de la platine), et le bas descend d'autant : pas de bois au-dessus de la
-  // platine, que Safari prendrait pour la couleur de sa barre. Il ne s'en détache qu'à mesure qu'il s'ouvre sur le meuble entier.
+  // Son haut reste celui de l'écran, et le bas descend d'autant ; il ne s'en détache qu'à mesure qu'il s'ouvre sur le meuble entier.
   const haut = ecran.origine[1] + rogne;
   const tire = bas - hauteur;
   return { origine: [milieu - largeur / 2, tire + (1 - t) * Math.max(0, haut - tire)], largeur, hauteur };
