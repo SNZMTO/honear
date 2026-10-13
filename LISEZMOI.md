@@ -867,8 +867,11 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   en bas) sans rien y poser à toucher, et les petites touches du coin descendent sous l'encoche. Le haut du regard reste le bord de
   la platine (plus de bande de bois que Safari reprenait pour teinter sa barre). Posé sur l'écran d'accueil, la barre d'état est
   transparente (`black-translucent`). Puis la table continue au-dessus de la platine, entière (`TELEPHONE.boisAuDessus` à 0), et sous l'encoche sur l'écran
-  d'accueil (le regard monte d'autant, `dansLaFenetre`). Dans Safari, la barre d'état et le bas sous la barre d'outils ne sont pas
-  à la page : Safari les peint du fond de la page, le noyer de la table (il était sombre : deux bandes noires).
+  d'accueil (le regard monte d'autant, `dansLaFenetre`). Dans Safari, la barre d'état n'est pas à la page : Safari la peint du fond de la
+  page, le noyer de la table. À l'accueil et au compte d'un téléphone, la page a un pied sous le jeu (« Comment on joue ? »,
+  Confidentialité, Mentions légales) : on la fait glisser pour l'atteindre, et Safari en montre le haut sous sa barre d'outils ;
+  là, une touche part au doigt levé (le doigt qui glisse ne touche rien). Ailleurs, la page ne défile pas. Sur un grand écran, les
+  liens flottent en bas à droite.
 - **« Retour » à chaque étape** : avant la room, au coin haut gauche (à la place de « Quitter »), sur la pochette (vers l'accueil, ou
   vers le code tapé), le bac (vers la pochette) et les réglages (vers le bac tel qu'on l'a laissé) : `etapeDAvant`, `toucheRevenir`.
 - **Ce qu'on tape** : revenir dans l'étiquette de la réponse la vide quand elle montre la réponse qu'on vient d'envoyer (un brouillon
