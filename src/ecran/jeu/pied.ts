@@ -62,9 +62,11 @@ export function brancherLePied(page: HTMLElement, actif: () => boolean, sobre: b
     // Un toucher, le pied ouvert : on revient au jeu.
     else if (monte > 0 && ev.type === 'pointerup') poser(0, true);
   };
-  // La fenêtre change (la barre de Safari, le téléphone qu'on tourne) : la page ne monte pas plus haut que son pied.
+  // La fenêtre change (la barre de Safari, le téléphone qu'on tourne) : la page ne monte pas plus haut que son pied, ni du tout
+  // quand il n'y en a plus (un grand écran).
   const suivre = (): void => {
-    if (monte > auPlus()) poser(auPlus(), false);
+    const auPlusHaut = actif() ? auPlus() : 0;
+    if (monte > auPlusHaut) poser(auPlusHaut, false);
   };
 
   page.addEventListener('pointerdown', poserLeDoigt);
