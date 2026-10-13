@@ -50,7 +50,7 @@ import {
 import { echellesDeLAmpli } from '../../scene/telephone/meuble';
 import { decorDeLaSaison, DECOR_QUI_BOUGE, reglerLeDecorDeLaSaison } from '../../scene/saison';
 import { kraftAuRepos } from '../../scene/telephone/kraft';
-import { toucheDeLHote, toucheQuitter } from '../../scene/telephone/quitter';
+import { toucheDeLHote, toucheQuitter, toucheRevenir } from '../../scene/telephone/quitter';
 import { angleDuVolume, boutonDuVolume, cranDuVolume, INDEX_DU_VOLUME, type PlaceDuVolume } from '../../scene/telephone/volume';
 import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
 import { lignesDeLaPiste, pochetteSurLeVerso, pouceAuPlusGrand, pouceDeLaPiste, tableeDeLaPiste } from '../../scene/telephone/piste';
@@ -72,6 +72,7 @@ import {
   CHAMPS_DE_SAISIE,
   clavierOuvert,
   horsLigne,
+  etapeDAvant,
   laReponseEstPartie,
   lienCopie,
   MEMOIRE_VIDE,
@@ -689,8 +690,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
    */
   function touchesDuCoin(r: Regard): Calque[] {
     const room = memoire.room;
-    if (room === undefined) return [];
     const sur = bords().sur * r.largeur;
+    if (room === undefined) return etapeDAvant(memoire) !== undefined ? [toucheRevenir(a, r, sur)] : [];
     const hote = partieA(room.journal, Infinity).hote === room.toi;
     return [toucheQuitter(a, r, sur), ...(hote ? [toucheDeLHote(a, r, memoire.preparation.ecran === 'bac', sur)] : [])];
   }
@@ -1173,7 +1174,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   zoneDuVolume.setAttribute('aria-valuemin', '0');
   zoneDuVolume.setAttribute('aria-valuemax', String(POUR_CENT));
   zones.append(zoneDuVolume);
-  // La touche pour quitter la partie : avec le volume, dans le coin d'en face, sur tous les écrans d'une room.
+  // La touche pour quitter la partie : avec le volume, dans le coin d'en face, sur tous les écrans d'une room ; avant la room, à sa
+  // place, « Retour », qui ramène à l'étape d'avant.
   const zoneQuitter = document.createElement('button');
   zoneQuitter.type = 'button';
   zoneQuitter.className = 'zone';
@@ -1183,6 +1185,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   zones.append(zoneQuitter);
   zoneQuitter.addEventListener('click', () => {
     hautParleur.cliquer('touche');
+    if (memoire.room === undefined) return agir({ genre: 'revenir' });
     if (o.confirmer?.(a.textes.partie.quitterVraiment) === false) return;
     agir({ genre: 'quitter' });
   });
@@ -1228,16 +1231,17 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const enRoom = memoire.room !== undefined;
     const hote = memoire.room !== undefined && partieA(memoire.room.journal, Infinity).hote === memoire.room.toi;
     const bacOuvert = memoire.preparation.ecran === 'bac';
+    const revenir = !enRoom && etapeDAvant(memoire) !== undefined;
     // Sous l'encoche, rien ne se touche : les petites touches du coin descendent d'autant.
     const sur = bords().sur * r.largeur;
-    const cle = JSON.stringify([ou, r, d, enRoom, hote, bacOuvert, sur]);
+    const cle = JSON.stringify([ou, r, d, enRoom, hote, bacOuvert, revenir, sur]);
     zoneDuVolume.setAttribute('aria-valuenow', String(Math.round(volume * POUR_CENT)));
     if (volumeMonte?.cle === cle) {
       volumeMonte.plan.suivreLeCadre();
       tournerLeVolume(volumeMonte.montage);
       return;
     }
-    const quitter = enRoom ? toucheQuitter(a, r, sur) : undefined;
+    const quitter = enRoom ? toucheQuitter(a, r, sur) : revenir ? toucheRevenir(a, r, sur) : undefined;
     const deLHote = enRoom && hote ? toucheDeLHote(a, r, bacOuvert, sur) : undefined;
     // Là où la page ne règle pas le volume (l'iPhone), pas de bouton : ce sont ceux du téléphone.
     const reglable = hautParleur.volumeReglable;
@@ -1246,6 +1250,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     volumeMonte = monterDans(coucheDuVolume, volumeMonte, cle, calque('regard-volume', objets), r, d, new Map());
     tournerLeVolume(volumeMonte.montage);
     poserLaZoneDuCoin(zoneQuitter, quitter, r);
+    zoneQuitter.setAttribute('aria-label', enRoom ? a.textes.partie.quitter : a.textes.partie.retour);
     poserLaZoneDuCoin(zoneDeLHote, deLHote, r);
     zoneDeLHote.setAttribute('aria-label', bacOuvert ? a.textes.partie.retour : a.textes.partie.autrePlaylist);
     const bouton = objets.find((c) => c.nom === 'bouton-volume');
