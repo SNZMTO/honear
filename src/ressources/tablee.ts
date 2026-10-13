@@ -182,6 +182,8 @@ export const TABLEE = {
       },
       /** Le regard sur le bac descend sous le haut de ses intercalaires, de cette marge : on lit tous les thèmes. */
       auDessus: 30,
+      /** Les petites touches du coin (« Retour », « Quitter »), entre la caisse et ses crans : la hauteur de leur milieu. */
+      coin: 414,
       leve: 28,
       source: { en: [195, 424], largeur: 300 },
     },
