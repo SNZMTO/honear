@@ -117,6 +117,8 @@ export interface OptionsDuTelephone {
   readonly depart?: Memoire;
   /** Appelé chaque fois que le téléphone change d'écran : pour la page qui l'entoure. */
   readonly enChangeant?: (ecran: EcranDuTelephone['genre']) => void;
+  /** Vrai quand la page peut défiler (son pied, sous le jeu, s'y montre) : on ne la remet pas en place quand on la fait glisser. */
+  readonly defile?: () => boolean;
   /** Appelé chaque fois que ce qu'il y a à garder change. */
   readonly retenir?: (aGarder: AGarder) => void;
   /** Le vibreur du téléphone, s'il en a un. */
@@ -921,7 +923,10 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     noter?.(`défilement ${window.scrollX},${window.scrollY} : remis en place`);
     window.scrollTo(0, 0);
   }
-  window.addEventListener('scroll', remettreEnPlace);
+  const quandLaPageDefile = (): void => {
+    if (o.defile?.() !== true) remettreEnPlace();
+  };
+  window.addEventListener('scroll', quandLaPageDefile);
   const noterLaFenetre = (): void =>
     noter?.(
       `fenêtre ${window.innerWidth}×${window.innerHeight}, cadre ${cadre.clientWidth}×${cadre.clientHeight}, ` +
@@ -1456,8 +1461,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   const auToucher = (ev: PointerEvent): void => {
     if (!ev.isPrimary || ev.button !== 0 || surLeVolume(ev.target)) return;
     const z = zoneDe(ev.target);
-    // Le partage du lien attend le clic : le navigateur ne le permet qu'au geste fini.
-    if (z?.toucher.genre === 'partagerLeLien') {
+    // Le partage du lien attend le clic : le navigateur ne le permet qu'au geste fini. Sur une page qui défile aussi : le doigt qui
+    // la fait glisser vers son pied ne touche rien en passant.
+    if (z?.toucher.genre === 'partagerLeLien' || o.defile?.() === true) {
       avaler = false;
       return;
     }
@@ -1501,7 +1507,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       for (const geste of GESTES) window.removeEventListener(geste, debloquer, true);
       window.removeEventListener('pointerdown', poser, true);
       for (const fin of FINS_DU_DOIGT) window.removeEventListener(fin, lever, true);
-      window.removeEventListener('scroll', remettreEnPlace);
+      window.removeEventListener('scroll', quandLaPageDefile);
       window.removeEventListener('keydown', taperSansViser, true);
       document.removeEventListener('selectionchange', auBout);
       window.removeEventListener('resize', noterLaFenetre);
