@@ -462,3 +462,16 @@ test('avant la room, « Retour » ramène à l’étape d’avant : de la pochet
   r = toucher(r, { genre: 'entrer' }, 0, p).memoire;
   assert.deepEqual(toucher(r, { genre: 'revenir' }, 1, p).memoire.preparation, { ecran: 'saisie', tape: 'AENV' });
 });
+
+test('dans le bac, un intercalaire se touche à son onglet, pas à son carton que ceux de devant cachent', () => {
+  const p: Preparatifs = { ...preparatifs('libre'), chercher: true };
+  const m = toucher(saisir(toucher(MEMOIRE_VIDE, { genre: 'poser' }, 0, p).memoire, 'Tonton Mateo'), { genre: 'cEstMoi' }, 0, p).memoire;
+  const e = ecranDuTelephone(m, 0, p, TEXTES);
+  assert.equal(e.genre, 'bac');
+  assert.equal(choseATouche('intercalaire-rock', e, TEXTES), undefined);
+  assert.deepEqual(choseATouche('intercalaire-rock/onglet', e, TEXTES)?.toucher, {
+    genre: 'theme',
+    cle: 'rock',
+    recherche: TEXTES.bac.themes['rock'],
+  });
+});
