@@ -194,7 +194,9 @@ function dessinerUneRangee(rangee: Rangee, rang: number, rangDIntercalaire: numb
   });
   // Penché, son étiquette n'est plus là où on la colle debout : on ne la lit pas.
   const lisible = Math.abs((rangee.penche ?? R.penche) - R.penche) < BASCULE_LISIBLE;
-  return calque(`intercalaire-${rangee.cle}`, [peinture(peindre(carton)), ...(lisible ? etiquetteDOnglet(rangee.titre, place, y, mesurer) : [])], {
+  // Son onglet est un calque à lui : c'est lui qu'on touche, pas le carton entier, que les intercalaires de devant cachent en partie.
+  const onglet = lisible ? [calque(`intercalaire-${rangee.cle}/onglet`, etiquetteDOnglet(rangee.titre, place, y, mesurer))] : [];
+  return calque(`intercalaire-${rangee.cle}`, [peinture(peindre(carton)), ...onglet], {
     role: 'image',
     // Celui du thème choisi sort du bac d'un bloc, son onglet avec lui.
     ...(rangee.leve !== undefined ? { transformations: [{ genre: 'glisser', de: [0, -rangee.leve] }] } : {}),

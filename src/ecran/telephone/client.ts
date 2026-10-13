@@ -14,6 +14,7 @@ import type { Action, Brancher, CeQueLeTelephoneCompte, Connexion, PlaylistTrouv
 import { partieA } from '../../regles/partie';
 import { avancementDeLExtrait, type Reponse } from '../../regles/piste';
 import { TELEPHONE } from '../../ressources/ecran';
+import { TABLEE } from '../../ressources/tablee';
 import { AMPLEURS, TOUCHES } from '../../ressources/mouvement';
 import type { Pochette } from '../../ressources/pochettes';
 import { MOT_DE_PASSE, PARTIE } from '../../ressources/reglages';
@@ -23,6 +24,7 @@ import { calque, soulever, type Calque } from '../../scene/calque';
 import { dessinerLeMeuble, type Regard } from '../../scene/meuble';
 import { opacite, regler, rotation, type Reglage } from '../../scene/reglage';
 import { empriseDe } from '../../scene/rendu/emprise';
+import { affineDeToutes, composer, SANS_EFFET, type Affine } from '../../scene/rendu/transformation';
 import {
   vueDeLAccueil,
   vueDeLaFinale,
@@ -250,6 +252,9 @@ const CLAVIERS: Readonly<Record<SorteDeChamp, { readonly touche: string; readonl
   motDePasse: { touche: 'go', majuscules: 'none', sorteDeClavier: 'text' },
 };
 
+/** Combien de défilements de la page le diagnostic note, au plus. */
+const DEFILEMENTS_NOTES = 30;
+
 /** Les millisecondes d'une seconde : les animations de la page comptent en millisecondes, nos tables en secondes. */
 const MS_PAR_SECONDE = 1000;
 
@@ -303,22 +308,26 @@ function indexDesBoutons(arbre: Calque): { readonly nom: NomDeCalque; readonly a
 /** Une part d'une longueur, en pourcentage, pour poser une zone dans le cadre quelle que soit sa taille. */
 const part = (longueur: number, totale: number): string => `${(longueur / totale) * 100}%`;
 
-/** Les calques d'un arbre qu'on peut toucher sur cet écran, où qu'ils soient : une touche posée sur le bois, un bouton de la platine. */
+/**
+ * Les calques d'un arbre qu'on peut toucher sur cet écran, où qu'ils soient : une touche posée sur le bois, un bouton de la platine,
+ * l'onglet d'un intercalaire ; avec ce que leurs parents leur font (l'intercalaire choisi sort du bac, son onglet avec lui).
+ */
 function calquesATouche(
   objets: readonly Calque[],
   e: EcranDuTelephone,
   a: Ecritoire,
-): { readonly calque: Calque; readonly chose: NonNullable<ReturnType<typeof choseATouche>> }[] {
-  const trouves: { readonly calque: Calque; readonly chose: NonNullable<ReturnType<typeof choseATouche>> }[] = [];
-  const parcourir = (c: Calque): void => {
+): { readonly calque: Calque; readonly sous: Affine; readonly chose: NonNullable<ReturnType<typeof choseATouche>> }[] {
+  const trouves: { readonly calque: Calque; readonly sous: Affine; readonly chose: NonNullable<ReturnType<typeof choseATouche>> }[] = [];
+  const parcourir = (c: Calque, sous: Affine): void => {
     const chose = choseATouche(c.nom, e, a.textes);
     if (chose !== undefined) {
-      trouves.push({ calque: c, chose });
+      trouves.push({ calque: c, sous, chose });
       return;
     }
-    for (const d of c.contenu) if (d.genre === 'calque') parcourir(d);
+    const dedans = composer(sous, affineDeToutes(c.transformations ?? []));
+    for (const d of c.contenu) if (d.genre === 'calque') parcourir(d, dedans);
   };
-  for (const objet of objets) parcourir(objet);
+  for (const objet of objets) parcourir(objet, SANS_EFFET);
   return trouves;
 }
 
@@ -700,10 +709,16 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   function touchesDuCoin(r: Regard): Calque[] {
     const room = memoire.room;
     const sur = bords().sur * r.largeur;
-    if (room === undefined) return etapeDAvant(memoire) !== undefined ? [toucheRevenir(a, r, sur)] : [];
+    const y = hauteurDuCoin();
+    if (room === undefined) return etapeDAvant(memoire) !== undefined ? [toucheRevenir(a, r, sur, y)] : [];
     const hote = partieA(room.journal, Infinity).hote === room.toi;
-    return [toucheQuitter(a, r, sur), ...(hote ? [toucheDeLHote(a, r, memoire.preparation.ecran === 'bac', sur)] : [])];
+    return [toucheQuitter(a, r, sur, y), ...(hote ? [toucheDeLHote(a, r, memoire.preparation.ecran === 'bac', sur, y)] : [])];
   }
+  /** Le regard de l'écran montré (avant qu'il remplisse la fenêtre) : le bac y place ses touches du coin. */
+  let regardDeLEcran: Regard | undefined;
+  /** Dans le bac, la caisse prend le coin : ses touches du coin descendent entre elle et ses crans (une hauteur de la scène). */
+  const hauteurDuCoin = (): number | undefined =>
+    memoire.preparation.ecran === 'bac' && regardDeLEcran !== undefined ? regardDeLEcran.origine[1] + TABLEE.telephone.bac.coin : undefined;
 
   /** Ce qui bouge du décor de saison bouge, à chaque image (rien en version sobre). */
   function animerLeDecor(): void {
@@ -778,8 +793,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     for (const zone of Array.from(zones.querySelectorAll('[data-zone]'))) retirer(zone);
     choses = [];
     let champPose = false;
-    for (const { calque: c, chose } of calquesATouche(objets, e, a)) {
-      const emprise = empriseDe([c], a.encrier.largeur);
+    for (const { calque: c, sous, chose } of calquesATouche(objets, e, a)) {
+      const emprise = empriseDe([c], a.encrier.largeur, sous);
       if (emprise === undefined) continue;
       const cote = TELEPHONE.zoneAuMoins;
       const [l, h] = [Math.max(cote, emprise.largeur), Math.max(cote, emprise.hauteur)];
@@ -923,7 +938,13 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     noter?.(`défilement ${window.scrollX},${window.scrollY} : remis en place`);
     window.scrollTo(0, 0);
   }
+  /** Combien de défilements le diagnostic a notés : les premiers suffisent. */
+  let defilementsNotes = 0;
   const quandLaPageDefile = (): void => {
+    if (defilementsNotes < DEFILEMENTS_NOTES) {
+      defilementsNotes++;
+      noter?.(`la page défile : ${window.scrollY}`);
+    }
     if (o.defile?.() !== true) remettreEnPlace();
   };
   window.addEventListener('scroll', quandLaPageDefile);
@@ -932,7 +953,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       `fenêtre ${window.innerWidth}×${window.innerHeight}, cadre ${cadre.clientWidth}×${cadre.clientHeight}, ` +
         `vue ${Math.round(vu?.width ?? 0)}×${Math.round(vu?.height ?? 0)} +${Math.round(vu?.offsetTop ?? 0)}, défilement ${window.scrollY}, ` +
         `bords ${Math.round(bords().sur * cadre.clientWidth)} en haut, ${Math.round(bords().sous * cadre.clientWidth)} en bas, ` +
-        `seul sur l'écran ${String(window.matchMedia('(display-mode: standalone)').matches)}`,
+        `seul sur l'écran ${String(window.matchMedia('(display-mode: standalone)').matches)}, ` +
+        `page ${document.documentElement.scrollHeight} de haut, classes « ${document.body.className} », défile ${String(o.defile?.() === true)}`,
     );
   window.addEventListener('resize', noterLaFenetre);
   noterLaFenetre();
@@ -1049,6 +1071,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       return;
     }
     const vue = vueDe(e, a);
+    regardDeLEcran = vue.regard;
     // Dans la fenêtre, l'écran garde sa place sur le meuble ; le reste du meuble, au repos, s'y voit ; sur un grand écran, ce qu'on
     // touche se range sous le vinyle.
     const regard = dansLaFenetre(vue.regard, p);
@@ -1219,7 +1242,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     if (e === undefined) return;
     const h = Math.max(TELEPHONE.zoneAuMoins, e.hauteur);
     const y = e.y + e.hauteur / 2 - h / 2 - r.origine[1];
-    zone.style.cssText = `position:absolute;left:${part(e.x - r.origine[0], r.largeur)};top:${part(y, r.hauteur)};width:${part(e.largeur, r.largeur)};height:${part(h, r.hauteur)};`;
+    // Par-dessus les zones de l'écran : ce qui serait dessous (un intercalaire du bac) ne lui prend pas le doigt.
+    zone.style.cssText = `position:absolute;z-index:1;left:${part(e.x - r.origine[0], r.largeur)};top:${part(y, r.hauteur)};width:${part(e.largeur, r.largeur)};height:${part(h, r.hauteur)};`;
   }
   function poserLeVolume(): void {
     const r = regardMonte;
@@ -1244,17 +1268,18 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const hote = memoire.room !== undefined && partieA(memoire.room.journal, Infinity).hote === memoire.room.toi;
     const bacOuvert = memoire.preparation.ecran === 'bac';
     const revenir = !enRoom && etapeDAvant(memoire) !== undefined;
-    // Sous l'encoche, rien ne se touche : les petites touches du coin descendent d'autant.
+    // Sous l'encoche, rien ne se touche : les petites touches du coin descendent d'autant ; dans le bac, sous la caisse.
     const sur = bords().sur * r.largeur;
-    const cle = JSON.stringify([ou, r, d, enRoom, hote, bacOuvert, revenir, sur]);
+    const auCoin = hauteurDuCoin();
+    const cle = JSON.stringify([ou, r, d, enRoom, hote, bacOuvert, revenir, sur, auCoin]);
     zoneDuVolume.setAttribute('aria-valuenow', String(Math.round(volume * POUR_CENT)));
     if (volumeMonte?.cle === cle) {
       volumeMonte.plan.suivreLeCadre();
       tournerLeVolume(volumeMonte.montage);
       return;
     }
-    const quitter = enRoom ? toucheQuitter(a, r, sur) : revenir ? toucheRevenir(a, r, sur) : undefined;
-    const deLHote = enRoom && hote ? toucheDeLHote(a, r, bacOuvert, sur) : undefined;
+    const quitter = enRoom ? toucheQuitter(a, r, sur, auCoin) : revenir ? toucheRevenir(a, r, sur, auCoin) : undefined;
+    const deLHote = enRoom && hote ? toucheDeLHote(a, r, bacOuvert, sur, auCoin) : undefined;
     // Là où la page ne règle pas le volume (l'iPhone), pas de bouton : ce sont ceux du téléphone.
     const reglable = hautParleur.volumeReglable;
     zoneDuVolume.hidden = !reglable;
@@ -1412,6 +1437,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     if (e.genre !== genre) {
       genre = e.genre;
       o.enChangeant?.(genre);
+      noterLaFenetre();
     }
     // L'heure fait tout changer : le décompte, l'extrait, la révélation, le clavier qui tape. Le téléphone ne s'endort pas.
     return true;
@@ -1461,9 +1487,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   const auToucher = (ev: PointerEvent): void => {
     if (!ev.isPrimary || ev.button !== 0 || surLeVolume(ev.target)) return;
     const z = zoneDe(ev.target);
-    // Le partage du lien attend le clic : le navigateur ne le permet qu'au geste fini. Sur une page qui défile aussi : le doigt qui
-    // la fait glisser vers son pied ne touche rien en passant.
-    if (z?.toucher.genre === 'partagerLeLien' || o.defile?.() === true) {
+    // Le partage du lien attend le clic : le navigateur ne le permet qu'au geste fini.
+    if (z?.toucher.genre === 'partagerLeLien') {
       avaler = false;
       return;
     }

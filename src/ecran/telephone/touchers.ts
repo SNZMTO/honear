@@ -73,7 +73,8 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
   // Dans le bac, quand le serveur a où chercher : un thème se touche, la recherche et le lien se tapent, un résultat se prend.
   if (ecran.genre === 'bac' && ecran.chercher) {
     const { cran } = ecran.bac;
-    const cle = nom.startsWith('intercalaire-') ? nom.slice('intercalaire-'.length) : undefined;
+    // Un intercalaire se touche à son onglet : son carton, que ceux de devant cachent, prenait le doigt destiné à un autre.
+    const cle = /^intercalaire-(.+)\/onglet$/.exec(nom)?.[1];
     const theme = cle !== undefined ? textes.bac.themes[cle] : undefined;
     // La pochette personnalisée ouvre « Mes playlists » : celles qu'on a importées, et le lien à coller.
     if (cle === 'mesPlaylists' && theme !== undefined) return de({ genre: 'cranDuBac', cran: 'laMienne' }, theme);
