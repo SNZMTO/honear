@@ -321,8 +321,14 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     fenetre: fenetre.proportion,
     bords: fenetre.bords,
     diagnostic,
-    // Les liens des pages légales, en bas : à l'accueil et au compte, là où rien d'autre ne se touche en bas de l'écran.
-    enChangeant: (genre) => document.body.classList.toggle('pied', genre === 'accueil' || genre === 'compte'),
+    // Le pied de la page, sous le jeu (le tutoriel, les pages légales) : à l'accueil et au compte. Ailleurs, la page ne défile pas,
+    // et l'on revient en haut si on l'avait fait glisser.
+    enChangeant: (genre) => {
+      const pied = genre === 'accueil' || genre === 'compte';
+      document.body.classList.toggle('pied', pied);
+      if (!pied && (window.scrollX !== 0 || window.scrollY !== 0)) window.scrollTo(0, 0);
+    },
+    defile: () => document.body.classList.contains('pied') && !document.body.classList.contains('grand'),
   });
   // Ce que seule la page voit, pour les statistiques : d'où l'on arrive, et si le jeu est lancé depuis l'écran d'accueil.
   if (code !== undefined && reprise === undefined) telephone.signaler(parLeQr ? 'arriveeParQr' : 'arriveeParLien');

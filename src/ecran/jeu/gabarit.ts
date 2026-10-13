@@ -17,15 +17,15 @@ const INTERLIGNE = 1.45;
 
 /**
  * La feuille de la page : le cadre du téléphone, ses zones à toucher (rien de dessiné), le champ où tape le clavier (rien de visible).
- * Le fond de la page est le noyer de la table : dans Safari, la bande de la barre d'état et celle sous la barre d'outils ne sont pas
- * à la page, et Safari les peint de ce fond ; la table, qui borde le jeu en haut et en bas, y continue.
+ * Le fond de la page est le noyer de la table : dans Safari, la bande de la barre d'état n'est pas à la page, et Safari la peint de
+ * ce fond. À l'accueil et au compte d'un téléphone, la page a un pied, sous le jeu : on la fait glisser pour y trouver le tutoriel
+ * et les pages légales ; Safari montre déjà son haut sous sa barre d'outils. Sur un grand écran, ces liens flottent en bas à droite.
  */
 const STYLE = `
 :root{color-scheme:dark;--fond:${couleur('vinyle', 1)};--encre:${couleur('creme')};--doux:${couleur('creme', 1)};--miel:${couleur('miel')};--expresso:${couleur('expresso')};--laque:${couleur('laque')};--table:${couleur('noyer')}}
 *{box-sizing:border-box}
 html,body{height:100%;overscroll-behavior:none}
-body{margin:0;background:var(--table);color:var(--encre);font:16px/${INTERLIGNE} system-ui,sans-serif;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
-body.grand{align-items:center}
+body{margin:0;background:var(--table);color:var(--encre);font:16px/${INTERLIGNE} system-ui,sans-serif;overflow:hidden}
 .telephone{position:fixed;left:0;top:0;width:100vw;height:100vh;height:100lvh;overflow:hidden;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .bords{position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
 .telephone .attente,.telephone .manque{margin:0;padding:24px 18px;color:var(--doux);max-width:32ch}
@@ -36,7 +36,12 @@ body.grand{align-items:center}
 .legal{position:fixed;right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));display:none;align-items:center;gap:8px;padding:3px 8px;background:var(--miel);border:2px solid var(--laque);border-radius:9px;font:600 10px/1 system-ui,sans-serif;z-index:1}
 .legal a,.legal button{color:var(--expresso);text-decoration:none;padding:5px 1px;background:none;border:0;font:inherit;cursor:pointer}
 .legal a:hover,.legal button:hover{text-decoration:underline}
-body.pied .legal,body.grand .legal{display:flex}
+body.grand .legal{display:flex}
+.espace{display:none}
+body.pied:not(.grand){overflow:visible}
+body.pied:not(.grand) .espace{display:block;height:100vh;height:100svh}
+body.pied:not(.grand) .legal{display:flex;position:relative;right:auto;bottom:auto;flex-wrap:wrap;justify-content:center;gap:10px;padding:16px 16px calc(24px + env(safe-area-inset-bottom));background:var(--table);border:0;border-top:2px solid var(--laque);border-radius:0;font-size:12px}
+body.pied:not(.grand) .legal a,body.pied:not(.grand) .legal button{padding:9px 12px;background:var(--miel);border:2px solid var(--laque);border-radius:9px}
 .tuto{position:fixed;inset:0;display:grid;place-items:center;padding:16px;z-index:2}
 .tuto[hidden]{display:none}
 .tuto::before{content:"";position:absolute;inset:0;background:var(--fond);opacity:${TELEPHONE.tuto.voile}}
@@ -79,6 +84,7 @@ export function pageDuJeu(textes: Textes, script: string, version = ''): string 
 <body>
 <div class="bords" aria-hidden="true"></div>
 <main class="telephone" data-telephone role="application" aria-label="${enXml(textes.logo.nom)}"><p class="attente">${enXml(N.enAttendant)}</p></main>
+<div class="espace" aria-hidden="true"></div>
 <nav class="legal"><button type="button" data-tuto>${enXml(textes.tuto.lien)}</button><a href="${PAGES_LEGALES.confidentialite}">${enXml(textes.legal.liens.confidentialite)}</a><a href="${PAGES_LEGALES.mentions}">${enXml(textes.legal.liens.mentions)}</a></nav>
 <div class="tuto" role="dialog" aria-modal="true" aria-labelledby="tuto-titre" hidden><div class="carte"><div class="points"></div><h2 id="tuto-titre"></h2><p></p><div class="touches"><button type="button" class="passer"></button><span><button type="button" class="precedent"></button> <button type="button" class="suivant"></button></span></div></div></div>
 <noscript><p class="manque">${enXml(N.sansScript.titre)} ${enXml(N.sansScript.conseil)}</p></noscript>
