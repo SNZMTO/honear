@@ -103,9 +103,6 @@ function unSilence(): Blob {
 const estUnAppareilApple = (): boolean =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-/** Une vitesse qui change de moins que ça ne vaut pas qu'on la réécrive. */
-const PAS_DE_VITESSE = 0.002;
-
 /** Un volume d'essai, et l'écart qu'on tolère en le relisant : l'iPhone ne laisse pas régler le volume d'un élément audio. */
 const VOLUME_D_ESSAI = 0.5;
 const A_PEU_PRES = 0.01;
@@ -128,11 +125,12 @@ const EVENEMENTS_NOTES = ['loadedmetadata', 'canplay', 'playing', 'pause', 'wait
 
 /**
  * Le haut-parleur du téléphone : un seul élément audio, posé dans le cadre, qui joue tous les extraits.
- * @param volume le volume de ce téléphone, de 0 à 1, lu à chaque image ; là où l'élément ne se règle pas (l'iPhone), il joue au
- * volume du téléphone.
+ * @param volume le volume du bouton, de 0 à 1, lu à chaque image ; rien quand il n'y a pas de bouton (un téléphone, où ce sont
+ * ses boutons à lui qui règlent le son) : l'extrait joue alors en plein, et les petits bruits, doucement. Là où l'élément ne se
+ * règle pas (l'iPhone), l'extrait joue au volume du téléphone.
  * @param noter le diagnostic, quand la page l'a demandé : chaque essai de jouer, ce qu'il a donné, ce que l'élément dit de lui.
  */
-export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number, noter?: (texte: string) => void): HautParleur {
+export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number | undefined, noter?: (texte: string) => void): HautParleur {
   const audio = document.createElement('audio');
   audio.preload = 'auto';
   audio.hidden = true;
@@ -237,15 +235,8 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number, 
     audio.muted = false;
     audio.src = voulu.adresse;
     audio.load();
-    regler(1);
     amorcer();
   }
-
-  /** La vitesse de l'extrait (1 : la sienne), pour rejoindre les autres téléphones ; on ne la touche que si elle change. */
-  const regler = (vitesse: number): void => {
-    if (Math.abs(audio.playbackRate - vitesse) < PAS_DE_VITESSE) return;
-    audio.playbackRate = vitesse;
-  };
 
   /** On ne coupe pas un `play()` qui attend sa réponse, ni l'amorce : le navigateur prendrait l'un ou l'autre pour un échec. */
   const taire = (): void => {
@@ -288,30 +279,22 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number, 
       // C'est l'heure : s'il chargeait en sourdine, il s'entend désormais.
       amorce = false;
       audio.muted = false;
-      if (volumeReglable) audio.volume = gainDuVolume(volume()) * volumeA(voulu, heure);
+      if (volumeReglable) audio.volume = gainDuVolume(volume() ?? 1) * volumeA(voulu, heure);
       if (audio.paused) {
         if (demande || bloque || rate) return;
-        regler(1);
         audio.currentTime = position;
         sauteA = heure;
         jouerMaintenant();
         return;
       }
-      // Juste après un départ ou un saut, sa position ne suit pas encore : on ne la lit pas.
-      const S = TELEPHONE.son;
-      if (audio.seeking || (sauteA !== undefined && heure - sauteA < S.tenue)) return;
+      // Il a dérivé : on le remet à sa place, mais pas coup sur coup, le temps qu'il reparte et que sa position suive. Jamais en
+      // changeant sa vitesse : l'iPhone saccade à chaque vitesse qu'on lui donne.
       const ecart = audio.currentTime - position;
-      // Loin de là où il devrait en être : on l'y remet, mais pas coup sur coup, le temps qu'il reparte et que sa position suive.
-      if (Math.abs(ecart) > S.ecartAdmis) {
-        if (sauteA !== undefined && heure - sauteA < S.entreDeuxSauts) return;
-        noter?.(`remis à sa place : écart ${ecart.toFixed(2)} s`);
-        sauteA = heure;
-        regler(1);
-        audio.currentTime = position;
-        return;
-      }
-      // Un rien en avance ou en retard sur les autres téléphones : il ralentit ou presse un peu le pas, sans saut, jusqu'à les rejoindre.
-      regler(Math.abs(ecart) <= S.accord ? 1 : 1 - Math.max(-S.vitesse, Math.min(S.vitesse, ecart / S.rattrapage)));
+      if (audio.seeking || Math.abs(ecart) <= TELEPHONE.son.ecartAdmis) return;
+      if (sauteA !== undefined && heure - sauteA < TELEPHONE.son.entreDeuxSauts) return;
+      noter?.(`remis à sa place : écart ${ecart.toFixed(2)} s`);
+      sauteA = heure;
+      audio.currentTime = position;
     },
     pret(a) {
       return bloque || (adresse === a && (rate || audio.readyState >= audio.HAVE_FUTURE_DATA));
@@ -325,7 +308,7 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number, 
       note.type = 'triangle';
       note.frequency.setValueAtTime(b.de, t);
       note.frequency.exponentialRampToValueAtTime(b.a, t + b.duree);
-      enveloppe.gain.setValueAtTime(b.fort * gainDuVolume(Math.max(volume(), TELEPHONE.volume.bruitsAuMoins)), t);
+      enveloppe.gain.setValueAtTime(b.fort * gainDuVolume(Math.max(volume() ?? TELEPHONE.volume.bruitsAuMoins, TELEPHONE.volume.bruitsAuMoins)), t);
       enveloppe.gain.exponentialRampToValueAtTime(BRUITS.silence, t + b.duree);
       note.connect(enveloppe).connect(moteur.destination);
       note.start(t);

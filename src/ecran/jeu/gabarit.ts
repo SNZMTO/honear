@@ -20,9 +20,10 @@ const INTERLIGNE_DES_TITRES = 1.15;
 /**
  * La feuille de la page : le cadre du téléphone, ses zones à toucher (rien de dessiné), le champ où tape le clavier (rien de visible).
  * Le fond de la page est le noyer de la table : dans Safari, la bande de la barre d'état n'est pas à la page, et Safari la peint de
- * ce fond. Le cadre du jeu est dans la page, aussi haut que l'écran sans les barres de Safari (le haut de ce qu'il dessine passe
- * sous sa barre d'outils). À l'accueil et au compte d'un téléphone, la page a un pied, sous le jeu : on la fait glisser pour y
- * trouver le tutoriel et les pages légales. Sur un grand écran, ces liens flottent en bas à droite.
+ * ce fond. Le cadre du jeu est dans la page, aussi haut que l'écran sans les barres de Safari (le bas de ce qu'il dessine passe
+ * sous sa barre d'outils). À l'accueil et au compte d'un téléphone, la page a un pied, sous le jeu : on la fait glisser au doigt
+ * pour y trouver le tutoriel et les pages légales (voir `pied.ts` ; la page, elle, ne défile jamais). Sur un grand écran, ces liens
+ * flottent en bas à droite.
  */
 const STYLE = `
 :root{color-scheme:dark;--titrage:'${CARACTERES.titrage.famille}',Georgia,serif;--technique:'${CARACTERES.technique.famille}',system-ui,sans-serif;--fond:${couleur('vinyle', 1)};--encre:${couleur('creme')};--doux:${couleur('creme', 1)};--miel:${couleur('miel')};--expresso:${couleur('expresso')};--laque:${couleur('laque')};--table:${couleur('noyer')}}
@@ -40,7 +41,7 @@ body{margin:0;background:var(--table);color:var(--encre);font:16px/${INTERLIGNE}
 .legal a,.legal button{color:var(--expresso);text-decoration:none;padding:5px 1px;background:none;border:0;font:inherit;cursor:pointer}
 .legal a:hover,.legal button:hover{text-decoration:underline}
 body.grand .legal{display:flex}
-body.pied:not(.grand){overflow:visible}
+body.pied:not(.grand) .page{touch-action:none}
 body.pied:not(.grand) .legal{display:flex;position:relative;right:auto;bottom:auto;flex-wrap:wrap;justify-content:center;gap:10px;padding:16px 16px calc(24px + env(safe-area-inset-bottom));background:var(--table);border:0;border-top:2px solid var(--laque);border-radius:0;font-size:13px}
 body.pied:not(.grand) .legal a,body.pied:not(.grand) .legal button{padding:9px 12px;background:var(--miel);border:2px solid var(--laque);border-radius:9px}
 .tuto{position:fixed;inset:0;display:grid;place-items:center;padding:16px;z-index:2}
@@ -84,8 +85,10 @@ export function pageDuJeu(textes: Textes, script: string, version = ''): string 
 </head>
 <body>
 <div class="bords" aria-hidden="true"></div>
+<div class="page" data-page>
 <main class="telephone" data-telephone role="application" aria-label="${enXml(textes.logo.nom)}"><p class="attente">${enXml(N.enAttendant)}</p></main>
 <nav class="legal"><button type="button" data-tuto>${enXml(textes.tuto.lien)}</button><a href="${PAGES_LEGALES.confidentialite}">${enXml(textes.legal.liens.confidentialite)}</a><a href="${PAGES_LEGALES.mentions}">${enXml(textes.legal.liens.mentions)}</a></nav>
+</div>
 <div class="tuto" role="dialog" aria-modal="true" aria-labelledby="tuto-titre" hidden><div class="carte"><div class="points"></div><h2 id="tuto-titre"></h2><p></p><div class="touches"><button type="button" class="passer"></button><span><button type="button" class="precedent"></button> <button type="button" class="suivant"></button></span></div></div></div>
 <noscript><p class="manque">${enXml(N.sansScript.titre)} ${enXml(N.sansScript.conseil)}</p></noscript>
 <script>${script}</script>

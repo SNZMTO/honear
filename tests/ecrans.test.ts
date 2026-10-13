@@ -12,7 +12,11 @@ import { TEXTES } from '../src/ressources/textes.fr';
 import type { Calque, Texte } from '../src/scene/calque';
 import { regardSurLaPlatine } from '../src/scene/meuble';
 import { controler, LIMITES } from '../src/scene/rendu/controle';
-import { empriseDe } from '../src/scene/rendu/emprise';
+import { empriseDe, type Emprise } from '../src/scene/rendu/emprise';
+import { vueDeLaFinale, vueDuBac, vueDuHitParade, vueDuSalon } from '../src/scene/telephone/ecrans';
+import { vueDeLaPochette } from '../src/scene/telephone/pochette';
+import { toucheAutrePlaylist, toucheQuitter } from '../src/scene/telephone/quitter';
+import { pochetteDExemple } from '../src/planche/exemples';
 import { dessinerLaTablee, placesEnEventail } from '../src/scene/tablee';
 import { dessins, ENCRIER } from './planche';
 
@@ -138,6 +142,49 @@ test('les champs où l’on tape sont assez larges pour qu’on voie où taper, 
       assert.ok(g !== undefined && d !== undefined && g.x + g.largeur < d.x, `${fichier} : les crans ${i} et ${i + 1} se chevauchent`);
     }
   }
+});
+
+/** Vrai si deux emprises se chevauchent, de plus d'un px : deux touches posées l'une contre l'autre ne se chevauchent pas. */
+const seChevauchent = (a: Emprise, b: Emprise): boolean =>
+  a.x < b.x + b.largeur - 1 && b.x < a.x + a.largeur - 1 && a.y < b.y + b.hauteur - 1 && b.y < a.y + a.hauteur - 1;
+
+test('aucune touche ne chevauche une autre, sur aucun écran du téléphone ; ni celles du coin d’une room (« Quitter », « Autre playlist »)', () => {
+  const A = { textes: TEXTES, encrier: ENCRIER };
+  const touches = (objets: readonly Calque[]): { readonly nom: string; readonly e: Emprise }[] =>
+    objets.flatMap((o) => {
+      const e = o.nom.startsWith('touche-') ? empriseDe([o], ENCRIER.largeur) : undefined;
+      return e !== undefined ? [{ nom: o.nom, e }] : [];
+    });
+  const verifier = (ou: string, objets: readonly Calque[]): void => {
+    const t = touches(objets);
+    for (const [i, a] of t.entries())
+      for (const b of t.slice(i + 1)) assert.ok(!seChevauchent(a.e, b.e), `${ou} : « ${a.nom} » chevauche « ${b.nom} »`);
+  };
+  for (const { fichier } of AU_TELEPHONE)
+    verifier(
+      fichier,
+      image(fichier).scene.contenu.flatMap((d) => (d.genre === 'calque' ? [d] : [])),
+    );
+  // Sa pochette qu'on refait : « Au hasard », « C'est moi », « Laisser », l'une sous l'autre, toutes dans le cadre.
+  const refaite = vueDeLaPochette(A, pochetteDExemple(TEXTES), 'dessus', true);
+  verifier('pochette refaite', refaite.objets);
+  for (const { nom, e } of touches(refaite.objets))
+    assert.ok(e.x >= refaite.regard.origine[0] && e.x + e.largeur <= refaite.regard.origine[0] + refaite.regard.largeur, `${nom} sort du cadre`);
+  // Le bac de l'hôte, dans la room : son « Retour » le referme.
+  const bac = vueDuBac(A, { cran: 'pretes', retour: 'fermer' });
+  verifier('bac de la room', bac.objets);
+  assert.ok(bac.objets.some((o) => o.nom === 'touche-fermer-bac'));
+  // Les écrans d'une room, avec les touches du coin de l'hôte.
+  const etat = partieA(journalDExemple(TEXTES), Infinity);
+  const r = regardSurLaPlatine();
+  const coin = [toucheQuitter(A, r), toucheAutrePlaylist(A, r)];
+  for (const [ou, vue] of [
+    ['salon', vueDuSalon(A, etat, 'AENV', 'hote', true)],
+    ['salon de l’invité', vueDuSalon(A, etat, 'AENV', 'invite', true)],
+    ['hit-parade', vueDuHitParade(A, etat, etat, true, true)],
+    ['finale', vueDeLaFinale(A, etat, [], true, true)],
+  ] as const)
+    verifier(ou, [...vue.objets, ...coin]);
 });
 
 test('en 4 choix, quatre étiquettes à toucher ; à la révélation, seule la bonne reste', () => {

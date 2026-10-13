@@ -13,7 +13,6 @@ import type { Action, Brancher, CeQueLeTelephoneCompte, Connexion, PlaylistTrouv
 import { partieA } from '../../regles/partie';
 import { avancementDeLExtrait, type Reponse } from '../../regles/piste';
 import { TELEPHONE } from '../../ressources/ecran';
-import { TABLEE } from '../../ressources/tablee';
 import { AMPLEURS, TOUCHES } from '../../ressources/mouvement';
 import type { Pochette } from '../../ressources/pochettes';
 import { MOT_DE_PASSE, PARTIE } from '../../ressources/reglages';
@@ -52,7 +51,7 @@ import {
 import { echellesDeLAmpli } from '../../scene/telephone/meuble';
 import { decorDeLaSaison, DECOR_QUI_BOUGE, reglerLeDecorDeLaSaison } from '../../scene/saison';
 import { kraftAuRepos } from '../../scene/telephone/kraft';
-import { toucheDeLHote, toucheQuitter, toucheRevenir } from '../../scene/telephone/quitter';
+import { toucheAutrePlaylist, toucheQuitter } from '../../scene/telephone/quitter';
 import { angleDuVolume, boutonDuVolume, cranDuVolume, INDEX_DU_VOLUME, type PlaceDuVolume } from '../../scene/telephone/volume';
 import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
 import { lignesDeLaPiste, pochetteSurLeVerso, pouceAuPlusGrand, pouceDeLaPiste, tableeDeLaPiste } from '../../scene/telephone/piste';
@@ -74,7 +73,6 @@ import {
   CHAMPS_DE_SAISIE,
   clavierOuvert,
   horsLigne,
-  etapeDAvant,
   laReponseEstPartie,
   lienCopie,
   MEMOIRE_VIDE,
@@ -122,7 +120,10 @@ export interface OptionsDuTelephone {
   readonly depart?: Memoire;
   /** Appelé chaque fois que le téléphone change d'écran : pour la page qui l'entoure. */
   readonly enChangeant?: (ecran: EcranDuTelephone['genre']) => void;
-  /** Vrai quand la page peut défiler (son pied, sous le jeu, s'y montre) : on ne la remet pas en place quand on la fait glisser. */
+  /**
+   * Vrai quand on fait glisser la page au doigt (son pied, sous le jeu, s'y montre) : une touche n'y agit qu'au doigt levé sans
+   * avoir glissé, et l'on ne remet pas la page en place.
+   */
   readonly defile?: () => boolean;
   /** Appelé chaque fois que ce qu'il y a à garder change. */
   readonly retenir?: (aGarder: AGarder) => void;
@@ -421,9 +422,11 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   noter?.(`page : ${navigator.userAgent} ; fenêtre ${window.innerWidth}×${window.innerHeight}, écran ${window.screen.width}×${window.screen.height}`);
 
   // Le haut-parleur : il joue l'extrait de la piste à l'heure du serveur, et dit quand il l'a chargé ; on le dit alors prêt.
-  // Le volume de ce téléphone : à 30 % en arrivant, pour ne pas agresser les oreilles ; le bouton de l'ampli le règle.
+  // Le volume du bouton de l'ampli, là où il y en a un. Un téléphone n'en a pas : ce sont ses boutons à lui qui règlent le son (sur
+  // l'iPhone, la page ne le peut même pas), et l'extrait y joue en plein.
+  const auDoigt = window.matchMedia('(pointer: coarse)').matches;
   let volume: number = TELEPHONE.volume.depart;
-  const hautParleur = o.son === true ? brancherLeHautParleur(cadre, () => volume, noter) : SANS_SON;
+  const hautParleur = o.son === true ? brancherLeHautParleur(cadre, () => (auDoigt ? undefined : volume), noter) : SANS_SON;
   /** La piste (par son lancer) pour laquelle on s'est dit prêt, l'extrait chargé. */
   let pretPour: number | undefined;
   /** Vrai une fois qu'on a dit aux statistiques que le navigateur bloquait le son. */
@@ -648,22 +651,16 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   }
 
   /**
-   * Les touches du coin, telles qu'elles se posent dans ce regard quand on est dans une room (« Quitter », et celle de l'hôte), sous
-   * l'encoche s'il y en a une : le décor de saison ne va pas dessous.
+   * Les touches du coin, telles qu'elles se posent dans ce regard quand on est dans une room (« Quitter », et « Autre playlist » chez
+   * l'hôte), sous l'encoche s'il y en a une : le décor de saison ne va pas dessous. Le bac ouvert, aucune : il a son « Retour ».
    */
   function touchesDuCoin(r: Regard): Calque[] {
     const room = memoire.room;
+    if (room === undefined || memoire.preparation.ecran === 'bac') return [];
     const sur = bords().sur * r.largeur;
-    const y = hauteurDuCoin();
-    if (room === undefined) return etapeDAvant(memoire) !== undefined ? [toucheRevenir(a, r, sur, y)] : [];
     const hote = partieA(room.journal, Infinity).hote === room.toi;
-    return [toucheQuitter(a, r, sur, y), ...(hote ? [toucheDeLHote(a, r, memoire.preparation.ecran === 'bac', sur, y)] : [])];
+    return [toucheQuitter(a, r, sur), ...(hote ? [toucheAutrePlaylist(a, r, sur)] : [])];
   }
-  /** Le regard de l'écran montré (avant qu'il remplisse la fenêtre) : le bac y place ses touches du coin. */
-  let regardDeLEcran: Regard | undefined;
-  /** Dans le bac, la caisse prend le coin : ses touches du coin descendent entre elle et ses crans (une hauteur de la scène). */
-  const hauteurDuCoin = (): number | undefined =>
-    memoire.preparation.ecran === 'bac' && regardDeLEcran !== undefined ? regardDeLEcran.origine[1] + TABLEE.telephone.bac.coin : undefined;
 
   /** Ce qui bouge du décor de saison bouge, à chaque image (rien en version sobre). */
   function animerLeDecor(): void {
@@ -1028,7 +1025,6 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       return;
     }
     const vue = vueDe(e, a);
-    regardDeLEcran = vue.regard;
     // Dans la fenêtre, l'écran garde sa place sur le meuble ; le reste du meuble, au repos, s'y voit ; sur un grand écran, ce qu'on
     // touche se range sous le vinyle.
     const regard = dansLaFenetre(vue.regard, p);
@@ -1194,6 +1190,12 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
    * droite ou le haut, il monte), à la molette, aux flèches du clavier ; un toucher sans glisser le change d'un pas, de son côté.
    */
   let volumeMonte: Montee | undefined;
+  /**
+   * Vrai si le bouton est dans ce qu'on a monté. Sans lui (un téléphone, l'iPhone), on ne tourne pas un index qui n'y est pas : le
+   * tourner levait une erreur à chaque image, qui coupait l'image en deux. Les touches du coin n'avaient pas de zone, les boutons
+   * de la platine ne tournaient plus, et la page ne savait jamais quel écran elle montrait (pas de pied à l'accueil).
+   */
+  let avecLeBouton = false;
   /** L'angle où l'on montre son index, qui rejoint celui du volume en tournant ; le montage où on l'a posé, et quand. */
   let angleDuVolumeMontre: { readonly angle: number; readonly sur: Montage; readonly a: number } | undefined;
   const zoneDuVolume = document.createElement('button');
@@ -1205,32 +1207,36 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   zoneDuVolume.setAttribute('aria-valuemin', '0');
   zoneDuVolume.setAttribute('aria-valuemax', String(POUR_CENT));
   zones.append(zoneDuVolume);
-  // La touche pour quitter la partie : avec le volume, dans le coin d'en face, sur tous les écrans d'une room ; avant la room, à sa
-  // place, « Retour », qui ramène à l'étape d'avant.
-  const zoneQuitter = document.createElement('button');
-  zoneQuitter.type = 'button';
-  zoneQuitter.className = 'zone';
-  zoneQuitter.dataset['volume'] = '';
-  zoneQuitter.setAttribute('aria-label', a.textes.partie.quitter);
-  zoneQuitter.hidden = true;
-  zones.append(zoneQuitter);
-  zoneQuitter.addEventListener('click', () => {
-    hautParleur.cliquer('touche');
-    if (memoire.room === undefined) return agir({ genre: 'revenir' });
+  /**
+   * Une touche du coin, posée avec le volume dans le coin d'en face, sur les écrans d'une room : « Quitter », et chez l'hôte
+   * « Autre playlist ». Elle agit au doigt levé dessus, comme les autres sur une page qui défile (voir `auToucher`).
+   */
+  const zoneDuCoin = (libelle: string, action: () => void): { readonly zone: HTMLButtonElement; readonly action: () => void } => {
+    const zone = document.createElement('button');
+    zone.type = 'button';
+    zone.className = 'zone';
+    zone.dataset['coin'] = '';
+    zone.setAttribute('aria-label', libelle);
+    zone.hidden = true;
+    zones.append(zone);
+    return {
+      zone,
+      action: () => {
+        hautParleur.cliquer('touche');
+        action();
+      },
+    };
+  };
+  const coinQuitter = zoneDuCoin(a.textes.partie.quitter, () => {
     if (o.confirmer?.(a.textes.partie.quitterVraiment) === false) return;
     agir({ genre: 'quitter' });
   });
-  // Celle de l'hôte, à côté : « Autre playlist », qui ouvre le bac ; dans le bac, « Retour ».
-  const zoneDeLHote = document.createElement('button');
-  zoneDeLHote.type = 'button';
-  zoneDeLHote.className = 'zone';
-  zoneDeLHote.dataset['volume'] = '';
-  zoneDeLHote.hidden = true;
-  zones.append(zoneDeLHote);
-  zoneDeLHote.addEventListener('click', () => {
-    hautParleur.cliquer('touche');
-    agir({ genre: memoire.preparation.ecran === 'bac' ? 'fermerLeBac' : 'autrePlaylist' });
-  });
+  const coinDeLHote = zoneDuCoin(a.textes.partie.autrePlaylist, () => agir({ genre: 'autrePlaylist' }));
+  /** Ce que fait la touche du coin sous ce doigt, s'il en touche une. */
+  const actionDuCoin = (cible: EventTarget | null): (() => void) | undefined => {
+    const zone = cible instanceof HTMLElement ? cible.closest('[data-coin]') : null;
+    return zone === coinQuitter.zone ? coinQuitter.action : zone === coinDeLHote.zone ? coinDeLHote.action : undefined;
+  };
   /** Pose la zone d'une touche du coin sur ce qu'on en a dessiné, assez haute pour un pouce ; la cache s'il n'y a rien. */
   function poserLaZoneDuCoin(zone: HTMLElement, touche: Calque | undefined, r: Regard): void {
     const e = touche !== undefined ? empriseDe([touche], a.encrier.largeur) : undefined;
@@ -1277,33 +1283,37 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const r = regardMonte;
     const ou = ouPoserLeVolume(r);
     const d = definition(r);
-    const enRoom = memoire.room !== undefined;
-    const hote = memoire.room !== undefined && partieA(memoire.room.journal, Infinity).hote === memoire.room.toi;
-    const bacOuvert = memoire.preparation.ecran === 'bac';
-    const revenir = !enRoom && etapeDAvant(memoire) !== undefined;
-    // Sous l'encoche, rien ne se touche : les petites touches du coin descendent d'autant ; dans le bac, sous la caisse.
+    // Les touches du coin, dans une room, hors du bac ; sous l'encoche, rien ne se touche : elles descendent d'autant.
+    const room = memoire.room;
+    const auCoin = room !== undefined && memoire.preparation.ecran !== 'bac';
+    const hote = room !== undefined && partieA(room.journal, Infinity).hote === room.toi;
     const sur = bords().sur * r.largeur;
-    const auCoin = hauteurDuCoin();
-    const cle = JSON.stringify([ou, r, d, enRoom, hote, bacOuvert, revenir, sur, auCoin]);
+    const cle = JSON.stringify([ou, r, d, auCoin, hote, sur]);
     const pourCent = String(Math.round(volume * POUR_CENT));
     if (zoneDuVolume.getAttribute('aria-valuenow') !== pourCent) zoneDuVolume.setAttribute('aria-valuenow', pourCent);
     if (volumeMonte?.cle === cle) {
       volumeMonte.plan.suivreLeCadre();
-      tournerLeVolume(volumeMonte.montage);
+      if (avecLeBouton) tournerLeVolume(volumeMonte.montage);
       return;
     }
-    const quitter = enRoom ? toucheQuitter(a, r, sur, auCoin) : revenir ? toucheRevenir(a, r, sur, auCoin) : undefined;
-    const deLHote = enRoom && hote ? toucheDeLHote(a, r, bacOuvert, sur, auCoin) : undefined;
-    // Là où la page ne règle pas le volume (l'iPhone), pas de bouton : ce sont ceux du téléphone.
-    const reglable = hautParleur.volumeReglable;
+    const coin = touchesDuCoin(r);
+    // Au téléphone, et là où la page ne règle pas le volume (l'iPhone), pas de bouton : ce sont ceux du téléphone.
+    const reglable = hautParleur.volumeReglable && !auDoigt;
     zoneDuVolume.hidden = !reglable;
-    const objets = [...(reglable ? boutonDuVolume(a, r, volume, ou, sur) : []), ...[quitter, deLHote].filter((c) => c !== undefined)];
+    const objets = [...(reglable ? boutonDuVolume(a, r, volume, ou, sur) : []), ...coin];
     volumeMonte = monterDans(coucheDuVolume, volumeMonte, cle, calque('regard-volume', objets), r, d, new Map());
-    tournerLeVolume(volumeMonte.montage);
-    poserLaZoneDuCoin(zoneQuitter, quitter, r);
-    zoneQuitter.setAttribute('aria-label', enRoom ? a.textes.partie.quitter : a.textes.partie.retour);
-    poserLaZoneDuCoin(zoneDeLHote, deLHote, r);
-    zoneDeLHote.setAttribute('aria-label', bacOuvert ? a.textes.partie.retour : a.textes.partie.autrePlaylist);
+    avecLeBouton = reglable;
+    if (avecLeBouton) tournerLeVolume(volumeMonte.montage);
+    poserLaZoneDuCoin(
+      coinQuitter.zone,
+      coin.find((c) => c.nom === 'touche-quitter'),
+      r,
+    );
+    poserLaZoneDuCoin(
+      coinDeLHote.zone,
+      coin.find((c) => c.nom === 'touche-autre-playlist'),
+      r,
+    );
     const bouton = objets.find((c) => c.nom === 'bouton-volume');
     const e = bouton !== undefined ? empriseDe([bouton], a.encrier.largeur) : undefined;
     if (e === undefined) return;
@@ -1452,20 +1462,31 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       if (enfoncer(cle)) return true;
       montrerUnEcran(e, p, cle);
     }
-    poserLeVolume();
-    tournerLesBoutons();
-    clignoter();
-    animerLeDecor();
+    // La page apprend d'abord quel écran on montre : son pied, ses liens en dépendent.
     if (e.genre !== genre) {
       genre = e.genre;
       o.enChangeant?.(genre);
       noterLaFenetre();
     }
+    // Puis ce qui se pose par-dessus et ce qui bouge, chacun pour soi : une erreur dans l'un ne prive pas les autres de leur image
+    // (le volume en levait une à chaque image, sur l'iPhone, et les touches du coin n'avaient plus de zone). Elle se dit ensuite.
+    let erreur: unknown;
+    for (const etape of [poserLeVolume, tournerLesBoutons, clignoter, animerLeDecor])
+      try {
+        etape();
+      } catch (raison) {
+        erreur ??= raison;
+      }
+    if (erreur !== undefined) throw erreur;
     // L'heure fait tout changer : le décompte, l'extrait, la révélation, le clavier qui tape. Le téléphone ne s'endort pas.
     return true;
   });
 
-  // L'action part dès que le doigt se pose ; le clic qui suit, lui, tomberait sur l'écran d'après : on l'avale.
+  /**
+   * Le clic qui suit un doigt posé sur les zones (ou la souris) : la zone a fait, au doigt posé ou levé, ce qu'elle avait à faire,
+   * et ce clic tomberait sur l'écran d'après. On l'avale. Le clavier et les aides à la lecture valident par un clic sans pointeur :
+   * celui-là agit toujours.
+   */
   let avaler = false;
   const zoneDe = (cible: EventTarget | null): { readonly toucher: Toucher; readonly nom: NomDeCalque } | undefined => {
     const zone = cible instanceof HTMLElement ? cible.closest<HTMLElement>('[data-zone]') : null;
@@ -1489,19 +1510,23 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     agir(z.toucher);
   };
   /**
-   * La zone qu'un doigt a enfoncée sur une page qui défile, et qui attend qu'il se lève sans avoir glissé (le clic) pour agir :
-   * un doigt qui se pose sur une touche de l'accueil veut peut-être faire glisser la page jusqu'à son pied.
+   * Le doigt posé sur une zone qui n'agit qu'au doigt levé : d'où il est parti, et ce qu'elle fera. Ce sont les touches d'une page
+   * qu'on fait glisser (un doigt qui se pose sur une touche de l'accueil veut peut-être aller voir son pied), le partage du lien (le
+   * navigateur ne le permet qu'au geste fini) et les touches du coin (« Quitter » demande qu'on confirme). Un doigt qui glisse ne
+   * touche plus rien. Au doigt levé, pas au clic : l'iPhone donne parfois son clic à la zone voisine, ou ne le donne pas du tout.
    */
-  let enAttente: { readonly toucher: Toucher; readonly nom: NomDeCalque } | undefined;
+  let enAttente: { readonly id: number; readonly x: number; readonly y: number; readonly agir: () => void } | undefined;
+  /** Vrai si le doigt a glissé, depuis là où il s'est posé, plus loin qu'un toucher. */
+  const aGlisse = (ev: PointerEvent, depart: { readonly x: number; readonly y: number }): boolean =>
+    Math.hypot(ev.clientX - depart.x, ev.clientY - depart.y) > TELEPHONE.doigt.glisse;
   /**
    * Le lien de la room : au téléphone, son partage (WhatsApp, Messages…) ; sur un ordinateur, ou sans partage, copié, et le papier le
-   * dit un instant. Il faut le geste fini pour cela (le doigt levé, le clic) : il part au clic, pas au doigt posé.
+   * dit un instant. Il faut le geste fini pour cela : il part au doigt levé, pas au doigt posé.
    */
   function partagerLeLien(): void {
     const room = memoire.room;
     if (room === undefined) return;
     const lien = `${window.location.origin}/${room.code}`;
-    const auDoigt = window.matchMedia('(pointer: coarse)').matches;
     if (auDoigt && typeof navigator.share === 'function') {
       navigator.share({ title: a.textes.logo.nom, text: a.textes.partie.viensJouer, url: lien }).then(
         () => signaler('lienPartage'),
@@ -1521,37 +1546,45 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   const surLeVolume = (cible: EventTarget | null): boolean => cible instanceof HTMLElement && cible.closest('[data-volume]') !== null;
   const auToucher = (ev: PointerEvent): void => {
     if (!ev.isPrimary || ev.button !== 0 || surLeVolume(ev.target)) return;
-    const z = zoneDe(ev.target);
-    // Le partage du lien attend le clic : le navigateur ne le permet qu'au geste fini.
-    if (z?.toucher.genre === 'partagerLeLien') {
-      avaler = false;
-      return;
-    }
+    avaler = true;
     enAttente = undefined;
-    // La page défile : la touche s'enfonce tout de suite, et agit au doigt levé (elle vibre alors) ; une page qu'on fait glisser ne
-    // clique pas.
-    if (z !== undefined && o.defile?.() === true) {
-      avaler = false;
-      enAttente = z;
+    const attendre = (agir: () => void): void => {
+      enAttente = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, agir };
+    };
+    const coin = actionDuCoin(ev.target);
+    if (coin !== undefined) return attendre(coin);
+    const z = zoneDe(ev.target);
+    if (z === undefined) return;
+    // Elle s'enfonce tout de suite, et agit au doigt levé (elle vibre alors).
+    if (z.toucher.genre === 'partagerLeLien' || o.defile?.() === true) {
       enfoncerLaTouche(z);
-      return;
+      return attendre(() => presser(z, true));
     }
-    avaler = z !== undefined;
-    if (z !== undefined) presser(z);
+    presser(z);
+  };
+  const auGlisser = (ev: PointerEvent): void => {
+    if (enAttente !== undefined && ev.pointerId === enAttente.id && aGlisse(ev, enAttente)) enAttente = undefined;
+  };
+  const auLever = (ev: PointerEvent): void => {
+    const attente = enAttente;
+    if (attente === undefined || ev.pointerId !== attente.id) return;
+    enAttente = undefined;
+    if (ev.type === 'pointerup' && !aGlisse(ev, attente)) attente.agir();
   };
   const auClic = (ev: MouseEvent): void => {
-    // Le clavier et les aides à la lecture valident sans pointeur : ce clic-là agit toujours.
     if (ev.detail !== 0 && avaler) {
       avaler = false;
       return;
     }
     if (surLeVolume(ev.target)) return;
+    const coin = actionDuCoin(ev.target);
+    if (coin !== undefined) return coin();
     const z = zoneDe(ev.target);
-    const dejaEnfoncee = z !== undefined && z.nom === enAttente?.nom;
-    enAttente = undefined;
-    if (z !== undefined) presser(z, dejaEnfoncee);
+    if (z !== undefined) presser(z);
   };
   zones.addEventListener('pointerdown', auToucher);
+  zones.addEventListener('pointermove', auGlisser);
+  for (const fin of FINS_DU_DOIGT) zones.addEventListener(fin, auLever);
   zones.addEventListener('click', auClic);
   // Le navigateur ne laisse partir le son que dans un geste qui compte : un doigt qui se lève, un clic, une touche du clavier.
   // Le premier débloque le haut-parleur ; un son refusé attend le suivant. On les écoute sur toute la page, avant tout le reste.
@@ -1574,6 +1607,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     signaler,
     fermer() {
       zones.removeEventListener('pointerdown', auToucher);
+      zones.removeEventListener('pointermove', auGlisser);
+      for (const fin of FINS_DU_DOIGT) zones.removeEventListener(fin, auLever);
       zones.removeEventListener('click', auClic);
       for (const geste of GESTES) window.removeEventListener(geste, debloquer, true);
       window.removeEventListener('pointerdown', poser, true);

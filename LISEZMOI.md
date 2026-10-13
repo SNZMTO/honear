@@ -45,7 +45,7 @@ npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
 docker build -t honear .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
 npm run controle    # passe les contrôles du rendu sur les 196 images, et dit ce qu'ils ont mesuré
-npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 515 tests
+npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 523 tests
 npm run format      # Prettier
 ```
 
@@ -486,7 +486,8 @@ src/
     touche.ts                   Brancher une touche ou un cran : au toucher, ou au toucher pour la souris seulement.
     vibreur.ts                  Faire vibrer le téléphone, quand il sait.
     vider.ts                    Vider un élément de la page.
-    jeu/                        La page du jeu en ligne : son gabarit, son démarrage (l'adresse d'une room, la reprise après un rechargement).
+    jeu/                        La page du jeu en ligne : son gabarit, son démarrage (l'adresse d'une room, la reprise après un rechargement),
+                                son pied, qu'on fait glisser au doigt (`pied.ts`).
     statistiques/               La page des statistiques, pour l'éditeur seul : son gabarit, son tableau.
     telephone/                  Le client du téléphone : sa mémoire (`memoire.ts` : ce que le serveur lui a dit, ce qu'on y fait), l'écran
                                 qu'elle donne (`route.ts`), ce qu'on y touche (`touchers.ts`), et la page (`client.ts`) ; l'heure du
@@ -871,12 +872,12 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   d'accueil (le regard monte d'autant, `dansLaFenetre`). Dans Safari, la barre d'état n'est pas à la page : Safari la peint du fond de la
   page, le noyer de la table. Le cadre du jeu est dans la page (le client le pose en `relative`), haut de `100lvh` ; à l'accueil et
   au compte d'un téléphone, un pied le suit (« Comment on joue ? », Confidentialité, Mentions légales), qu'on atteint en faisant
-  glisser la page. Ailleurs, la page ne défile pas. Sur un grand écran, les liens flottent en bas à droite. `?diagnostic` note la
-  hauteur de la page, ses classes et ses défilements.
-- **« Retour » à chaque étape** : avant la room, au coin haut gauche (à la place de « Quitter »), sur la pochette (vers l'accueil, ou
-  vers le code tapé), le bac (vers la pochette) et les réglages (vers le bac tel qu'on l'a laissé) : `etapeDAvant`, `toucheRevenir`.
-  Les zones des touches du coin passent par-dessus celles de l'écran ; dans le bac, ces touches descendent entre la caisse et ses
-  crans (`TABLEE.telephone.bac.coin`). Un intercalaire se touche à son onglet (`intercalaire-…/onglet`), pas à son carton, que
+  glisser la page au doigt : c'est elle qui suit le doigt (`ecran/jeu/pied.ts`), la page ne défile jamais. Sur un grand écran, les
+  liens flottent en bas à droite. `?diagnostic` note la hauteur de la page, ses classes et ses défilements.
+- **« Retour » à chaque étape** : avant la room, au bout de l'écran comme à la saisie du code, sur la pochette (vers l'accueil, ou
+  vers le code tapé), les réglages (vers le bac tel qu'on l'a laissé) et, petit, à gauche de « Celle-là », le bac (vers la
+  pochette ; dans la room, il le referme) : `etapeDAvant`, `touche-revenir`. Au coin, seulement dans une room : « Quitter », et
+  chez l'hôte « Autre playlist » ; leurs zones passent par-dessus celles de l'écran. Un intercalaire se touche à son onglet (`intercalaire-…/onglet`), pas à son carton, que
   ceux de devant cachent : le doigt n'allait pas toujours au bon thème.
 - **Ce qu'on tape** : revenir dans l'étiquette de la réponse la vide quand elle montre la réponse qu'on vient d'envoyer (un brouillon
   reste) ; « Entrée » l'enfonce un instant, à plat et droite, en kraft (`TELEPHONE.reponseEnfoncee`). Ce qu'on tape va au champ
@@ -970,6 +971,21 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
     personne n'appelait s'en vont. Au téléphone, un meuble voisin dont on ne verrait qu'un bord ne se dessine pas (la platine
     coupée à côté du bac, une lisière de l'ampli) : la table continue. Le client du téléphone a enfin ses tests dans la fausse
     page (`tests/telephone-en-page.test.ts`) : une partie au doigt, de l'accueil au hit-parade.
+- **Ce que l'iPhone a montré ensuite** (le 13, au soir) :
+  - *Une erreur à chaque image* : sans bouton du volume (l'iPhone), le client tournait l'index d'un bouton qu'il n'avait pas posé.
+    L'erreur coupait chaque image en deux : les touches du coin n'avaient pas de zone (« Retour », « Quitter » ne répondaient pas),
+    les boutons de la platine ne tournaient plus, et la page ne savait pas quel écran elle montrait (pas de pied à l'accueil, donc
+    rien à faire glisser). Le client ne tourne plus que le bouton qu'il a posé ; ce qui se pose par-dessus l'écran (le volume, les
+    boutons, les curseurs, le décor) se fait chacun pour soi, après que la page a appris l'écran. Les tests jouent la partie aussi
+    au téléphone, sans bouton.
+  - *Au doigt, pas au clic* : ce qui agit au doigt levé (une page qu'on fait glisser, le partage du lien, « Quitter ») agit sur
+    `pointerup`, là où le doigt s'est posé, à 10 px près (`TELEPHONE.doigt`) ; le clic, que l'iPhone donne parfois à la zone
+    voisine, ou pas du tout, ne sert plus qu'au clavier et aux aides à la lecture.
+  - *Le son* : plus de vitesse changée pour rattraper les autres téléphones, l'iPhone en saccadait ; on revient aux sauts rares
+    (au-delà de 0,6 s, une fois en 5 s). Au téléphone, pas de bouton du volume : ce sont ceux du téléphone, et l'extrait joue en
+    plein (à 30 % d'un volume cubique, un Android ne s'entendait presque pas). Sur un ordinateur, le bouton part aux deux tiers.
+  - *Les touches* : aucune n'en chevauche une autre, sur aucun écran (un test les passe toutes, avec celles du coin) ; sa pochette
+    refaite, « Au hasard » et « Retour » se chevauchaient : elles se posent l'une sous l'autre.
 
 ## Ce qui attend les étapes suivantes
 

@@ -113,11 +113,13 @@ export interface BacOuvert {
    * playlist d'essai, sans le son, n'est pas une partie. Sans source (le prototype), « Celle-là » prend la playlist d'essai.
    */
   readonly themeAToucher?: boolean;
+  /** Ce que fait « Retour » : rouvrir sa pochette, avant la room ; refermer le bac, quand l'hôte y change de playlist. */
+  readonly retour?: 'revenir' | 'fermer';
 }
 
 /**
- * Le bac, chez l'hôte : trois façons de choisir sa playlist, en crans ; ce qu'on y voit, selon le cran choisi ; la touche qui
- * choisit, quand il y a de quoi choisir. Chaque cran s'appelle « touche-bac-… ».
+ * Le bac, chez l'hôte : trois façons de choisir sa playlist, en crans ; ce qu'on y voit, selon le cran choisi ; en bas, la touche qui
+ * choisit, quand il y a de quoi choisir, et « Retour », petit, à sa gauche. Chaque cran s'appelle « touche-bac-… ».
  */
 export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
   const P = a.textes.playlists;
@@ -141,6 +143,12 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
     return touche(`touche-bac-${c}`, 'cran', P[c], r, [x, B.crans.y], a.encrier, c === bac.cran ? 'allumee' : 'repos', true);
   });
   const objets: Calque[] = [meuble, ...crans];
+  if (bac.retour !== undefined) {
+    const libelle = a.textes.partie.retour;
+    const largeur = largeurDeLaTouche({ genre: 'cran', libelle, ajustee: true }, a.encrier.largeur);
+    const nom = bac.retour === 'fermer' ? 'touche-fermer-bac' : 'touche-revenir';
+    objets.push(touche(nom, 'cran', libelle, r, [B.bas.retour + largeur / 2, B.bas.y], a.encrier, 'repos', true));
+  }
   const resultats = bac.resultats ?? [];
   if (bac.source !== undefined)
     objets.push(
@@ -265,13 +273,19 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
       : bac.cran === 'chercher'
         ? resultats.length > 0
         : bac.importee !== undefined || bac.choisie !== undefined);
-  if (aChoisir && bac.refus === undefined) objets.push(toucheAuMilieu('touche-choisir', 'principale', P.choisir, r, B.choisir, a.encrier));
+  // Avec « Retour » à sa gauche, elle se pose à côté ; seule, au milieu.
+  if (aChoisir && bac.refus === undefined)
+    objets.push(
+      bac.retour !== undefined
+        ? toucheAuBord('touche-choisir', 'principale', P.choisir, r, [B.bas.choisir, B.bas.y], a.encrier)
+        : toucheAuMilieu('touche-choisir', 'principale', P.choisir, r, B.bas.y, a.encrier),
+    );
   return { regard: r, objets };
 }
 
 /**
- * Les réglages : les commandes de la platine, puis la touche qui ouvre le salon. Le sélecteur de mode choisit le jeu ; un papier
- * dit ce que rapporte une piste dans ce mode.
+ * Les réglages : les commandes de la platine, puis la touche qui ouvre le salon, et « Retour », au bout, qui rouvre le bac. Le
+ * sélecteur de mode choisit le jeu ; un papier dit ce que rapporte une piste dans ce mode.
  */
 export function vueDesReglages(
   a: Ecritoire,
@@ -285,6 +299,7 @@ export function vueDesReglages(
       platineArretee(a, { mode: mode.cran, ...(reglages !== undefined ? { reglages } : {}) }),
       ...phrase(a.textes.partie.bareme[mode.cle] ?? '', r, a.encrier),
       toucheAuMilieu('touche-ouvrir', 'principale', a.textes.partie.ouvrirLeSalon, r, T.reglages.ouvrir, a.encrier),
+      toucheAuMilieu('touche-revenir', 'secondaire', a.textes.partie.retour, r, T.reglages.retour, a.encrier),
     ],
   };
 }

@@ -171,8 +171,11 @@ export const TABLEE = {
       message: { en: [195, 664], largeur: 300 },
       /** « Mes playlists », sous l'étiquette du lien : un disque et son papier par rangée, à ces hauteurs. */
       miennes: { y: [628, 680, 732] },
-      /** La hauteur de la touche qui choisit, au milieu, assez bas pour ne pas toucher « Au hasard ». */
-      choisir: 798,
+      /**
+       * En bas, assez bas pour ne pas toucher « Au hasard » : la touche qui choisit, et à sa gauche, petit, « Retour » (la caisse
+       * prend le haut, rien ne tient entre elle et ses crans). Leur hauteur, et leurs bords gauches.
+       */
+      bas: { y: 798, retour: 4, choisir: 98 },
       /** La playlist choisie, sous les résultats ; aux « Prêtes à jouer », de combien elle sort du bac ; d'où viennent les extraits. */
       choisie: { en: [195, 730], largeur: 300 },
       /**
@@ -191,27 +194,24 @@ export const TABLEE = {
       },
       /** Le regard sur le bac descend sous le haut de ses intercalaires, de cette marge : on lit tous les thèmes. */
       auDessus: 30,
-      /** Les petites touches du coin (« Retour », « Quitter »), entre la caisse et ses crans : la hauteur de leur milieu. */
-      coin: 414,
       leve: 28,
-      /** D'où viennent les extraits : à droite de « Retour », qui se pose à la même hauteur, au coin. */
-      source: { en: [242, 424], largeur: 230 },
+      /** D'où viennent les extraits : sous la caisse, au-dessus de ses crans. */
+      source: { en: [195, 424], largeur: 230 },
     },
-    /** Les réglages : la touche qui ouvre le salon (par son bord gauche), une fois les commandes de la platine réglées. */
-    reglages: { ouvrir: 792 },
+    /** Les réglages : la touche qui ouvre le salon, une fois les commandes de la platine réglées ; « Retour » au bout, comme à la saisie. */
+    reglages: { ouvrir: 734, retour: 806 },
     /**
      * « Fais ta pochette » : le regard se pose à côté de la platine, sur le bois nu. En haut, la pochette, en grand ; dessous,
-     * l'étiquette vierge du nom ; « Au hasard », puis « C'est moi ». Rien d'autre : on tire au sort jusqu'à ce qu'elle plaise.
-     * Les tailles des pochettes, en px.
+     * l'étiquette vierge du nom ; « Au hasard », « C'est moi », et au bout, comme à la saisie, « Retour » (ou, quand on la refait,
+     * la touche qui la laisse comme elle était). On tire au sort jusqu'à ce qu'elle plaise. Les tailles des pochettes, en px.
      */
     pochette: {
       origine: [520, 560],
       pochette: { en: [195, 228], angle: -4, taille: 300 },
       etiquette: { centre: [176, 452], largeur: 268, angle: -1.5, marge: 14 },
-      auHasard: [112, 690],
-      /** Quand on la refait (à l'accueil, dans la room) : la touche qui la laisse comme elle était, à côté du hasard. */
-      laisser: [296, 690],
-      cEstMoi: [195, 784],
+      auHasard: [195, 662],
+      cEstMoi: [195, 734],
+      retour: [195, 806],
       /** Le papier qui réclame le nom, quand on a touché « C'est moi » sans l'avoir écrit : sous l'étiquette. */
       sansNom: { en: [195, 556], largeur: 300 },
     },

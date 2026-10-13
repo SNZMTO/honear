@@ -25,6 +25,7 @@ import { ouvrirLeTelephone, type AGarder, type Telephone } from '../telephone/cl
 import { memoireDeDepart, type Preparatifs, type Reprise } from '../telephone/memoire';
 import { brancherEnLigne } from '../telephone/websocket';
 import { creerLeVibreur } from '../vibreur';
+import { brancherLePied } from './pied';
 
 /** Les noms sous lesquels le navigateur garde la room de cet onglet, la pochette de cet appareil, et la session de son compte. */
 const GARDE = {
@@ -324,6 +325,11 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     window.location.reload();
   };
   const fenetre = suivreLaFenetre(cadre);
+  // Le pied de la page, sous le jeu (le tutoriel, les pages légales) : à l'accueil et au compte d'un téléphone, on l'y trouve en
+  // faisant glisser la page au doigt.
+  const avecUnPied = (): boolean => document.body.classList.contains('pied') && !document.body.classList.contains('grand');
+  const page = document.querySelector<HTMLElement>('[data-page]');
+  const pied = page !== null ? brancherLePied(page, avecUnPied, animationsReduites()) : undefined;
   const telephone = ouvrirLeTelephone(cadre, {
     brancher: brancherEnLigne(ligne, recharger),
     horloge: horlogeDuNavigateur(),
@@ -339,14 +345,14 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     fenetre: fenetre.proportion,
     bords: fenetre.bords,
     diagnostic,
-    // Le pied de la page, sous le jeu (le tutoriel, les pages légales) : à l'accueil et au compte. Ailleurs, la page ne défile pas,
-    // et l'on revient en haut si on l'avait fait glisser.
+    // Le pied, à l'accueil et au compte ; un autre écran arrive pied rangé. La page ne défile pas : si l'iPhone l'a fait défiler
+    // (pour montrer un champ), on la remet en haut.
     enChangeant: (genre) => {
-      const pied = genre === 'accueil' || genre === 'compte';
-      document.body.classList.toggle('pied', pied);
-      if (!pied && (window.scrollX !== 0 || window.scrollY !== 0)) window.scrollTo(0, 0);
+      document.body.classList.toggle('pied', genre === 'accueil' || genre === 'compte');
+      pied?.ranger();
+      if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
     },
-    defile: () => document.body.classList.contains('pied') && !document.body.classList.contains('grand'),
+    defile: avecUnPied,
   });
   // Ce que seule la page voit, pour les statistiques : d'où l'on arrive, et si le jeu est lancé depuis l'écran d'accueil.
   if (code !== undefined && reprise === undefined) telephone.signaler(parLeQr ? 'arriveeParQr' : 'arriveeParLien');
