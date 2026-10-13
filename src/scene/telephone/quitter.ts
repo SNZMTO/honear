@@ -1,7 +1,7 @@
 /**
  * La touche pour quitter la partie : petite, au coin haut gauche du cadre, en miroir du bouton du volume. Elle est là sur tous les
  * écrans d'une room, et se dessine avec le volume, par-dessus l'écran. Chez l'hôte, une autre la suit : « Autre playlist », qui ouvre
- * le bac ; dans le bac, « Retour ».
+ * le bac ; dans le bac, « Retour ». Avant la room, à sa place, « Retour » ramène à l'étape d'avant (sa pochette, le bac, les réglages).
  */
 
 import { depuisLEcran } from '../../lowpoly/projection';
@@ -28,6 +28,10 @@ function cranDuCoin(a: Ecritoire, regard: Regard, nom: `touche-${string}`, libel
  */
 export const toucheQuitter = (a: Ecritoire, regard: Regard, sousLEncoche = 0): Calque =>
   cranDuCoin(a, regard, 'touche-quitter', a.textes.partie.quitter, Q.en[0], sousLEncoche);
+
+/** « Retour », au coin haut gauche de ce regard, à la place de « Quitter », avant la room. Elle s'appelle « touche-revenir ». */
+export const toucheRevenir = (a: Ecritoire, regard: Regard, sousLEncoche = 0): Calque =>
+  cranDuCoin(a, regard, 'touche-revenir', a.textes.partie.retour, Q.en[0], sousLEncoche);
 
 /**
  * La touche de l'hôte, juste après « Quitter » : « Autre playlist » (« touche-autre-playlist »), ou, le bac ouvert, « Retour »

@@ -435,3 +435,30 @@ test('ce qu’on tape va au champ que l’écran a posé : la réponse quand une
   assert.equal(bac.preparation.ecran === 'bac' ? bac.preparation.bac.recherche : '', 'abba');
   assert.deepEqual(valider(bac, 7, p, 'recherche').actions, [{ genre: 'chercher', recherche: 'abba' }]);
 });
+
+test('avant la room, « Retour » ramène à l’étape d’avant : de la pochette à l’accueil ou au code, du bac à la pochette, des réglages au bac', () => {
+  const p = preparatifs('libre');
+  const ecran = (m: Memoire): string => m.preparation.ecran;
+  // Poser un disque : la pochette, le bac, les réglages ; et l'on revient, cran par cran, jusqu'à l'accueil.
+  let m = toucher(MEMOIRE_VIDE, { genre: 'poser' }, 0, p).memoire;
+  m = saisir(m, 'Tonton Mateo');
+  m = toucher(m, { genre: 'cEstMoi' }, 0, p).memoire;
+  assert.equal(ecran(m), 'bac');
+  m = toucher(m, { genre: 'cranDuBac', cran: 'chercher' }, 0, p).memoire;
+  const bac = m;
+  m = toucher(m, { genre: 'choisir' }, 0, p).memoire;
+  assert.equal(ecran(m), 'reglages');
+  m = toucher(m, { genre: 'revenir' }, 1, p).memoire;
+  assert.deepEqual(m.preparation, bac.preparation, 'le bac tel qu’on l’a laissé, à son cran');
+  m = toucher(m, { genre: 'revenir' }, 1, p).memoire;
+  assert.equal(ecran(m), 'pochette');
+  assert.equal(m.preparation.ecran === 'pochette' && m.preparation.pochette.artiste, 'Tonton Mateo', 'la pochette faite reste');
+  m = toucher(m, { genre: 'revenir' }, 1, p).memoire;
+  assert.equal(ecran(m), 'accueil');
+  assert.deepEqual(toucher(m, { genre: 'revenir' }, 1, p).memoire, m, 'à l’accueil, rien');
+  // Rejoindre par un code : de la pochette, on revient au code tapé.
+  let r = toucher(MEMOIRE_VIDE, { genre: 'code' }, 0, p).memoire;
+  r = saisir(r, 'aenv');
+  r = toucher(r, { genre: 'entrer' }, 0, p).memoire;
+  assert.deepEqual(toucher(r, { genre: 'revenir' }, 1, p).memoire.preparation, { ecran: 'saisie', tape: 'AENV' });
+});

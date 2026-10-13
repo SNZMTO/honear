@@ -77,9 +77,10 @@ export type Preparation =
   | ({
       readonly ecran: 'reglages';
       readonly pochette: Pochette;
-      /** La playlist choisie dans le bac, et le bac tel qu'on l'a laissé : on y revient si elle est trop courte. */
+      /** La playlist choisie dans le bac, et le bac tel qu'on l'a laissé (et son cran) : on y revient si elle est trop courte, ou par « Retour ». */
       readonly playlist: string;
       readonly bac: BacEnCours;
+      readonly cran?: CranDuBac;
     } & ReglagesDeLaPlatine);
 
 /**
@@ -232,6 +233,8 @@ export type Toucher =
   | { readonly genre: 'poser' | 'code' | 'taperLeCode' | 'entrer' | 'auHasard' | 'autreAlbum' | 'cEstMoi' | 'choisir' | 'ouvrir' }
   /** À la saisie du code : revenir à l'accueil sans entrer. */
   | { readonly genre: 'laisserLeCode' }
+  /** « Retour », au coin de l'écran, avant la room : l'étape d'avant (voir `etapeDAvant`). */
+  | { readonly genre: 'revenir' }
   /** Sa pochette, quand on veut : la rouvrir, y taper son nom d'artiste, la laisser comme elle était. */
   | { readonly genre: 'maPochette' | 'taperLeNom' | 'laisserLaPochette' }
   /** À la finale : revoir les titres joués, et revenir. */
@@ -494,6 +497,27 @@ function pouceDeLaPiste(m: Memoire): AuPouce {
   return m.pouce.lanceeA === lanceeA ? m.pouce : { ...POUCE_LIBRE, lanceeA };
 }
 
+/**
+ * L'étape d'avant, que « Retour » rouvre, avant la room : de sa pochette, l'accueil (pour poser un disque) ou la saisie du code, avec
+ * ce code (pour rejoindre) ; du bac, sa pochette ; des réglages, le bac tel qu'on l'a laissé. Rien ailleurs : dans une room, on la
+ * quitte ; les autres écrans ont leur propre « Retour » (le code, le compte, les titres) ou leur « Laisser » (la pochette qu'on refait).
+ */
+export function etapeDAvant(m: Memoire): Preparation | undefined {
+  if (m.room !== undefined) return undefined;
+  const prep = m.preparation;
+  switch (prep.ecran) {
+    case 'pochette':
+      if (prep.venue.genre === 'creer') return { ecran: 'accueil' };
+      return prep.venue.genre === 'rejoindre' ? { ecran: 'saisie', tape: prep.venue.code } : undefined;
+    case 'bac':
+      return { ecran: 'pochette', venue: { genre: 'creer' }, pochette: prep.pochette, choisi: 'dessus', tirages: 0 };
+    case 'reglages':
+      return { ecran: 'bac', pochette: prep.pochette, cran: prep.cran ?? 'pretes', bac: prep.bac };
+    default:
+      return undefined;
+  }
+}
+
 /** Ce que fait un toucher. Rien de ce qui regarde la partie ne change ici : on l'envoie au serveur, qui décide. */
 export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): Suite {
   const rien: Suite = { memoire: m, actions: [] };
@@ -527,6 +551,10 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       });
     case 'laisserLeCode':
       return prep.ecran === 'saisie' ? seul({ ...m, refus: undefined, preparation: { ecran: 'accueil' } }) : rien;
+    case 'revenir': {
+      const avant = etapeDAvant(m);
+      return avant !== undefined ? seul({ ...m, refus: undefined, preparation: avant }) : rien;
+    }
     case 'ouvrirLeChoix':
       return prep.ecran === 'pochette' ? seul({ ...m, preparation: { ...prep, choisi: t.choix } }) : rien;
     case 'porter':
@@ -647,7 +675,7 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       return seul({
         ...m,
         refus: undefined,
-        preparation: { ecran: 'reglages', pochette: prep.pochette, playlist, bac: prep.bac, mode, pistes, extrait, son },
+        preparation: { ecran: 'reglages', pochette: prep.pochette, playlist, bac: prep.bac, cran: prep.cran, mode, pistes, extrait, son },
       });
     }
     case 'tournerLeBouton': {
