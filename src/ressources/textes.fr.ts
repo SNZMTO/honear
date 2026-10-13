@@ -239,6 +239,8 @@ export const TEXTES: Textes = {
     revoir: 'Touche pour revoir les pochettes',
     retour: 'Retour',
     points: '{points} pts',
+    /** Au salon, chez l'invité : qui va lancer la face. */
+    onAttend: 'On attend {hote} pour la face {face}.',
     /** Zéro ou un point : au singulier. */
     unPoint: '{points} pt',
     spectateur: 'Piste en cours. Tu joues la suivante.',
