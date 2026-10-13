@@ -170,6 +170,7 @@ function ecranDuBac(a: Ecritoire, cran: CranDuBac, etat?: 'tropCourt' | 'spotify
     ...(cran === 'laMienne' && etat === 'spotify' ? { lien: L.partie.lienSpotify } : {}),
     ...(cran === 'laMienne' && etat !== 'spotify' ? { importee: etat === 'tropCourt' ? L.partie.tropCourte : L.partie.importee } : {}),
     ...(etat !== undefined ? { refus: etat } : {}),
+    retour: 'revenir',
   });
   const fichier = etat !== undefined ? `etat-${etat}` : `bac-${cran}`;
   const titre = etat === 'tropCourt' ? L.etats.tropCourt : etat === 'spotify' ? L.etats.spotify : L.ecrans.bac[cran];

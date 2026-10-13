@@ -102,7 +102,8 @@ export function pochetteAvecLOption(pochette: Pochette, choisi: ChoixDeLAvatar, 
 
 /**
  * L'écran, simple : la pochette en grand, l'étiquette où l'on tape son nom d'artiste, « Au hasard » pour en tirer une autre, et
- * « C'est moi ». Quand on la refait (à l'accueil, dans la room), une touche la laisse comme elle était.
+ * « C'est moi ». Au bout, comme à la saisie du code, « Retour » ramène à l'étape d'avant ; quand on la refait (à l'accueil, dans
+ * la room), c'est la touche qui la laisse comme elle était.
  * @param _choisi le choix de l'avatar ouvert : l'écran ne montre plus les options, la mémoire le garde.
  * @param sansNom on a touché « C'est moi » sans avoir écrit son nom : un papier le réclame, sous l'étiquette.
  */
@@ -140,10 +141,11 @@ export function vueDeLaPochette(a: Ecritoire, pochette: Pochette, _choisi: Choix
             },
           ).calques
         : []),
-      // Seul, « Au hasard » se met au milieu, au-dessus de « C'est moi » ; à côté de « Laisser » quand on la refait.
-      toucher('touche-hasard', 'secondaire', textes.auHasard, retouche ? P.auHasard : [P.cEstMoi[0], P.auHasard[1]]),
-      ...(retouche ? [toucher('touche-laisser', 'secondaire', textes.laisser, P.laisser)] : []),
+      toucher('touche-hasard', 'secondaire', textes.auHasard, P.auHasard),
       toucher('touche-c-est-moi', 'principale', T.cEstMoi, P.cEstMoi),
+      retouche
+        ? toucher('touche-laisser', 'secondaire', textes.laisser, P.retour)
+        : toucher('touche-revenir', 'secondaire', a.textes.partie.retour, P.retour),
     ],
   };
 }

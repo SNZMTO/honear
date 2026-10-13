@@ -151,6 +151,7 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
         ...(b.choisie !== undefined ? { choisie: { titre: b.choisie.titre, total: b.choisie.jouables ?? b.choisie.total } } : {}),
         ...(p.chercher && p.source !== undefined ? { source: p.source } : {}),
         ...(p.chercher ? { themeAToucher: true } : {}),
+        retour: m.room !== undefined ? 'fermer' : 'revenir',
       };
       return { genre: 'bac', bac, chercher: p.chercher };
     }

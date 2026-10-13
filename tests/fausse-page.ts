@@ -349,7 +349,7 @@ export class FauxElement {
   /** Envoie un événement à l'élément, puis à ses parents : il remonte, comme dans une page. @returns vrai si quelqu'un a retenu le navigateur. */
   envoyer(type: string, evenement: Record<string, unknown> = {}): boolean {
     let retenu = false;
-    const complet = { target: this, ...evenement, preventDefault: () => void (retenu = true) };
+    const complet = { type, target: this, ...evenement, preventDefault: () => void (retenu = true) };
     for (let element: FauxElement | null = this; element !== null; element = element.parentElement)
       for (const ecouteur of element.ecouteurs.get(type) ?? []) ecouteur(complet);
     return retenu;
