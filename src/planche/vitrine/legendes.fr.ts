@@ -24,10 +24,10 @@ export const LEGENDES_DE_LA_VITRINE = {
     faceB: { fichier: 'bandeau-face-b', titre: 'Face B, les coulisses', lettre: 'B', nom: 'Face B', sous: 'LES COULISSES' },
     cachee: {
       fichier: 'bandeau-piste-cachee',
-      titre: 'Piste cachée : comment je l’ai construit avec Claude Code',
+      titre: 'Piste cachée : comment je l’ai construit',
       lettre: '+1',
       nom: 'Piste cachée',
-      sous: 'COMMENT JE L’AI CONSTRUIT AVEC CLAUDE CODE',
+      sous: 'COMMENT JE L’AI CONSTRUIT',
     },
   },
   joueurs: { fichier: 'pochettes-des-joueurs', titre: 'Chacun sa pochette, son avatar et son nom d’artiste', combien: 6 },
