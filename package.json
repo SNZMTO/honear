@@ -1,7 +1,7 @@
 {
   "name": "honear",
   "version": "0.1.0",
-  "description": "Honear : blind test musical entre potes. Étape 1 : la planche de rendu. Étape 2 : la platine en mouvement. Étape 3 : le système visuel. Étape 4 : « Fais ta pochette ». Étape 7 : la planche d'animations et le prototype.",
+  "description": "Honear, le blind test entre potes : un écran pour la tablée, un téléphone chacun.",
   "private": true,
   "type": "module",
   "scripts": {

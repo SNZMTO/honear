@@ -159,6 +159,9 @@ le montrent. Il écrit vite ; c'est moi qui pose le cadre, qui tranche et qui v�
 - **Essayer sur de vrais téléphones.** Plusieurs bugs ne se voyaient que sur iPhone : la page sait envoyer un diagnostic au
   journal du serveur, et deux passes d'« audit mobile » ont suivi.
 - **Relire.** Les commits gardent la trace de ce que la relecture a corrigé.
+- **L'historique.** Ce dépôt commence le 12 octobre 2026. Son premier commit importe d'un bloc le projet, développé jusque-là
+  ailleurs sous son ancien nom, Miel d'oreilles ; il est signé Claude parce qu'il est parti d'une session Claude Code. Le chemin
+  d'avant se lit dans les planches et dans les « Ce qui a été tranché » du LISEZMOI.
 
 <br>
 
