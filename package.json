@@ -18,6 +18,7 @@
     "hote": "tsx src/planche/etape6.ts",
     "animations": "tsx src/planche/etape7.ts",
     "prototype": "tsx src/planche/prototype.ts",
+    "vitrine": "tsx src/planche/vitrine.ts",
     "construire": "tsx outils/construire.ts",
     "site": "node dist/serveur.mjs"
   },
