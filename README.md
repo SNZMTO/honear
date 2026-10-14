@@ -14,7 +14,7 @@
 > **In English.** Honear is a multiplayer music blind test, live at [honear.fr](https://honear.fr). A shared screen shows a
 > low‑poly hi‑fi cabinet, everyone answers from their phone, and a Node/WebSocket server keeps every game in sync. Strict
 > TypeScript, 523 tests (some of which enforce the architecture itself), a hardened Docker deployment and a GDPR register.
-> Every picture on this page is drawn by the game's own renderer. Built with Claude Code: see the hidden track at the end.
+> Every picture on this page is drawn by the game's own renderer. Code and docs are in French.
 
 <img src=".github/vitrine/bandeau-face-a.svg" alt="Face A : le jeu" width="100%">
 
@@ -142,20 +142,20 @@ npm run construire && npm run site  # le jeu sur http://127.0.0.1:8080
 Pour y brancher les téléphones du réseau local : `HOTE=0.0.0.0 npm run site`. Sans réseau vers Deezer, `npm run prototype` écrit
 une partie jouable de bout en bout contre un serveur simulé (`sortie/prototype.html`).
 
-<img src=".github/vitrine/bandeau-piste-cachee.svg" alt="Piste cachée : comment je l'ai construit avec Claude Code" width="100%">
+<img src=".github/vitrine/bandeau-piste-cachee.svg" alt="Piste cachée : comment je l'ai construit" width="100%">
 
-Honear est écrit avec Claude Code. Le code, les tests et la plupart des messages de commit viennent de Claude, et le premier commit,
-qui apporte les sept étapes de conception, est à son nom. Mon travail, c'est le cadre, les décisions et la vérification.
+Honear est mon projet de bout en bout : l'idée, le meuble et son style, le découpage en couches, les règles du code, la
+sécurité et l'hébergement. Pour écrire le code, je travaille avec un assistant de code, Claude Code, et les commits co-signés
+le montrent. Il écrit vite ; c'est moi qui pose le cadre, qui tranche et qui vérifie.
 
-- **Un cadre écrit.** [`CLAUDE.md`](CLAUDE.md) fixe les règles du code, les commandes, la mise en ligne et ce à quoi on ne touche
-  jamais : le mot de passe du courrier, les comptes des joueurs, aucun secret sur GitHub. Il fixe aussi la façon de travailler :
-  un plafond de temps par tour, une seule passe de vérification, et s'arrêter au premier outil qui bloque au lieu de le contourner.
-- **Des règles qui se vérifient seules.** Chaque règle d'architecture est un test : un test rouge, c'est une règle enfreinte, pas
-  un test à changer. C'est ce qui empêche le code de dériver d'une session à l'autre.
-- **Concevoir avant de coder.** Le jeu est passé par sept étapes, chacune rendue en planches avant la suivante : le dessin,
-  l'animation, le système visuel, les écrans du téléphone, l'écran de l'hôte, puis un prototype jouable contre un serveur simulé.
-  Les planches sont toujours là ([`src/planche/`](src/planche)), et chaque choix est noté dans le LISEZMOI, à « Ce qui a été
-  tranché ».
+- **Concevoir avant de coder.** Le jeu est passé par sept étapes, chacune validée sur des planches avant la suivante : le
+  dessin, l'animation, le système visuel, les écrans du téléphone, l'écran de l'hôte, puis un prototype jouable contre un
+  serveur simulé. Les planches sont toujours là ([`src/planche/`](src/planche)), et chaque choix est noté dans le LISEZMOI, à
+  « Ce qui a été tranché ».
+- **Des règles qui se vérifient seules.** Chaque règle d'architecture est un test : un test rouge, c'est une règle enfreinte,
+  pas un test à changer. Le code ne peut pas dériver sans que ça se voie, quelle que soit la main qui l'écrit.
+- **Des consignes écrites** ([`CLAUDE.md`](CLAUDE.md)) : les commandes, la mise en ligne, et ce à quoi on ne touche jamais, comme
+  le mot de passe du courrier, les comptes des joueurs ou un secret sur GitHub.
 - **Essayer sur de vrais téléphones.** Plusieurs bugs ne se voyaient que sur iPhone : la page sait envoyer un diagnostic au
   journal du serveur, et deux passes d'« audit mobile » ont suivi.
 - **Relire.** Les commits gardent la trace de ce que la relecture a corrigé.
