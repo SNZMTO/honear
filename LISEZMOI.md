@@ -24,6 +24,8 @@ Ce dossier contient ce que les sept premières étapes demandent, prototype comp
 Pour le mettre en ligne : `HEBERGEMENT.md` (un conteneur Docker sur un VPS Debian, derrière le frontal du dépôt `vps`).
 Pour continuer à travailler avec Claude Code (sur le VPS ou ailleurs) : `CLAUDE.md`, ses règles, ses commandes, et la mise en ligne
 depuis un clone du dépôt.
+Pour qui découvre le projet sur GitHub : `README.md`, la vitrine, et ses captures dans `.github/captures/`. Les tests et les
+contrôles du rendu tournent aussi sur GitHub à chaque envoi sur `main` (`.github/workflows/tests.yml`).
 
 Et le jeu en ligne : le serveur sur un VPS (`HEBERGEMENT.md`), les téléphones branchés par WebSocket, le son, les extraits de
 30 secondes de Deezer, pour une playlist Deezer comme pour une playlist Spotify publique, et les comptes, facultatifs, ouverts par un
