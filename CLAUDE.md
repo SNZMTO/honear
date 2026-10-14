@@ -20,6 +20,7 @@ npm run controle       # les contrôles du rendu sur toutes les planches : « Au
 npm run construire     # dist/index.html (la page) et dist/serveur.mjs (le serveur)
 npm run prototype      # sortie/prototype.html : une partie cliquable contre le serveur simulé
 npm run ecrans         # sortie/ecrans/*.svg : tous les écrans du téléphone (étape 5)
+npm run vitrine        # .github/vitrine/*.svg : les images du README, dessinées par le moteur du site
 npm run format         # Prettier
 ```
 
