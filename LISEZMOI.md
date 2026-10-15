@@ -48,7 +48,7 @@ npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
 docker build -t honear .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
 npm run controle    # passe les contrôles du rendu sur les 196 images, et dit ce qu'ils ont mesuré
-npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 530 tests
+npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 532 tests
 npm run format      # Prettier
 ```
 
@@ -374,7 +374,8 @@ src/
     pochette.ts                 « Au hasard », « Un autre album » : le tirage au sort est passé en argument.
     partie.ts                   Une partie rejouée depuis son journal : les joueurs, leurs points, leurs têtes, le hit-parade, la finale, le code.
     jugement.ts                 Juste, presque ou faux : la saisie normalisée, comparée à l'attendu à quelques fautes près.
-    modes/                      Le contrat d'un mode et le registre ; « Libre » et « 4 choix », chacun son barème.
+    modes/                      Le contrat d'un mode et le registre ; « Libre », « Solo », « First one », « 1re note », chacun son barème
+                                (« 4 choix », au registre, n'est plus sur la manette).
     messages.ts                 Le contrat du transport : actions, nouvelles, et le journal tel que le serveur le publie.
     mot-de-passe.ts             Ce que vaut un mot de passe de compte (au téléphone comme au serveur), et sa forme normale.
     statistiques.ts             Ce que la page des statistiques reçoit du serveur.
@@ -1008,6 +1009,16 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   - *Ce qu'on voit* : plus de fondu sur la table nue après une piste (l'écran clignotait) ; la citrouille reste dans son coin
     (`cherche`) ; « Lancer la face A », taillée à son libellé, ne mord plus sur la kraft ; dans le bac, la choisie ne passe plus
     sur les crans. Un clavier qui compose un mot (Android) ne le voit plus récrit sous lui.
+- **Le solo, et les fautes d'orthographe** (le 15, au soir) :
+  - *Solo* prend le cran des 4 choix sur la manette (`regles/modes/solo.ts`) : la saisie libre et son barème, une room qui
+    n'accueille que son hôte (`joueurs` dans le contrat d'un mode : il lance seul ; qui tente d'entrer lit « Partie en solo : ouvre
+    la tienne. »), et la piste qui passe dès qu'il a tout trouvé (`finitAuPremier`). Son salon n'a ni code, ni lien, ni QR code.
+    Les 4 choix restent au registre, rangés au-delà de la manette (cran 4) : ils ne s'y choisissent plus ; leurs écrans et leurs
+    leurres restent, que les planches montrent (`MODES_PAR_CRAN` ne garde que les modes de la manette).
+  - *Les fautes d'orthographe* passent dans tous les modes où l'on tape : une faute toutes les 4 lettres (au lieu de 5), et une
+    comparaison à l'oreille (`aLOreille` : ph et f, c dur et k, c doux et s, y et i, z et s, w et ou, ou et u, au et o, ai et é,
+    g doux et j, h muet, lettres doublées, e, s et x muets en fin de mot). « bionsé », « angel », « neckfeu », « johny halliday »
+    sont justes ; « les démons du minou » reste « Presque. ».
 
 ## Ce qui attend les étapes suivantes
 

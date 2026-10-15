@@ -1,6 +1,7 @@
 /**
  * Le jugement d'une réponse tapée, comparée à ce qu'on attend (un titre, ou un artiste). On tolère les accents, les majuscules,
- * la ponctuation, les « feat. » et ce qui les suit, les parenthèses, les petits mots du début, et quelques fautes de frappe.
+ * la ponctuation, les « feat. » et ce qui les suit, les parenthèses, les petits mots du début, des fautes de frappe, et les fautes
+ * d'orthographe : ce qui s'écrit autrement mais se dit pareil (« bionsé », « angel », « nekfeu » tapé « neckfeu »).
  * Une réponse proche mais pas assez vaut un « Presque. ». Des fonctions pures : elles se testent sans navigateur.
  */
 
@@ -50,6 +51,39 @@ export function fautes(a: string, b: string): number {
   return d[a.length]?.[b.length] ?? Math.max(a.length, b.length);
 }
 
+/**
+ * Ce qu'on entend d'un texte déjà normalisé : les lettres qui se disent pareil ramenées à une seule (ph et f, c dur et k, c doux
+ * et s, y et i, z et s, w et ou, ou et u, au et o, ai et é, g doux et j), le h muet ôté, les lettres doublées simplifiées, le e,
+ * le s et le x muets de la fin d'un mot oubliés. « Beyoncé » et « bionsé » s'y entendent presque pareil ; « Angèle » et
+ * « angel », pareil.
+ */
+export function aLOreille(texte: string): string {
+  return texte
+    .split(' ')
+    .map((mot) =>
+      mot
+        .replace(/ph/g, 'f')
+        .replace(/s?ch|sh/g, '§')
+        .replace(/([tg])h/g, '$1')
+        .replace(/ck|qu|q/g, 'k')
+        .replace(/c(?=[eiy])/g, 's')
+        .replace(/c/g, 'k')
+        .replace(/gu(?=[eiy])/g, 'g')
+        .replace(/g(?=[eiy])/g, 'j')
+        .replace(/y/g, 'i')
+        .replace(/z/g, 's')
+        .replace(/w/g, 'u')
+        .replace(/eau|au/g, 'o')
+        .replace(/ou|oo/g, 'u')
+        .replace(/ai|ei/g, 'e')
+        .replace(/ee|ea/g, 'i')
+        .replace(/h/g, '')
+        .replace(/(.)\1+/g, '$1')
+        .replace(/(..)[esx]$/, '$1'),
+    )
+    .join(' ');
+}
+
 /** Une saisie comparée à ce qu'on attend : juste, presque, ou faux. */
 export function juger(saisie: string, attendu: string): Verdict {
   const s = normaliser(saisie);
@@ -60,6 +94,9 @@ export function juger(saisie: string, attendu: string): Verdict {
   const n = Math.min(fautes(s, t), fautes(colle(s), colle(t)), fautes(colle(normaliser(saisie, false)), colle(normaliser(attendu, false))));
   const lettres = t.replace(/ /g, '').length;
   if (n <= Math.floor(lettres / JUGEMENT.lettresParFaute)) return 'juste';
+  // À l'oreille : une faute d'orthographe qui se dit pareil passe, avec un peu moins de fautes de frappe en plus.
+  const [os, ot] = [colle(aLOreille(s)), colle(aLOreille(t))];
+  if (fautes(os, ot) <= Math.floor(ot.length / JUGEMENT.lettresParFauteALOreille)) return 'juste';
   if (n <= lettres * JUGEMENT.presque) return 'presque';
   // Un morceau de la bonne réponse, assez long (« les démons de » pour « Les Démons de minuit »), ou la bonne réponse et autre chose.
   const morceau = colle(s).length >= lettres * JUGEMENT.morceau && t.includes(s);

@@ -73,12 +73,14 @@ export const MOT_DE_PASSE = {
 } as const;
 
 /**
- * Le jugement d'une réponse tapée : on tolère une faute de frappe toutes les `lettresParFaute` lettres, et au-delà, jusqu'à
- * une part `presque` de la longueur de la réponse, c'est « Presque. » ; une saisie qui couvre au moins `morceau` de la réponse
- * attendue, sans la couvrir toute, aussi. Les petits mots qu'on oublie au début d'un titre ne comptent pas.
+ * Le jugement d'une réponse tapée : on tolère une faute de frappe toutes les `lettresParFaute` lettres ; et, comparées à
+ * l'oreille (ce qui s'écrit autrement mais se dit pareil : « bionsé » pour « Beyoncé »), une toutes les `lettresParFauteALOreille`.
+ * Au-delà, jusqu'à une part `presque` de la longueur de la réponse, c'est « Presque. » ; une saisie qui couvre au moins `morceau`
+ * de la réponse attendue, sans la couvrir toute, aussi. Les petits mots qu'on oublie au début d'un titre ne comptent pas.
  */
 export const JUGEMENT = {
-  lettresParFaute: 5,
+  lettresParFaute: 4,
+  lettresParFauteALOreille: 5,
   presque: 0.4,
   morceau: 0.5,
   articles: ['le', 'la', 'les', 'l', 'un', 'une', 'des', 'the', 'a', 'an'],

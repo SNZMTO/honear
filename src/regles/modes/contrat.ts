@@ -68,6 +68,8 @@ export interface ModeDeJeu {
   readonly son?: number;
   /** Vrai si la piste s'arrête dès qu'un joueur a tout trouvé : la réponse se révèle aussitôt. */
   readonly finitAuPremier?: boolean;
+  /** Combien de joueurs il faut pour lancer une piste, et combien la room en accueille au plus ; sans cela, ceux de toute partie. */
+  readonly joueurs?: { readonly auMoins: number; readonly auPlus: number };
   /** En combien d'équipes il range les joueurs, s'il en fait : leurs points se mettent en commun, et la tablée se range en autant de piles. */
   readonly equipes?: number;
 }

@@ -7,7 +7,7 @@
 
 import { hasard } from '../../lowpoly/aleatoire';
 import { estUnThemeDuBac, type Action, type CompteVu, type Nouvelle, type PlaylistTrouvee, type RaisonDeRefus } from '../../regles/messages';
-import { MODES, type CleDeMode } from '../../regles/modes';
+import { MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { numeroDeLaPiste, partieA, type EvenementDePartie, type Face, type SonDeLaRoom } from '../../regles/partie';
 import type { ActionDePiste } from '../../regles/piste';
 import { jugerUnMotDePasse } from '../../regles/mot-de-passe';
@@ -687,7 +687,8 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
     case 'tournerLeBouton': {
       if (prep.ecran !== 'reglages' || !p.commandes) return rien;
       if (t.bouton === 'mode') {
-        const cles = (Object.keys(MODES) as CleDeMode[]).sort((a, b) => MODES[a].cran - MODES[b].cran);
+        // Les modes de la manette, dans l'ordre de leurs crans : ceux d'au-delà ne se choisissent pas.
+        const cles = MODES_PAR_CRAN.map((m) => m.cle as CleDeMode);
         return seul({ ...m, preparation: { ...prep, mode: suivant(cles, prep.mode) } });
       }
       return seul({ ...m, preparation: { ...prep, [t.bouton]: suivant(REGLAGES[t.bouton].choix, prep[t.bouton]) } });
