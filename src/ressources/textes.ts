@@ -71,9 +71,10 @@ export interface Textes {
   /**
    * Ce que le site dit, à la place du meuble, pendant qu'il le dessine. Puis ce qu'il dit à un navigateur qui ne sait pas
    * le montrer : une phrase, un conseil, et ce qui lui manque, pour qui dépanne, avec ce qui sépare deux manques dans la phrase.
-   * Et ce qu'il dit à un navigateur dont on a coupé les scripts.
+   * Et ce qu'il dit à un navigateur dont on a coupé les scripts ; et à un téléphone couché, où le jeu ne tient pas.
    */
   readonly navigateur: {
+    readonly couche: string;
     readonly enAttendant: string;
     readonly titre: string;
     readonly conseil: string;

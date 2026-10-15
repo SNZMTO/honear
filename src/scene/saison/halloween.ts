@@ -508,7 +508,8 @@ function citrouilleQuiTient(cadre: Emprise, objets: readonly Emprise[]): Calque[
     // Le plan s'étend de chaque côté du regard, et en bas, d'autant qu'elle peut en sortir : là, rien ne la gêne.
     const [cote, bas] = [boite.largeur * C.deborde[0], boite.hauteur * C.deborde[1]];
     const plan = unPlan({ x: cadre.x - cote, y: cadre.y, largeur: cadre.largeur + 2 * cote, hauteur: cadre.hauteur + bas }, pas, objets);
-    const en = placeLibre(boite, [cadre.x + C.vers[0] * cadre.largeur, cadre.y + C.vers[1] * cadre.hauteur], plan, H.placement.marge);
+    const vise: Vec2 = [cadre.x + C.vers[0] * cadre.largeur, cadre.y + C.vers[1] * cadre.hauteur];
+    const en = placeLibre(boite, vise, plan, H.placement.marge, Math.round((C.cherche * cadre.largeur) / pas));
     if (en !== undefined) return citrouille(en, r);
   }
   return [];

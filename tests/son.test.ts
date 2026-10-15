@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { aLaNouvelle, MEMOIRE_VIDE, memoireDeDepart, recevoir, toucher, type Memoire, type Preparatifs } from '../src/ecran/telephone/memoire';
 import { ecranDuTelephone } from '../src/ecran/telephone/route';
-import { sonVoulu, volumeA } from '../src/ecran/telephone/son';
+import { aRemettreEnPlace, sonVoulu, volumeA } from '../src/ecran/telephone/son';
 import { hasard } from '../src/lowpoly/aleatoire';
 import { pochetteDExemple } from '../src/planche/exemples';
 import type { Action, Connexion } from '../src/regles/messages';
@@ -145,4 +145,22 @@ test('un téléphone rechargé l’ampli allumé le retrouve allumé, sans s’y
   assert.notEqual(ecranDuTelephone(revenu, horloge.t, PREPARATIFS, TEXTES).genre, 'ampli');
   // Sans l'ampli gardé, il revient éteint.
   assert.equal(memoireDeDepart(PREPARATIFS, { reprise: { code: room.code, jeton: room.jeton, pochette: POCHETTE } }).ampliAllumeA, undefined);
+});
+
+test('un extrait qui dérive n’est remis à sa place que s’il le faut : jamais pour un petit écart sur un iPhone, ni quand il attend ses données', () => {
+  const S = TELEPHONE.son;
+  const joue = { surIOS: false, enRecherche: false, aDeQuoiJouer: true, depuis: undefined };
+  assert.equal(aRemettreEnPlace(S.ecartAdmis / 2, joue), false, 'un petit écart reste');
+  assert.equal(aRemettreEnPlace(-(S.ecartAdmis + 0.1), joue), true, 'en retard de plus que l’écart admis : remis en place');
+  assert.equal(aRemettreEnPlace(S.ecartAdmis + 0.1, { ...joue, depuis: S.entreDeuxSauts / 2 }), false, 'pas coup sur coup');
+  assert.equal(aRemettreEnPlace(S.ecartAdmis + 0.1, { ...joue, depuis: S.entreDeuxSauts }), true);
+  assert.equal(
+    aRemettreEnPlace(S.ecartAdmis + 0.1, { ...joue, aDeQuoiJouer: false }),
+    false,
+    'il attend ses données : le pousser plus loin le ferait attendre encore',
+  );
+  assert.equal(aRemettreEnPlace(S.ecartAdmis + 0.1, { ...joue, enRecherche: true }), false);
+  // Safari coupe le son à chaque position qu'on lui donne en pleine lecture : sur un iPhone, seulement un grand écart.
+  assert.equal(aRemettreEnPlace(-(S.ecartAdmis + 0.1), { ...joue, surIOS: true }), false);
+  assert.equal(aRemettreEnPlace(-(S.ecartAdmisSurIOS + 0.1), { ...joue, surIOS: true }), true);
 });

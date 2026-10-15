@@ -184,13 +184,14 @@ export const TABLEE = {
        * d'autant. « Au hasard », dessous, à cette hauteur.
        */
       playlists: {
-        y: [512, 562, 612, 662],
+        // Assez bas pour que la choisie, soulevée, ne passe pas sur les crans.
+        y: [538, 584, 630, 676],
         angles: [-1, 0.8, -0.6, 1],
         disque: { x: 62, rayon: 23 },
         papier: { x: 222, largeur: 252 },
         leve: 12,
         teinteDeLaChoisie: 'miel',
-        auHasard: 722,
+        auHasard: 736,
       },
       /** Le regard sur le bac descend sous le haut de ses intercalaires, de cette marge : on lit tous les thèmes. */
       auDessus: 30,

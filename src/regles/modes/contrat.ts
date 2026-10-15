@@ -17,6 +17,8 @@ export interface PisteDuMode {
   readonly choix?: readonly Reponse[];
   /** L'adresse de son extrait, quand la source en donne un : chaque téléphone qui joue le son le précharge pendant le décompte. */
   readonly extrait?: string;
+  /** Son identifiant chez Deezer, quand elle en vient : de quoi y lire ses invités, que la liste d'une playlist ne donne pas. */
+  readonly deezer?: number;
 }
 
 /** La dernière proposition d'un joueur à une piste, et l'instant où il l'a faite : ce qu'un mode peut départager à la révélation. */
