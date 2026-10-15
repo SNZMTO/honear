@@ -154,6 +154,29 @@ test('un appareil en retard ne retient pas la piste ; une connexion qui tombe ga
   assert.equal(partieA(revenu.journal, Infinity).joueurs.length, 2, 'sa place, pas une de plus');
 });
 
+test('revenu par une nouvelle ligne avant que le serveur ne voie l’ancienne morte : quand elle tombe enfin, il reste branché et suit la partie', () => {
+  const m = monde();
+  const [hote, invite] = [m.telephone(), m.telephone()];
+  hote.connexion.envoyer(creer);
+  invite.connexion.envoyer({ genre: 'rejoindre', code: hote.code, pochette: POCHETTE });
+  // L'iPhone revient de veille : sa vieille ligne est morte sans le dire, il en ouvre une autre et redonne son jeton.
+  const revenu = m.telephone();
+  revenu.connexion.envoyer({ genre: 'rejoindre', code: hote.code, pochette: POCHETTE, jeton: invite.jeton });
+  assert.equal(revenu.toi, invite.toi);
+  // Le serveur ne voit la vieille ligne morte qu'au battement d'après : elle tombe maintenant.
+  invite.connexion.couper();
+  assert.equal(partieA(hote.journal, Infinity).joueurs.find((j) => j.id === invite.toi)?.connecte, true, 'il ne passe pas pour parti');
+  // La piste suivante, et son extrait, lui arrivent par sa nouvelle ligne ; ce qu'il répond compte.
+  hote.connexion.envoyer({ genre: 'lancer' });
+  assert.ok(piste(revenu) !== undefined, 'la piste lancée lui arrive');
+  hote.connexion.envoyer({ genre: 'pret' });
+  revenu.connexion.envoyer({ genre: 'pret' });
+  const extraitA = piste(hote)?.extraitA ?? 0;
+  m.a(extraitA + 1);
+  revenu.connexion.envoyer({ genre: 'repondre', proposition: { genre: 'saisie', texte: 'images' } });
+  assert.ok(revenu.journal.some((e) => e.genre === 'jugee' && e.id === invite.toi && e.verdict === 'juste'));
+});
+
 test('« First one » : le premier qui trouve l’artiste et le titre gagne la piste, qui se révèle aussitôt ; « 1re note » ne fait entendre qu’une seconde', () => {
   const m = monde();
   const [hote, invite] = [m.telephone(), m.telephone()];
