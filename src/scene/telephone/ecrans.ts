@@ -5,10 +5,10 @@
  */
 
 import type { Vec2 } from '../../lowpoly/vecteurs';
-import type { ModeDeJeu } from '../../regles/modes';
+import { MODES, type ModeDeJeu } from '../../regles/modes';
 import { disquesDeLaFinale, hitParade, mouvementsDuClassement, type EtatDeLaPartie, type SonDeLaRoom } from '../../regles/partie';
 import type { Reponse } from '../../regles/piste';
-import { SITE } from '../../ressources/reglages';
+import { PARTIE, SITE } from '../../ressources/reglages';
 import { TABLEE, type Place } from '../../ressources/tablee';
 import type { Vignette } from '../../ressources/vignettes';
 import { dessinerLAmpli } from '../ampli';
@@ -324,15 +324,17 @@ export function vueDuSalon(
   const S = T.salon;
   const lien = remplir(a.textes.partie.lien, { site: a.site ?? SITE.adresse, code });
   const joueurs = eventail(etat, a.textes, 'rien');
+  // En solo, personne à inviter : ni le code sur le disque, ni le QR code sur la kraft, ni le lien.
+  const seul = (MODES[etat.mode].joueurs ?? PARTIE.joueurs).auPlus === 1;
   const objets: Calque[] = [
-    platineArretee(a, { code: { code, joueurs: etat.joueurs.length } }),
+    seul ? platineArretee(a) : platineArretee(a, { code: { code, joueurs: etat.joueurs.length } }),
     // Le QR code mène à la room, et dit qu'on vient de lui (« #qr ») : on le compte, à l'arrivée.
-    ...kraftDuSalon(a, `https://${lien}#qr`, etat),
+    ...kraftDuSalon(a, `https://${lien}#qr`, etat).filter((c) => !seul || c.nom !== 'kraft-qr'),
     ...dessinerLaTablee(joueurs, placesEnEventail(joueurs.length), T.eventail.taille, r, T.trouve, a.encrier.largeur),
   ];
   // Le nouvel hôte lit, à la place du lien, que c'est lui qui tient la platine.
   if (qui === 'nouvelHote') objets.push(...phrase(a.textes.etats.patronSorti, r, a.encrier, S.lien.en, S.lien.largeur));
-  else
+  else if (!seul)
     objets.push(
       ...papier(
         'etiquette-lien',
@@ -381,7 +383,7 @@ export function vueDeLAmpli(a: Ecritoire, allume: boolean): VueDuTelephone {
  * La saisie du code d'une room : le papier où il s'écrit, lettre après lettre ; ce que le serveur a refusé ; la touche qui entre, et
  * « Retour », qui ramène à l'accueil.
  */
-export function vueDeLaSaisie(a: Ecritoire, tape: string, refus?: 'codeInconnu' | 'complet'): VueDuTelephone {
+export function vueDeLaSaisie(a: Ecritoire, tape: string, refus?: 'codeInconnu' | 'complet' | 'solo'): VueDuTelephone {
   const r = SUR_LA_PLATINE;
   const S = T.saisie;
   const lettres = [...tape].join('  ');

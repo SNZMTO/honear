@@ -154,13 +154,15 @@ export function ouvrirUneRoom(
     return e.joueurs.filter((j) => j.connecte && branches.has(j.id)).map((j) => j.id);
   };
   const estLHote = (id: string): boolean => etat().hote === id;
+  /** Combien de joueurs il faut pour lancer, et combien la room en accueille : ceux du mode (le solo, un seul), sinon ceux d'une partie. */
+  const joueursDuMode = MODES[reglages.mode].joueurs ?? PARTIE.joueurs;
 
   function lancer(id: string, heure: number): void {
     const e = etat();
     const toutes = pistes();
     const attendue = toutes[prochaine % Math.max(1, toutes.length)];
     const libre = enCours === undefined || enCours.piste?.revelation !== undefined;
-    if (!estLHote(id) || !libre || attendue === undefined || e.phase === 'fin' || e.joueurs.length < PARTIE.joueurs.auMoins) return;
+    if (!estLHote(id) || !libre || attendue === undefined || e.phase === 'fin' || e.joueurs.length < joueursDuMode.auMoins) return;
     prochaine++;
     const p: PisteDeLaRoom = { attendue, piste: undefined, seance: [], prets: new Set(), extraitParti: false, trouvee: false };
     enCours = p;
@@ -271,8 +273,9 @@ export function ouvrirUneRoom(
     arriver(id, pochette, envoyer, heure, jeton) {
       activite = heure;
       avancer(heure);
-      if (etat().joueurs.length >= PARTIE.joueurs.auPlus) {
-        envoyer({ genre: 'refus', heure, raison: 'complet' });
+      if (etat().joueurs.length >= joueursDuMode.auPlus) {
+        // En solo, on le dit : ce n'est pas qu'il y a trop de monde.
+        envoyer({ genre: 'refus', heure, raison: joueursDuMode.auPlus === 1 ? 'solo' : 'complet' });
         raconter?.({ genre: 'refus', raison: 'complet' });
         return;
       }

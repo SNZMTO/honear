@@ -61,7 +61,7 @@ export const TEXTES: Textes = {
     extrait: 'Secondes',
     mode: 'Mode',
     son: 'Son',
-    modes: { libre: 'Libre', quatreChoix: '4 choix', premierArrive: 'First one', premiereNote: '1re note' },
+    modes: { libre: 'Libre', solo: 'Solo', premierArrive: 'First one', premiereNote: '1re note', quatreChoix: '4 choix' },
     crans: ['1', '2', '3', '4', '5', '6', '7'],
     sons: { tous: 'Tous', hote: 'Hôte' },
   },
@@ -230,6 +230,7 @@ export const TEXTES: Textes = {
     avecUnFeat: '{artiste} feat. {feat}',
     bareme: {
       libre: 'Libre : 1 point l’artiste, 1 le titre, 1 le feat.',
+      solo: 'Solo : tu joues seul. 1 point par partie, la piste passe dès que tu as tout.',
       quatreChoix: '4 choix : 1 point, 1 de plus au plus rapide.',
       premierArrive: 'First one : le premier qui trouve l’artiste et le titre gagne 3 points, la piste s’arrête.',
       premiereNote: '1re note : une seconde de son, puis on cherche. 1 point par partie.',
@@ -250,6 +251,7 @@ export const TEXTES: Textes = {
   etats: {
     codeInconnu: 'Connais pas ce disque. Vérifie le code.',
     complet: 'Complet. Douze pochettes, pas une de plus.',
+    solo: 'Partie en solo : ouvre la tienne.',
     tropCourt: 'Trop court pour une face.',
     connexionPerdue: 'Connexion perdue. On garde ta pochette au chaud.',
     patronSorti: 'Le patron est sorti. C’est toi qui tiens la platine.',

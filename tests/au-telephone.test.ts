@@ -36,7 +36,7 @@ test('la platine, le bac et l’ampli ne se rebâtissent pas d’une lettre tap�
   );
   // D'autres réglages, une autre platine : le code de la room sur son disque, un autre mode.
   assert.notEqual(platineArretee(A, { code: { code: 'AENV', joueurs: 2 } }), platineArretee(A));
-  assert.notEqual(platineArretee(A, { mode: MODES.quatreChoix.cran }), platineArretee(A));
+  assert.notEqual(platineArretee(A, { mode: MODES.solo.cran }), platineArretee(A));
   const bac = (recherche: string) => vueDuBac(A, { cran: 'chercher', recherche }).objets.find((c) => c.nom === 'bac');
   assert.ok(bac('ab') !== undefined && bac('ab') === bac('abc'), 'le même bac, d’une lettre cherchée à l’autre');
 });

@@ -276,18 +276,22 @@ test('aux réglages, les commandes de la platine tournent : le bouton « Titres 
   m = toucher(m, { genre: 'tournerLeBouton', bouton: 'pistes' }, 0, p).memoire;
   assert.equal(reglages()?.pistes, 10, 'après le dernier cran, le premier');
   m = toucher(m, { genre: 'tournerLeBouton', bouton: 'mode' }, 0, p).memoire;
-  assert.equal(reglages()?.mode, 'quatreChoix');
+  assert.equal(reglages()?.mode, 'solo', 'le solo a pris le cran des 4 choix');
+  // Les modes de la manette seulement : après le dernier, le premier, sans passer par les 4 choix rangés au-delà.
+  for (let k = 0; k < 3; k++) m = toucher(m, { genre: 'tournerLeBouton', bouton: 'mode' }, 0, p).memoire;
+  assert.equal(reglages()?.mode, 'libre');
+  m = toucher(m, { genre: 'tournerLeBouton', bouton: 'mode' }, 0, p).memoire;
   // Un nom gravé autour de la manette se touche : ce mode-là, d'un coup (« First one » est en haut).
   const ecran = ecranDuTelephone(m, 0, p, TEXTES);
   assert.deepEqual(choseATouche('interrupteur-mode/haut', ecran, TEXTES)?.toucher, { genre: 'choisirLeMode', mode: 'premierArrive' });
   m = toucher(m, { genre: 'choisirLeMode', mode: 'premiereNote' }, 0, p).memoire;
   assert.equal(reglages()?.mode, 'premiereNote');
-  m = toucher(m, { genre: 'choisirLeMode', mode: 'quatreChoix' }, 0, p).memoire;
+  m = toucher(m, { genre: 'choisirLeMode', mode: 'solo' }, 0, p).memoire;
   const { actions } = toucher(m, { genre: 'ouvrir' }, 0, p);
   // Plus d'interrupteur du son : tous les téléphones jouent le son.
   assert.deepEqual(
     actions.map((a) => (a.genre === 'creer' ? [a.mode, a.pistes, a.son] : a.genre)),
-    [['quatreChoix', 10, 'tous']],
+    [['solo', 10, 'tous']],
   );
   // Réglées d'avance (la partie du prototype), elles ne tournent pas.
   const fige = toucher(m, { genre: 'tournerLeBouton', bouton: 'pistes' }, 0, { ...p, commandes: false });

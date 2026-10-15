@@ -2,7 +2,7 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { fautes, juger, normaliser } from '../src/regles/jugement';
+import { aLOreille, fautes, juger, normaliser } from '../src/regles/jugement';
 import { MODES, MODES_PAR_CRAN } from '../src/regles/modes';
 import type { Reponse } from '../src/regles/piste';
 
@@ -26,6 +26,32 @@ test('les fautes de frappe se comptent : une lettre en trop, en moins, changée,
   assert.equal(fautes('minuit', 'minuti'), 1);
   assert.equal(fautes('minuit', 'mimuit'), 1);
   assert.equal(fautes('demons', 'deomns'), 1);
+});
+
+test('les fautes d’orthographe passent : ce qui s’écrit autrement mais se dit pareil est juste, sans qu’une autre chanson le soit', () => {
+  const justes: readonly (readonly [string, string])[] = [
+    ['bionsé', 'Beyoncé'],
+    ['angel', 'Angèle'],
+    ['neckfeu', 'Nekfeu'],
+    ['nino', 'Ninho'],
+    ['dadjou', 'Dadju'],
+    ['ouejdene', 'Wejdene'],
+    ['stromai', 'Stromae'],
+    ['johny halliday', 'Johnny Hallyday'],
+    ['mikael jackson', 'Michael Jackson'],
+    ['dernière dance', 'Dernière danse'],
+    ['jull', 'Jul'],
+  ];
+  for (const [tape, attendu] of justes) assert.equal(juger(tape, attendu), 'juste', `${tape} pour ${attendu}`);
+  const autres: readonly (readonly [string, string])[] = [
+    ['jul', 'SCH'],
+    ['damso', 'Dadju'],
+    ['niska', 'Ninho'],
+    ['muse', 'Mika'],
+  ];
+  for (const [tape, attendu] of autres) assert.equal(juger(tape, attendu), 'faux', `${tape} n’est pas ${attendu}`);
+  assert.equal(juger('les demons du minou', DEMONS.titre), 'presque', 'un autre mot n’est pas une faute');
+  assert.equal(aLOreille('beyonce'), aLOreille('bionse').replace('i', 'e'));
 });
 
 test('juste, presque ou faux : on tolère les fautes de frappe, et une réponse proche vaut un « Presque. »', () => {
@@ -117,12 +143,15 @@ test('en 4 choix, une étiquette est la bonne : 1 point, 1 de plus au plus rapid
 
 test('le registre range les modes par cran, un cran chacun ; chaque mode a son nom dans les textes et tient le contrat', async () => {
   const { TEXTES } = await import('../src/ressources/textes.fr');
+  // Sur la manette : le solo a pris le cran des 4 choix, rangés au-delà, au registre, sans position.
   assert.deepEqual(
     MODES_PAR_CRAN.map((m) => m.cle),
-    ['libre', 'quatreChoix', 'premierArrive', 'premiereNote'],
+    ['libre', 'solo', 'premierArrive', 'premiereNote'],
   );
-  assert.equal(new Set(MODES_PAR_CRAN.map((m) => m.cran)).size, MODES_PAR_CRAN.length);
-  for (const mode of MODES_PAR_CRAN) {
+  assert.ok(!MODES_PAR_CRAN.includes(MODES.quatreChoix));
+  const tous = Object.values(MODES);
+  assert.equal(new Set(tous.map((m) => m.cran)).size, tous.length);
+  for (const mode of tous) {
     assert.ok(TEXTES.commandes.modes[mode.cle] !== undefined && TEXTES.partie.bareme[mode.cle] !== undefined, mode.cle);
     assert.ok(mode.aTrouver({ reponse: DEMONS }).length > 0 && mode.phases.includes('extrait'), mode.cle);
   }

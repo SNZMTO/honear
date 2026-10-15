@@ -192,6 +192,8 @@ export interface Textes {
   readonly etats: {
     readonly codeInconnu: string;
     readonly complet: string;
+    /** Une room en solo, où l'on tente d'entrer. */
+    readonly solo: string;
     readonly tropCourt: string;
     readonly connexionPerdue: string;
     readonly patronSorti: string;
