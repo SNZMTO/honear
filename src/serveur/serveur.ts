@@ -41,6 +41,8 @@ export interface OptionsDuServeur {
   readonly quandUneFaceFinit?: (code: string, etat: EtatDeLaPartie) => void;
   /** L'ordre où une room joue les n pistes de sa playlist ; sans lui, tiré au hasard. */
   readonly ordre?: (n: number) => readonly number[];
+  /** Les pistes qu'une room va jouer, dans l'ordre, chaque fois qu'elle les relit : la source s'y prépare (les invités de chacune). */
+  readonly bientot?: (pistes: readonly PisteDuMode[]) => void;
   /** Ce qui se passe dans les rooms, pour qu'on le compte (voir faits.ts). */
   readonly raconter?: Raconter;
 }
@@ -97,7 +99,14 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
    */
   function lire(lien: string, pistes: readonly PisteDuMode[], mode: CleDeMode): () => readonly PisteDuMode[] {
     const ordre = o.ordre?.(pistes.length) ?? unOrdreAuHasard(pistes.length, o.tirage);
-    return () => avecDesChoix(dansLOrdre(o.playlist(lien) ?? pistes, ordre), mode, o.tirage);
+    const dansSonOrdre = (): PisteDuMode[] => dansLOrdre(o.playlist(lien) ?? pistes, ordre);
+    // Dès qu'elle la prend, puis à chaque lancer : la source lit en coulisses ce qu'il faut des pistes qui viennent.
+    o.bientot?.(dansSonOrdre());
+    return () => {
+      const liste = dansSonOrdre();
+      o.bientot?.(liste);
+      return avecDesChoix(liste, mode, o.tirage);
+    };
   }
 
   return {

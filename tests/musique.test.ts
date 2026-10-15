@@ -19,9 +19,12 @@ import {
   laBonnePiste,
   lienDeezer,
   lireDesPistes,
+  lireLesInvites,
+  avecSesInvites,
   lireDesPlaylists,
   lireUnePiste,
   nomNu,
+  titreSansEdition,
 } from '../src/serveur/sources/deezer';
 import { lireUnLien } from '../src/serveur/sources/liens';
 import { idSpotify, lienSpotify, lireLaPage } from '../src/serveur/sources/spotify';
@@ -48,11 +51,19 @@ function uneTrackDeezer(id: number, expireDans = 900, autre: Record<string, unkn
 function unFauxDeezer(o: {
   readonly playlists?: Record<string, { titre: string; pistes: number; expireDans?: number }>;
   readonly recherche?: unknown;
+  /** Les fiches des pistes (`/track/{id}`) : leurs contributeurs, par identifiant. */
+  readonly fiches?: Record<string, readonly string[]>;
 }) {
   const demandes: string[] = [];
   const reponse = (adresse: string): unknown => {
     const url = new URL(adresse);
     if (url.pathname === '/search/playlist') return o.recherche ?? { data: [] };
+    const fiche = /^\/track\/(\d+)$/.exec(url.pathname)?.[1];
+    if (fiche !== undefined) {
+      const noms = o.fiches?.[fiche];
+      if (noms === undefined) return { error: { type: 'DataException', message: 'no data', code: 800 } };
+      return { ...uneTrackDeezer(Number(fiche)), contributors: noms.map((name, k) => ({ id: k, name, role: k === 0 ? 'Main' : 'Featured' })) };
+    }
     const [, , id, pistes] = url.pathname.split('/');
     const p = id !== undefined ? o.playlists?.[id] : undefined;
     if (p === undefined) return { error: { type: 'DataException', message: 'no data', code: 800 } };
@@ -146,6 +157,14 @@ test('une piste de Deezer : sa réponse, son invité tiré du titre, son extrait
     lireUnePiste(uneTrackDeezer(5, 900, { title: 'Dernière danse' })),
   );
   assert.equal(lireUnePiste(uneTrackDeezer(6, 900, { title: 'Bim Bam toi [ft. Vianney]', title_short: undefined }))?.reponse.titre, 'Bim Bam toi');
+  // Ce qui dit l'édition ne fait pas partie du titre qu'on montre et qu'on attend ; le reste entre parenthèses, si.
+  assert.equal(lireUnePiste(uneTrackDeezer(6, 900, { title_short: 'Runaway Train (2022 Remaster)' }))?.reponse.titre, 'Runaway Train');
+  assert.equal(titreSansEdition('Bohemian Rhapsody - Remastered 2011'), 'Bohemian Rhapsody');
+  assert.equal(titreSansEdition('One More Time (Radio Edit)'), 'One More Time');
+  assert.equal(titreSansEdition('Dancing Queen [Live at Wembley]'), 'Dancing Queen');
+  assert.equal(titreSansEdition('I’ll Be There for You (Theme from Friends)'), 'I’ll Be There for You (Theme from Friends)');
+  assert.equal(titreSansEdition('Live Is Life'), 'Live Is Life');
+  assert.equal(titreSansEdition('(Remastered)'), '(Remastered)', 'rien ne reste : tel quel');
   assert.equal(lireUnePiste(uneTrackDeezer(7, 900, { readable: false })), undefined);
   assert.equal(lireUnePiste(uneTrackDeezer(8, 900, { preview: '' })), undefined);
   assert.equal(lireUnePiste(uneTrackDeezer(9, 900, { preview: 'http://cdnt-preview.dzcdn.net/x.mp3' })), undefined);
@@ -479,6 +498,43 @@ test('une playlist Spotify se joue avec les extraits de Deezer : ses chansons re
   assert.deepEqual(nouveaux.filter((c) => c.startsWith('/track/')).length, 3);
   assert.ok(!nouveaux.includes('/search/track') || appels.slice(relues).every((a) => !a.adresse.includes('Tout%20oublier')));
   assert.equal(pages.length, 3, 'sa page relue');
+});
+
+test('les invités d’une piste : lus sur sa fiche pour les prochaines pistes d’une room, ils lui donnent son feat', async () => {
+  // La fiche : les contributeurs, sans l'artiste principal (aux majuscules près), ni ce qui ne s'écrit pas en latin.
+  const fiche = { contributors: [{ name: 'Kofs' }, { name: 'Jul' }, { name: 'KOFS' }, { name: '13 Organisé' }, { name: 'ジュル' }, 'rien'] };
+  assert.deepEqual(lireLesInvites(fiche, 'Kofs'), ['Jul', '13 Organisé']);
+  assert.deepEqual(lireLesInvites({ error: {} }, 'Kofs'), []);
+  const piste = lireUnePiste(uneTrackDeezer(5, 900, { title: 'Bande organisée', artist: { name: 'Kofs' } }));
+  assert.ok(piste !== undefined);
+  assert.equal(piste.deezer, 5, 'la piste garde son identifiant chez Deezer');
+  assert.equal(avecSesInvites(piste, ['Jul', '13 Organisé']).reponse.feat, 'Jul & 13 Organisé');
+  assert.equal(avecSesInvites(piste, []), piste, 'sans invité, la même piste');
+  const sapes = lireUnePiste(uneTrackDeezer(6, 900, { title: 'Sapés comme jamais (feat. Niska)', title_short: 'Sapés comme jamais (feat. Niska)' }));
+  assert.ok(sapes !== undefined);
+  assert.equal(avecSesInvites(sapes, ['niska', 'Gradur']).reponse.feat, 'Niska & Gradur', 'le feat du titre reste, les autres s’y ajoutent');
+  // La room dit ce qu'elle va jouer : on lit les fiches des trois prochaines pistes, une fois, et leurs pistes ont leur feat.
+  const deezer = unFauxDeezer({
+    playlists: { '777': { titre: 'Rap', pistes: 6 } },
+    fiches: { '1': ['Artiste 1', 'Roméo Elvis'], '2': ['Artiste 2'] },
+  });
+  const { musique, appels } = uneMusique(deezer.reponse);
+  await musique.preparer('deezer:777');
+  const avant = appels.length;
+  const pistes = musique.pistes('deezer:777') ?? [];
+  musique.preciser(pistes);
+  musique.preciser(pistes);
+  await new Promise((fini) => setImmediate(fini));
+  await new Promise((fini) => setImmediate(fini));
+  assert.equal(appels.length - avant, D.aVenir, 'les fiches des prochaines, une seule fois');
+  assert.ok(appels.slice(avant).every(({ adresse }) => /\/track\/[123]$/.test(adresse)));
+  const apres = musique.pistes('deezer:777') ?? [];
+  assert.equal(apres[0]?.reponse.feat, 'Roméo Elvis');
+  assert.equal(apres[1]?.reponse.feat, undefined, 'seul avec lui-même : pas de feat');
+  // Une fois lues, on passe aux suivantes ; une fiche qui ne se lit pas (la 3) est redemandée plus tard, pas tout de suite.
+  musique.preciser(apres);
+  await new Promise((fini) => setImmediate(fini));
+  assert.ok(appels.slice(avant + D.aVenir).every(({ adresse }) => /\/track\/[456]$/.test(adresse)));
 });
 
 test('une playlist bientôt plus fraîche se relit en coulisses, quand le serveur du jeu en lit les pistes', async () => {

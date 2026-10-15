@@ -85,8 +85,11 @@ export function unPlan(cadre: Emprise, pas: number, obstacles: readonly Emprise[
   };
 }
 
-/** La place libre la plus proche de celle qu'on vise, dans le plan, marge comprise ; ou rien s'il n'y en a pas. */
-export function placeLibre(boite: Boite, vise: Vec2, plan: PlanDuCadre, marge: number): Vec2 | undefined {
+/**
+ * La place libre la plus proche de celle qu'on vise, dans le plan, marge comprise ; ou rien s'il n'y en a pas.
+ * @param rangsAuPlus jusqu'où chercher autour de la place visée, en cases : au-delà, rien.
+ */
+export function placeLibre(boite: Boite, vise: Vec2, plan: PlanDuCadre, marge: number, rangsAuPlus = Infinity): Vec2 | undefined {
   const { cadre, pas } = plan;
   // La boîte, marge comprise, en cases ; et les cases d'où elle peut partir sans sortir du cadre.
   const [nc, nr] = [Math.ceil((boite.largeur + 2 * marge) / pas), Math.ceil((boite.hauteur + 2 * marge) / pas)];
@@ -96,7 +99,7 @@ export function placeLibre(boite: Boite, vise: Vec2, plan: PlanDuCadre, marge: n
   const en = (c: number, r: number): Vec2 => [cadre.x + c * pas - boite.x + marge, cadre.y + r * pas - boite.y + marge];
   const borne = (v: number, a: number): number => Math.min(a, Math.max(0, Math.round(v)));
   const [c0, r0] = [borne((vise[0] + boite.x - marge - cadre.x) / pas, cMax), borne((vise[1] + boite.y - marge - cadre.y) / pas, rMax)];
-  const loin = Math.max(cMax, rMax);
+  const loin = Math.min(Math.max(cMax, rMax), rangsAuPlus);
   for (let rang = 0; rang <= loin; rang++) {
     let meilleure: { readonly en: Vec2; readonly distance: number } | undefined;
     const essayer = (c: number, r: number): void => {

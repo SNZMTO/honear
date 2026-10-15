@@ -28,15 +28,16 @@ export const HALLOWEEN = {
 
   /**
    * La citrouille. Sur un grand regard : la plus grosse qui tient sans rien couvrir, de `auPlus` à `auMoins` (son rayon), de `pas`
-   * en `pas`, au plus près de là où elle vise (en parts du regard) ; elle peut en sortir, par le côté de cette part de sa largeur,
-   * par le bas de cette part de sa hauteur. Sur un petit regard (un téléphone) : toujours là, grosse, dans un coin du bas, posée
+   * en `pas`, au plus près de là où elle vise (en parts du regard), sans s'en écarter de plus de `cherche` de sa largeur : d'un
+   * écran à l'autre, elle reste dans son coin, quitte à rapetisser, ou à manquer (elle traversait la table) ; elle peut en sortir,
+   * par le côté de cette part de sa largeur, par le bas de cette part de sa hauteur. Sur un petit regard (un téléphone) : toujours là, grosse, dans un coin du bas, posée
    * sous ce que l'écran montre, et qui sort du regard ; de ses places (les parts de sa largeur et de sa hauteur hors du regard,
    * dans l'ordre où on les préfère), celle où l'on voit le mieux son visage, jugé en tant de points. Ses demi-axes, en parts du
    * rayon ; ses côtes ; ronde : tant de points à son équateur, tant de couronnes ; son sommet creusé ; sa queue, penchée ; son
    * visage, taillé dans sa face avant.
    */
   citrouille: {
-    grand: { auPlus: 150, auMoins: 70, pas: 4, vers: [0.07, 0.9], deborde: [0.2, 0.14] },
+    grand: { auPlus: 150, auMoins: 70, pas: 4, vers: [0.07, 0.9], deborde: [0.2, 0.14], cherche: 0.15 },
     petit: { rayon: 84, sort: { cote: [0.3, 0.2, 0.4], bas: [0.3, 0.2, 0.4, 0.1, 0.5] }, points: [7, 5] },
     axes: [1, 0.92, 0.74],
     cotes: { nombre: 8, creux: 0.1 },

@@ -74,6 +74,7 @@ export const TEXTES: Textes = {
   },
 
   navigateur: {
+    couche: 'Redresse ton téléphone : la platine se joue debout.',
     enAttendant: 'On sort le disque de sa pochette.',
     titre: 'Ce navigateur ne sait pas lire ce disque.',
     conseil: 'Ouvre le lien dans un navigateur à jour : Chrome, Safari ou Firefox.',

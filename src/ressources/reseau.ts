@@ -59,6 +59,14 @@ export const RESEAU = {
     rechercheGardee: 3600,
     gardeesAuPlus: 400,
     resultats: 4,
+    /**
+     * Les invités d'une piste (sa fiche, `/track/{id}`) : on les lit pour les tant de prochaines pistes d'une room, on les garde un
+     * jour (ils ne changent pas), une fiche qui ne s'est pas lue est redemandée au bout de tant de secondes ; tant au plus.
+     */
+    aVenir: 3,
+    invitesGardes: 86400,
+    invitesRates: 120,
+    invitesAuPlus: 4000,
   },
   /**
    * Spotify : on lit la page publique d'une playlist, au plus tant de fois par fenêtre. On en cherche les premiers titres chez Deezer,

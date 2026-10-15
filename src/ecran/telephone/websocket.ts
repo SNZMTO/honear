@@ -12,6 +12,11 @@ import { TELEPHONE } from '../../ressources/ecran';
 const HORS_DES_REGLES = 1008;
 /** Le code d'une ligne que le serveur a coupée parce que la page n'est pas de sa version : elle se recharge. */
 const AUTRE_VERSION = 4001;
+/** Les millisecondes d'une seconde : les minuteries comptent en millisecondes, nos tables en secondes. */
+const MS_PAR_SECONDE = 1000;
+/** Ce qu'une ligne a le droit de se taire, la page au premier plan, puis quand elle y revient (voir `TELEPHONE.reconnexion`). */
+const SILENCE = TELEPHONE.reconnexion.silence * MS_PAR_SECONDE;
+const AU_RETOUR = TELEPHONE.reconnexion.auRetour * MS_PAR_SECONDE;
 
 /**
  * @param adresse celle de la ligne : « wss://honear.fr/ligne?v=… », avec la version de la page.
@@ -23,6 +28,25 @@ export function brancherEnLigne(adresse: string, recharger?: () => void): Branch
     let attente: number | undefined;
     let essais = 0;
     let coupee = false;
+    /** La minuterie qui guette le silence de la ligne : chaque nouvelle la repousse. */
+    let guet: number | undefined;
+
+    /** Une ligne restée muette trop longtemps : on la lâche sans attendre qu'elle se dise fermée, et on en rouvre une. */
+    function ligneMuette(): void {
+      guet = undefined;
+      const s = socket;
+      if (s === undefined || coupee || document.visibilityState !== 'visible') return;
+      s.onclose = null;
+      s.onmessage = null;
+      s.close();
+      socket = undefined;
+      enLigne?.(false);
+      ouvrir();
+    }
+    const guetter = (delai: number): void => {
+      if (guet !== undefined) window.clearTimeout(guet);
+      guet = window.setTimeout(ligneMuette, delai);
+    };
 
     function ouvrir(): void {
       attente = undefined;
@@ -32,8 +56,10 @@ export function brancherEnLigne(adresse: string, recharger?: () => void): Branch
       s.onopen = () => {
         essais = 0;
         enLigne?.(true);
+        guetter(SILENCE);
       };
       s.onmessage = (evenement) => {
+        guetter(SILENCE);
         if (typeof evenement.data !== 'string') return;
         let nouvelle: Nouvelle;
         try {
@@ -64,9 +90,13 @@ export function brancherEnLigne(adresse: string, recharger?: () => void): Branch
       attente = window.setTimeout(ouvrir, delai);
     }
 
-    /** La page revient au premier plan, le réseau revient : on n'attend pas la fin du délai pour se rebrancher. */
+    /**
+     * La page revient au premier plan, le réseau revient : on n'attend pas la fin du délai pour se rebrancher. Une ligne qui se dit
+     * encore ouverte doit répondre vite (le téléphone redemande l'heure) : sinon, elle est morte pendant qu'on était ailleurs.
+     */
     const maintenant = (): void => {
-      if (document.visibilityState !== 'visible' || socket !== undefined || coupee) return;
+      if (document.visibilityState !== 'visible' || coupee) return;
+      if (socket !== undefined) return guetter(AU_RETOUR);
       if (attente !== undefined) window.clearTimeout(attente);
       ouvrir();
     };
@@ -81,6 +111,7 @@ export function brancherEnLigne(adresse: string, recharger?: () => void): Branch
       couper() {
         coupee = true;
         if (attente !== undefined) window.clearTimeout(attente);
+        if (guet !== undefined) window.clearTimeout(guet);
         document.removeEventListener('visibilitychange', maintenant);
         window.removeEventListener('online', maintenant);
         socket?.close();

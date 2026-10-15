@@ -31,8 +31,13 @@ export const TELEPHONE = {
    * les tant de secondes ; on garde le meilleur des derniers échantillons, celui que le réseau a le moins retardé.
    */
   horloge: { auDebut: 5, entreDeux: 0.2, toutesLes: 10, echantillons: 8 },
-  /** Quand la ligne tombe, on se rebranche après ce temps, puis deux fois plus, jusqu'à ce plafond. */
-  reconnexion: { debut: 0.5, auPlus: 8 },
+  /**
+   * Quand la ligne tombe, on se rebranche après ce temps, puis deux fois plus, jusqu'à ce plafond. Une ligne qui se tait plus de
+   * `silence` secondes, la page au premier plan (on demande l'heure toutes les dix), ou plus de `auRetour` quand la page revient
+   * au premier plan (on la redemande aussitôt), est morte sans le dire : l'iPhone qui revient de veille, ou de WhatsApp, la garde
+   * « ouverte », et plus rien n'arrivait. On la rouvre.
+   */
+  reconnexion: { debut: 0.5, auPlus: 8, silence: 25, auRetour: 5 },
   /** Une zone à toucher fait au moins ce côté, en px du téléphone : celle d'une petite commande déborde autour d'elle. */
   zoneAuMoins: 44,
   /**
@@ -69,10 +74,12 @@ export const TELEPHONE = {
   /**
    * Le son : un extrait qui s'écarte de plus que ce temps de là où il devrait en être, à l'heure du serveur, y est remis, au plus
    * une fois en tant de secondes : chaque saut s'entend (l'iPhone met un moment à repartir, et sa position à se mettre à jour ;
-   * le remettre trop vite, trop souvent, le faisait saccader ; lui changer sa vitesse aussi). Il se tait en ce temps-là, là où le
-   * téléphone laisse baisser le volume.
+   * le remettre trop vite, trop souvent, le faisait saccader ; lui changer sa vitesse aussi). Safari coupe le son à chaque
+   * position qu'on lui donne en pleine lecture, et la pose souvent un peu à côté (bug WebKit 306350) : sur un iPhone, on ne le
+   * remet à sa place qu'au-delà de `ecartAdmisSurIOS` (un extrait resté en panne, un téléphone qui revient de veille). Il se
+   * tait en ce temps-là, là où le téléphone laisse baisser le volume.
    */
-  son: { ecartAdmis: 0.6, entreDeuxSauts: 5, fondu: 0.6 },
+  son: { ecartAdmis: 0.6, ecartAdmisSurIOS: 2.5, entreDeuxSauts: 5, fondu: 0.6 },
   /**
    * Le volume du bouton, de 0 à 1, là où il y en a un (un ordinateur ; au téléphone, ce sont ses boutons à lui) : aux deux tiers
    * en arrivant, assez pour qu'on entende, sans agresser les oreilles. L'oreille l'entend à cette puissance (un volume « cubique »,
@@ -95,7 +102,9 @@ export const BRUITS = {
 export type NomDeBruit = 'touche' | 'cran';
 
 /**
- * Le grand écran (un ordinateur, une tablette couchée) : une fenêtre au moins tant de fois plus large que haute, et au moins
- * si haute, en px de la page ; un téléphone couché, trop bas, garde le regard du téléphone.
+ * Les deux dispositions du jeu, rien entre elles (un regard à demi ouvert coupait le meuble aux bords) : une fenêtre au moins
+ * `ordinateur` fois plus large que haute (un ordinateur, une tablette couchée) montre le meuble entier, le même d'un écran à
+ * l'autre, et les liens du bas y flottent ; plus étroite (un téléphone, une tablette debout), l'écran du téléphone. Un téléphone
+ * couché, moins haut que `hauteurAuMoins` px de la page, est prié de se redresser.
  */
-export const GRAND_ECRAN = { plusLargeQueHaut: 1.2, hauteurAuMoins: 500 } as const;
+export const GRAND_ECRAN = { hauteurAuMoins: 500, ordinateur: 0.8 } as const;

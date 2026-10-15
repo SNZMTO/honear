@@ -23,7 +23,7 @@ const INTERLIGNE_DES_TITRES = 1.15;
  * ce fond. Le cadre du jeu est dans la page, aussi haut que l'écran sans les barres de Safari (le bas de ce qu'il dessine passe
  * sous sa barre d'outils). À l'accueil et au compte d'un téléphone, la page a un pied, sous le jeu : on la fait glisser au doigt
  * pour y trouver le tutoriel et les pages légales (voir `pied.ts` ; la page, elle, ne défile jamais). Sur un grand écran, ces liens
- * flottent en bas à droite.
+ * flottent en bas à droite. Un téléphone couché ne voit qu'une phrase qui lui demande de se redresser.
  */
 const STYLE = `
 :root{color-scheme:dark;--titrage:'${CARACTERES.titrage.famille}',Georgia,serif;--technique:'${CARACTERES.technique.famille}',system-ui,sans-serif;--fond:${couleur('vinyle', 1)};--encre:${couleur('creme')};--doux:${couleur('creme', 1)};--miel:${couleur('miel')};--expresso:${couleur('expresso')};--laque:${couleur('laque')};--table:${couleur('noyer')}}
@@ -44,6 +44,8 @@ body.grand .legal{display:flex}
 body.pied:not(.grand) .page{touch-action:none}
 body.pied:not(.grand) .legal{display:flex;position:relative;right:auto;bottom:auto;flex-wrap:wrap;justify-content:center;gap:10px;padding:16px 16px calc(24px + env(safe-area-inset-bottom));background:var(--table);border:0;border-top:2px solid var(--laque);border-radius:0;font-size:13px}
 body.pied:not(.grand) .legal a,body.pied:not(.grand) .legal button{padding:9px 12px;background:var(--miel);border:2px solid var(--laque);border-radius:9px}
+.redresse{position:fixed;inset:0;display:none;place-items:center;padding:24px;background:var(--table);color:var(--encre);font:400 24px/${INTERLIGNE_DES_TITRES} var(--titrage);text-align:center;z-index:3}
+body.couche .redresse{display:grid}
 .tuto{position:fixed;inset:0;display:grid;place-items:center;padding:16px;z-index:2}
 .tuto[hidden]{display:none}
 .tuto::before{content:"";position:absolute;inset:0;background:var(--fond);opacity:${TELEPHONE.tuto.voile}}
@@ -90,6 +92,7 @@ export function pageDuJeu(textes: Textes, script: string, version = ''): string 
 <nav class="legal"><button type="button" data-tuto>${enXml(textes.tuto.lien)}</button><a href="${PAGES_LEGALES.confidentialite}">${enXml(textes.legal.liens.confidentialite)}</a><a href="${PAGES_LEGALES.mentions}">${enXml(textes.legal.liens.mentions)}</a></nav>
 </div>
 <div class="tuto" role="dialog" aria-modal="true" aria-labelledby="tuto-titre" hidden><div class="carte"><div class="points"></div><h2 id="tuto-titre"></h2><p></p><div class="touches"><button type="button" class="passer"></button><span><button type="button" class="precedent"></button> <button type="button" class="suivant"></button></span></div></div></div>
+<div class="redresse" role="alert"><p>${enXml(N.couche)}</p></div>
 <noscript><p class="manque">${enXml(N.sansScript.titre)} ${enXml(N.sansScript.conseil)}</p></noscript>
 <script>${script}</script>
 </body>
