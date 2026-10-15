@@ -24,7 +24,7 @@ export type EcranDuTelephone =
   /** L'accueil ; sa touche « Mon compte » quand le serveur tient des comptes. */
   | { readonly genre: 'accueil'; readonly compte: boolean }
   | { readonly genre: 'compte'; readonly compte: CompteOuvertAuTelephone }
-  | { readonly genre: 'saisie'; readonly tape: string; readonly refus: 'codeInconnu' | 'complet' | undefined }
+  | { readonly genre: 'saisie'; readonly tape: string; readonly refus: 'codeInconnu' | 'complet' | 'solo' | undefined }
   /**
    * « Fais ta pochette » ; quand on la refait (à l'accueil, dans la room), on peut la laisser comme elle était. `sansNom` : on a touché
    * « C'est moi » sans avoir écrit son nom, l'écran le réclame.
@@ -120,7 +120,11 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
       };
     }
     case 'saisie':
-      return { genre: 'saisie', tape: prep.tape, refus: m.refus === 'codeInconnu' || m.refus === 'complet' ? m.refus : undefined };
+      return {
+        genre: 'saisie',
+        tape: prep.tape,
+        refus: m.refus === 'codeInconnu' || m.refus === 'complet' || m.refus === 'solo' ? m.refus : undefined,
+      };
     case 'pochette':
       return {
         genre: 'pochette',

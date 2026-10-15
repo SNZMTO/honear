@@ -137,7 +137,8 @@ export interface Connexion {
 export type Brancher = (recevoir: (nouvelle: Nouvelle) => void, enLigne?: (oui: boolean) => void) => Connexion;
 
 /**
- * Ce qu'un téléphone peut se voir refuser, chacun avec sa phrase dans les textes : un code que personne n'a, une room pleine, une
+ * Ce qu'un téléphone peut se voir refuser, chacun avec sa phrase dans les textes : un code que personne n'a, une room pleine (ou en
+ * solo, où l'hôte joue seul), une
  * playlist trop courte, une playlist Spotify qui ne se laisse pas lire (privée), un lien qui ne mène à aucune playlist ; et pour
  * les comptes, une adresse qui n'en est pas une, trop de liens demandés, un lien de connexion périmé (ou déjà servi), un site qui
  * n'envoie pas d'e-mails (ses comptes sont fermés), une adresse ou un mot de passe faux (sans dire lequel), trop d'essais, un mot
@@ -146,6 +147,7 @@ export type Brancher = (recevoir: (nouvelle: Nouvelle) => void, enLigne?: (oui: 
 export type RaisonDeRefus =
   | 'codeInconnu'
   | 'complet'
+  | 'solo'
   | 'tropCourt'
   | 'spotify'
   | 'introuvable'

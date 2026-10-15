@@ -179,6 +179,38 @@ test('« First one » : le premier qui trouve l’artiste et le titre gagne la p
   assert.equal(MODES.premiereNote.son, DEROULE.premiereNote);
 });
 
+test('« Solo » : l’hôte lance seul, personne d’autre n’entre, et la piste passe dès qu’il a tout trouvé', () => {
+  const m = monde();
+  const [hote, invite] = [m.telephone(), m.telephone()];
+  hote.connexion.envoyer({ ...creer, mode: 'solo' });
+  invite.connexion.envoyer({ genre: 'rejoindre', code: hote.code, pochette: POCHETTE });
+  assert.deepEqual(invite.recu.at(-1), { genre: 'refus', heure: 0, raison: 'solo' }, 'la room du solo n’accueille que son hôte, et le dit');
+  hote.connexion.envoyer({ genre: 'lancer' });
+  assert.ok(piste(hote) !== undefined, 'seul, il lance');
+  hote.connexion.envoyer({ genre: 'pret' });
+  const extraitA = piste(hote)?.extraitA ?? 0;
+  m.a(extraitA + 2);
+  hote.connexion.envoyer({ genre: 'repondre', proposition: { genre: 'saisie', texte: 'images' } });
+  assert.equal(
+    hote.journal.find((e) => e.genre === 'revelation'),
+    undefined,
+    'l’artiste seul ne suffit pas',
+  );
+  m.a(extraitA + 4);
+  hote.connexion.envoyer({ genre: 'repondre', proposition: { genre: 'saisie', texte: 'les démons de minuit' } });
+  assert.equal(hote.journal.find((e) => e.genre === 'revelation')?.a, extraitA + 4, 'tout trouvé : la piste passe aussitôt');
+  // Le barème de la saisie libre : l'artiste, le titre, et 1 de plus pour tout.
+  assert.deepEqual(
+    partieA(hote.journal, Infinity).joueurs.map((j) => j.points),
+    [3],
+  );
+  // Une autre room, qui n'est pas en solo : seul, on ne lance pas.
+  const autre = monde().telephone();
+  autre.connexion.envoyer(creer);
+  autre.connexion.envoyer({ genre: 'lancer' });
+  assert.equal(piste(autre), undefined);
+});
+
 test('une room dit à la source ce qu’elle va jouer, dans l’ordre : en s’ouvrant, puis à chaque lancer', () => {
   const m = monde();
   const [hote, invite] = [m.telephone(), m.telephone()];

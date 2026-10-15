@@ -203,7 +203,7 @@ export function suivre(etat: EtatDeLaPartie, e: EvenementDePartie): EtatDeLaPart
       return etat.phase === 'salon' ? { ...etat, mode: e.mode, pistes: e.pistes, son: e.son ?? etat.son, face: e.face ?? etat.face } : etat;
     case 'arrivee': {
       if (etat.joueurs.some((j) => j.id === e.id)) return etat;
-      if (etat.joueurs.length >= PARTIE.joueurs.auPlus) return { ...etat, refuses: [...etat.refuses, e.id] };
+      if (etat.joueurs.length >= (MODES[etat.mode].joueurs ?? PARTIE.joueurs).auPlus) return { ...etat, refuses: [...etat.refuses, e.id] };
       const joueur: Joueur = {
         id: e.id,
         pochette: e.pochette,
