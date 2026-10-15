@@ -41,6 +41,8 @@ interface Telephone {
 function monde() {
   let heure = 0;
   let jetons = 0;
+  /** Ce que les rooms ont dit qu'elles allaient jouer : la source s'y prépare (les invités des prochaines pistes). */
+  const annoncees: (readonly PisteDuMode[])[] = [];
   const serveur = demarrerLeServeur({
     maintenant: () => heure,
     tirage: hasard(37).suivant,
@@ -48,6 +50,7 @@ function monde() {
     ordre: lOrdreDeLaPlaylist,
     jeton: () => `jeton-${++jetons}`,
     playlist: (lien) => (lien === 'bac' ? PLAYLIST : undefined),
+    bientot: (pistes) => annoncees.push(pistes),
   });
   const telephone = (): Telephone => {
     const t: Telephone = { connexion: undefined as unknown as Connexion, recu: [], journal: [], seance: [], toi: '', jeton: '', code: '' };
@@ -65,7 +68,7 @@ function monde() {
     heure = t;
     serveur.avancer();
   };
-  return { serveur, telephone, a, heure: () => heure };
+  return { serveur, telephone, a, heure: () => heure, annoncees };
 }
 
 const creer: Action = { genre: 'creer', mode: 'libre', pistes: 3, extrait: 20, son: 'tous', playlist: 'bac', pochette: POCHETTE };
@@ -174,6 +177,17 @@ test('« First one » : le premier qui trouve l’artiste et le titre gagne la p
   const points = partieA(invite.journal, Infinity).joueurs.map((j) => j.points);
   assert.deepEqual(points, [3, 0]);
   assert.equal(MODES.premiereNote.son, DEROULE.premiereNote);
+});
+
+test('une room dit à la source ce qu’elle va jouer, dans l’ordre : en s’ouvrant, puis à chaque lancer', () => {
+  const m = monde();
+  const [hote, invite] = [m.telephone(), m.telephone()];
+  hote.connexion.envoyer(creer);
+  assert.equal(m.annoncees.length, 1, 'dès qu’elle prend sa playlist');
+  assert.deepEqual(m.annoncees[0], PLAYLIST);
+  invite.connexion.envoyer({ genre: 'rejoindre', code: hote.code, pochette: POCHETTE });
+  hote.connexion.envoyer({ genre: 'lancer' });
+  assert.equal(m.annoncees.length, 2, 'et quand elle lance une piste');
 });
 
 test('une room joue sa playlist dans un ordre tiré au hasard, chaque piste une fois', () => {

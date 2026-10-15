@@ -464,6 +464,8 @@ export class FaussePage {
   private readonly ecouteursDeFenetre = new Map<string, Set<() => void>>();
   readonly document: {
     activeElement: FauxElement | null;
+    /** La page est-elle au premier plan ? Un test la met en arrière-plan. */
+    visibilityState: 'visible' | 'hidden';
     /** Les polices de la page, si le navigateur sait dire quand elles sont prêtes. */
     fonts?: { readonly ready: Promise<unknown> };
     createElement(tag: string): FauxElement;
@@ -482,6 +484,7 @@ export class FaussePage {
     this.racine = new FauxElement('body', this);
     this.document = {
       activeElement: null,
+      visibilityState: 'visible',
       createElement: (tag) => {
         const element = new FauxElement(tag, this);
         if (element.tagName === 'canvas') this.toiles.push(element);
@@ -516,6 +519,9 @@ export class FaussePage {
       setTimeout: (suite: () => void): number => {
         this.minuteries.set(++this.demandes, suite);
         return this.demandes;
+      },
+      clearTimeout: (numero: number): void => {
+        this.minuteries.delete(numero);
       },
       matchMedia: (requete: string) => {
         const page = this;

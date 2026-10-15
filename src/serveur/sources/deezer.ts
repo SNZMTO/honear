@@ -7,6 +7,7 @@
 
 import type { PlaylistTrouvee } from '../../regles/messages';
 import type { PisteDuMode } from '../../regles/modes';
+import { lesInvites } from '../../regles/modes/libre';
 import { FONDS_DE_POCHETTE, MOTIFS_DE_POCHETTE } from '../../ressources/pochettes';
 
 /** L'adresse de l'API publique de Deezer. */
@@ -77,6 +78,21 @@ export function lireLaPlaylist(reponse: unknown): { readonly titre: string; read
 /** Ce qui annonce un invité dans un titre : « (feat. Roméo Elvis) », « [ft. Vianney] », « (avec Vianney) ». */
 const INVITE = /\s*[([](?:feat\.?|ft\.?|featuring|avec)\s+([^)\]]+)[)\]]/i;
 
+/** Les mots d'une édition, pas du titre : « (2022 Remaster) », « - Radio Edit », « [Live] », « (Version longue) ». */
+const EDITION =
+  '(?:remaster(?:ed)?|remix(?:ed)?|edit|version|live|mono|stereo|st[ée]r[ée]o|deluxe|anniversary|bonus|demo|explicit|single|radio|original mix|mix)';
+const EDITION_ENTRE_PARENTHESES = new RegExp(`\\s*[([][^)\\]]*\\b${EDITION}\\b[^)\\]]*[)\\]]`, 'gi');
+const EDITION_APRES_UN_TIRET = new RegExp(`\\s+[-–—]\\s+[^-–—]*\\b${EDITION}\\b.*$`, 'i');
+
+/**
+ * Le titre tel qu'on le montre et qu'on l'attend : sans ce qui dit son édition (« Runaway Train (2022 Remaster) » devient
+ * « Runaway Train ») ; tel quel s'il ne restait rien.
+ */
+export function titreSansEdition(titre: string): string {
+  const nu = titre.replace(EDITION_ENTRE_PARENTHESES, '').replace(EDITION_APRES_UN_TIRET, '').trim();
+  return nu !== '' ? nu : titre.trim();
+}
+
 /** La vignette d'une piste : une couleur et un motif tirés de son identifiant, toujours les mêmes pour elle. */
 function vignetteDe(id: number): { readonly fond: (typeof FONDS_DE_POCHETTE)[number]; readonly motif: (typeof MOTIFS_DE_POCHETTE)[number] } {
   const fonds = FONDS_DE_POCHETTE.filter((f) => f !== 'creme');
@@ -121,7 +137,7 @@ export function lireUnePiste(x: unknown): PisteDuMode | undefined {
   // Une réponse qu'on ne saurait ni montrer ni taper : la piste n'est pas jouable au blind test.
   if (HORS_DE_L_ALPHABET.test(court) || HORS_DE_L_ALPHABET.test(artiste)) return undefined;
   const feat = INVITE.exec(complet ?? '')?.[1]?.trim();
-  const titre = court.replace(INVITE, '').trim();
+  const titre = titreSansEdition(court.replace(INVITE, ''));
   const image = imageDe(p);
   return {
     reponse: {
@@ -131,7 +147,38 @@ export function lireUnePiste(x: unknown): PisteDuMode | undefined {
       pochette: { vignette: vignetteDe(id), ...(image !== undefined ? { image } : {}) },
     },
     extrait,
+    deezer: id,
   };
+}
+
+/**
+ * Les invités d'une piste, d'après sa fiche (`/track/{id}`) : ceux qui chantent avec l'artiste principal, qu'ils soient d'autres
+ * artistes principaux (« Tout oublier », d'Angèle et Roméo Elvis) ou invités (« Featured »). La liste d'une playlist ne les donne
+ * pas, et le titre ne les dit souvent pas : sans eux, Roméo Elvis tapé ne valait rien. Rien de ce qui ne s'écrit pas en latin.
+ */
+export function lireLesInvites(reponse: unknown, artiste: string): string[] {
+  const contributeurs = objet(reponse)?.['contributors'];
+  if (!Array.isArray(contributeurs)) return [];
+  const vus = new Set([comparable(artiste)]);
+  return contributeurs.flatMap((c) => {
+    const nom = texte(objet(c)?.['name']);
+    if (nom === undefined || HORS_DE_L_ALPHABET.test(nom) || vus.has(comparable(nom)) || comparable(nom) === '') return [];
+    vus.add(comparable(nom));
+    return [nom];
+  });
+}
+
+/**
+ * La piste avec ses invités : son feat, quand son titre n'en disait rien. Un feat tiré du titre reste tel quel, et ceux que le titre
+ * ne nommait pas s'y ajoutent.
+ */
+export function avecSesInvites(piste: PisteDuMode, invites: readonly string[]): PisteDuMode {
+  const dits = lesInvites(piste.reponse.feat ?? '');
+  const autres = invites.filter((i) => !dits.some((d) => comparable(d) === comparable(i)));
+  if (autres.length === 0) return piste;
+  const tous = [...dits, ...autres];
+  const feat = tous.length === 1 ? (tous[0] ?? '') : `${tous.slice(0, -1).join(', ')} & ${tous[tous.length - 1] ?? ''}`;
+  return { ...piste, reponse: { ...piste.reponse, feat } };
 }
 
 /**

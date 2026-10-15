@@ -80,6 +80,27 @@ test('une piste avec un feat a trois parties à trouver : l’artiste, le titre 
   assert.equal(libre.points(['artiste', 'titre', 'feat'], true), 4);
 });
 
+test('un feat de plusieurs invités se trouve avec l’un d’eux, et ce qu’on tape se lit mot à mot, sans virgule ni « feat »', () => {
+  const { libre, premierArrive } = MODES;
+  const bande = { reponse: { ...autre('Bande organisée', 'Kofs'), feat: 'Soso Maness, Elams, Jul, SCH, Naps & 13 Organisé' } };
+  const trouve = (texte: string, piste: { readonly reponse: Reponse } = bande): readonly string[] =>
+    libre.juger({ genre: 'saisie', texte }, piste, []).trouve;
+  assert.deepEqual(trouve('jul'), ['feat']);
+  assert.deepEqual(trouve('SCH'), ['feat']);
+  assert.deepEqual(trouve('kofs jul'), ['artiste', 'feat']);
+  assert.deepEqual(trouve('bande organisée 13 organisé'), ['titre', 'feat']);
+  assert.deepEqual(trouve('gradur', { reponse: { ...autre('Sapés comme jamais', 'GIMS'), feat: 'Alonzo, Gradur, KeBlack & Awa Imani' } }), ['feat']);
+  assert.deepEqual(trouve('daft punk around the world', { reponse: autre('Around the World', 'Daft Punk') }), ['artiste', 'titre']);
+  // Un mot court ne vaut une partie que s'il est toute la saisie : un bout de phrase ne trouve pas -M- par hasard.
+  assert.deepEqual(trouve('m pokora', { reponse: autre('Je dis aime', '-M-') }), []);
+  assert.deepEqual(trouve('m', { reponse: autre('Je dis aime', '-M-') }), ['artiste']);
+  assert.equal(libre.juger({ genre: 'saisie', texte: 'on danse' }, { reponse: autre('Alors on danse', 'Stromae') }, []).verdict, 'presque');
+  // First one : le feat ne se cherche pas, mais un invité vaut l'artiste (il chante aussi).
+  const duo = { reponse: TOUT_OUBLIER };
+  assert.deepEqual(premierArrive.juger({ genre: 'saisie', texte: 'roméo elvis tout oublier' }, duo, []).trouve, ['artiste', 'titre']);
+  assert.deepEqual(premierArrive.juger({ genre: 'saisie', texte: 'angèle' }, duo, []).trouve, ['artiste']);
+});
+
 test('en 4 choix, une étiquette est la bonne : 1 point, 1 de plus au plus rapide', () => {
   const { quatreChoix } = MODES;
   const piste = {

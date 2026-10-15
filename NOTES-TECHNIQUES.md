@@ -239,7 +239,10 @@ sous un lien à lui : `deezer:1306931615`, `spotify:37i9dQZF1DXcBWIGoYBM5M` ; la
 - `reseau/musique.ts` appelle : une limite de débit par service, une file plafonnée, des réponses gardées (une recherche une heure, une
   playlist dix minutes et jamais jusqu'à moins de deux minutes de l'expiration de ses liens), une lecture à la fois par playlist, une
   relecture en coulisses quand elle va expirer. Le serveur du jeu ne voit que `pistes(lien)`, déjà lues ; la ligne (`reseau/ligne.ts`)
-  les fait lire avant d'ouvrir une room et avant chaque piste lancée, et répond à `chercher` et `importer`.
+  les fait lire avant d'ouvrir une room et avant chaque piste lancée, et répond à `chercher` et `importer`. Les invités d'une piste
+  (le feat) ne sont ni dans la liste d'une playlist ni, souvent, dans son titre : chaque fois qu'une room relit ses pistes, elle dit
+  celles qui viennent (`bientot`), et la musique lit la fiche (`/track/{id}`, ses `contributors`) des trois prochaines qu'elle ne
+  connaît pas (`preciser`), gardée un jour ; `pistes(lien)` les rend avec leur feat.
 - Le téléphone joue l'extrait (`ecran/telephone/son.ts`) : `sonVoulu(mémoire)` dit quoi et quand, le haut-parleur le joue à l'heure du
   serveur. La page autorise les extraits de Deezer et ses images de pochettes, rien d’autre (`media-src https://*.dzcdn.net blob:`,
   `img-src data: blob: https://*.dzcdn.net`) : la vraie pochette est une image de la page posée par-dessus la scène, jamais peinte sur une toile.

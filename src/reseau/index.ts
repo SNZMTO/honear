@@ -334,6 +334,8 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
     jeton: () => randomBytes(18).toString('base64url'),
     // La playlist d'essai est toujours là ; les autres, la musique les a lues avant que la room en ait besoin.
     playlist: (lien) => (lien === PLAYLIST_D_ESSAI ? PISTES_D_ESSAI : musique?.pistes(lien)),
+    // Les pistes qui viennent : la musique lit leurs invités, pour leur feat.
+    bientot: (pistes) => musique?.preciser(pistes),
     // Une face finie : ceux qui jouaient sous un compte y comptent une partie ; le premier (s'il a marqué), une victoire.
     quandUneFaceFinit: (code, etat) =>
       comptes?.faceFinie(

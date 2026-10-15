@@ -41,6 +41,7 @@ import { decorDeLaPiste } from '../../scene/telephone/meuble';
 import { dessinerLeClassement, lignesDuClassement } from '../../scene/classement';
 import {
   classementSousLeBac,
+  dispositionDe,
   estDuMeuble,
   glissementSousLeDisque,
   glisserSousLeDisque,
@@ -55,7 +56,7 @@ import { toucheAutrePlaylist, toucheQuitter } from '../../scene/telephone/quitte
 import { angleDuVolume, boutonDuVolume, cranDuVolume, INDEX_DU_VOLUME, type PlaceDuVolume } from '../../scene/telephone/volume';
 import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
 import { lignesDeLaPiste, pochetteSurLeVerso, pouceAuPlusGrand, pouceDeLaPiste, tableeDeLaPiste } from '../../scene/telephone/piste';
-import { vueDeLaPochette } from '../../scene/telephone/pochette';
+import { REGARD_DE_LA_POCHETTE, vueDeLaPochette } from '../../scene/telephone/pochette';
 import { imagesDesTitres, vueDesTitres } from '../../scene/telephone/titres';
 import { calquesDeLaTouche } from '../../scene/touche';
 import { lancerLaBoucle } from '../boucle';
@@ -501,6 +502,15 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     },
   );
 
+  // La page revient au premier plan : on redemande l'heure tout de suite. L'horloge du téléphone a pu dériver pendant la veille,
+  // et la réponse dit que la ligne vit encore (sinon, elle se rouvre : voir `brancherEnLigne`).
+  const auPremierPlan = (): void => {
+    if (document.visibilityState !== 'visible') return;
+    prochaineQuestion = 0;
+    boucle.reveiller();
+  };
+  document.addEventListener('visibilitychange', auPremierPlan);
+
   /** On demande l'heure au serveur : souvent en se branchant, puis de temps en temps, pour suivre la dérive des horloges. */
   function demanderLHeure(): void {
     const local = o.horloge.maintenant();
@@ -699,7 +709,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
    */
   function fondreSur(dans: HTMLElement, nouveau: HTMLElement, avant: Montee | undefined, croiser = false): boolean {
     finirLeFondu(dans);
-    if (o.options.sobre || typeof nouveau.animate !== 'function') return false;
+    // Rien dessous (la piste vient de s'en aller) : fondu sur la table nue, l'écran clignotait. Il se pose d'un coup.
+    if (o.options.sobre || typeof nouveau.animate !== 'function' || avant === undefined) return false;
     for (const enfant of Array.from(dans.children)) if (enfant !== avant?.plan.element) enfant.remove();
     dans.append(nouveau);
     const duree = { duration: TELEPHONE.fondu * MS_PAR_SECONDE, easing: 'ease-out' };
@@ -837,7 +848,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   let glisse = 0;
   function suivreLeClavier(): void {
     const vu = window.visualViewport;
-    const tape = document.activeElement === champ && champ.dataset['pour'] === 'reponse';
+    // Un ordinateur a son clavier à lui : rien à suivre (au pixel près, un regard d'ordinateur se croyait parfois sous un clavier,
+    // et l'étiquette remontait pendant qu'on tapait).
+    const tape = auDoigt && document.activeElement === champ && champ.dataset['pour'] === 'reponse';
     if (vu === null || vu === undefined || !tape) {
       if (glisse !== 0) cadre.style.transform = '';
       glisse = 0;
@@ -865,7 +878,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
 
   champ.addEventListener('focus', () => {
     // Sans rien qui dise ce qu'on voit, on fait place à un clavier ordinaire ; sinon, c'est le vrai clavier qui le dira.
-    if (champ.dataset['pour'] === 'reponse' && vu === null) changer(clavierOuvert(memoire, true));
+    if (auDoigt && champ.dataset['pour'] === 'reponse' && vu === null) changer(clavierOuvert(memoire, true));
     suivreLeClavier();
   });
   champ.addEventListener('blur', () => {
@@ -927,27 +940,38 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   champ.addEventListener('paste', () => {
     colle = champ.dataset['pour'] === 'lien';
   });
-  champ.addEventListener('input', () => {
+  /**
+   * Ce qu'on tape. Le code s'écrit en capitales, sans les lettres qu'on confond ; un nom, sans ce que les polices n'ont pas : le champ
+   * montre ce que la mémoire a gardé. Pas pendant qu'un clavier compose un mot (Android, les claviers qui devinent) : récrire le
+   * champ sous lui le faisait doubler des lettres ; on le récrit quand il a fini.
+   */
+  const quandOnTape = (enComposant: boolean): void => {
     changer(saisir(memoire, champ.value, champPose()));
-    // Le code s'écrit en capitales, sans les lettres qu'on confond ; un nom, sans ce que les polices n'ont pas : le champ montre ce
-    // que la mémoire a gardé.
     if (champ.dataset['pour'] === 'code' && memoire.preparation.ecran === 'saisie') {
-      champ.value = memoire.preparation.tape;
+      if (!enComposant && champ.value !== memoire.preparation.tape) champ.value = memoire.preparation.tape;
       // Les quatre lettres sont là : on entre, sans chercher la touche « OK » du clavier.
       if (memoire.preparation.tape.length === PARTIE.code.longueur) {
         validerLeChamp();
         return;
       }
     }
-    if (champ.dataset['pour'] === 'nom' && memoire.preparation.ecran === 'pochette' && champ.value !== memoire.preparation.pochette.artiste)
+    if (
+      !enComposant &&
+      champ.dataset['pour'] === 'nom' &&
+      memoire.preparation.ecran === 'pochette' &&
+      champ.value !== memoire.preparation.pochette.artiste
+    )
       champ.value = memoire.preparation.pochette.artiste;
     if (colle) {
       colle = false;
       validerLeChamp();
     }
-  });
+  };
+  champ.addEventListener('input', (ev) => quandOnTape((ev as InputEvent).isComposing === true));
+  champ.addEventListener('compositionend', () => quandOnTape(false));
   champ.addEventListener('keydown', (ev) => {
-    if (ev.key !== 'Enter') return;
+    // « Entrée » qui finit un mot qu'on compose (un clavier chinois, japonais…) ne valide rien.
+    if (ev.key !== 'Enter' || ev.isComposing) return;
     ev.preventDefault();
     validerLeChamp();
   });
@@ -1025,10 +1049,16 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       return;
     }
     const vue = vueDe(e, a);
-    // Dans la fenêtre, l'écran garde sa place sur le meuble ; le reste du meuble, au repos, s'y voit ; sur un grand écran, ce qu'on
-    // touche se range sous le vinyle.
-    const regard = dansLaFenetre(vue.regard, p);
-    const rangees = p !== undefined ? rangerSousLeDisque(vue.objets, vue.regard, p, a.encrier.largeur) : vue.objets;
+    // Dans la fenêtre, l'écran garde sa place sur le meuble ; le reste du meuble, au repos, s'y voit. Sur un ordinateur, le regard
+    // est le même d'un écran à l'autre, sur le meuble entier (le bac et l'ampli ne le font plus glisser), et ce qu'on touche d'un
+    // écran posé sur la platine se range sous le vinyle (celui du bac reste sous le bac) ; seuls sa pochette et les titres joués,
+    // posés sur la table, s'y montrent de près.
+    const surLaTable = vue.regard === REGARD_DE_LA_POCHETTE;
+    const surOrdinateur = p !== undefined && dispositionDe(p) === 'ordinateur';
+    const base = surOrdinateur && !surLaTable ? SUR_LA_PLATINE : vue.regard;
+    const regard = dansLaFenetre(base, p);
+    const rangees =
+      p !== undefined && vue.regard === SUR_LA_PLATINE ? rangerSousLeDisque(vue.objets, SUR_LA_PLATINE, p, a.encrier.largeur) : vue.objets;
     // Au salon, sur un grand écran, le classement dit déjà qui est là, sous le bac.
     const sousLeBac = p !== undefined && e.genre === 'salon' ? classementSousLeBac(regard) : undefined;
     const classement =
@@ -1043,7 +1073,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const fondre = e.genre !== genre;
     // Le décor de saison, s'il y en a un : sous ce que l'écran montre, ou par-dessus, là où rien ne se tient (ni les touches du coin),
     // dans ce qu'on voit (ni sous l'encoche, ni sous la barre de Safari).
-    const saison = decorDeLaSaison(enVue(vue.regard, p), [...objets, ...touchesDuCoin(regard)], a.encrier.largeur);
+    const saison = decorDeLaSaison(enVue(base, p), [...objets, ...touchesDuCoin(regard)], a.encrier.largeur);
     // Le meuble (ce qui vient d'abord : la platine, le bac, la kraft…) dans sa couche, sous tout le reste ; il n'est repeint que s'il
     // a changé. Les écrans le redonnent tel quel quand rien ne le change (voir `platineArretee`) : une lettre tapée, un écran qui
     // reste sur la platine ne le font plus repeindre.
@@ -1616,6 +1646,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       window.removeEventListener('scroll', quandLaPageDefile);
       window.removeEventListener('keydown', taperSansViser, true);
       document.removeEventListener('selectionchange', auBout);
+      document.removeEventListener('visibilitychange', auPremierPlan);
       window.removeEventListener('resize', noterLaFenetre);
       vu?.removeEventListener('resize', suivreLeClavier);
       vu?.removeEventListener('scroll', suivreLeClavier);

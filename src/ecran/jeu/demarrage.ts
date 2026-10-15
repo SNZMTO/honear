@@ -15,7 +15,7 @@ import type { Textes } from '../../ressources/textes';
 import { CARACTERES, ROLES_DE_TEXTE } from '../../ressources/typo';
 import { VERSO_DU_JEU } from '../../scene/disque/verso';
 import { remplir } from '../../scene/phrases';
-import { PROPORTION_DU_TELEPHONE } from '../../scene/telephone/grand';
+import { dispositionDe, PROPORTION_DU_TELEPHONE } from '../../scene/telephone/grand';
 import { encrier as creerLEncrier } from '../../scene/rendu/texte';
 import { SCENE_ENTIERE } from '../allegements';
 import { horlogeDuNavigateur } from '../horloge';
@@ -91,6 +91,7 @@ function suivreLaFenetre(cadre: HTMLElement): {
   let proportion = PROPORTION_DU_TELEPHONE;
   let bords = { sur: 0, sous: 0 };
   const sonde = document.querySelector<HTMLElement>('.bords');
+  const auDoigt = window.matchMedia('(pointer: coarse)').matches;
   const mesurer = (): void => {
     const { innerWidth: l, innerHeight: h } = window;
     const { clientWidth: lc, clientHeight: hc } = cadre;
@@ -105,7 +106,10 @@ function suivreLaFenetre(cadre: HTMLElement): {
     bords = lc > 0 ? { sur: Math.round(sur) / lc, sous: Math.round(sous) / lc } : { sur: 0, sous: 0 };
     // Arrondie au centième : une fenêtre qu'on étire ne remonte pas la scène à chaque pixel.
     proportion = libre > 0 ? Math.round((lc / libre) * CENTIEMES) / CENTIEMES : PROPORTION_DU_TELEPHONE;
-    document.body.classList.toggle('grand', l >= h * GRAND_ECRAN.plusLargeQueHaut && h >= GRAND_ECRAN.hauteurAuMoins);
+    // Le meuble entier (un ordinateur, une tablette couchée) : les liens du bas y flottent, sans pied à faire glisser.
+    document.body.classList.toggle('grand', dispositionDe(proportion) === 'ordinateur' && h >= GRAND_ECRAN.hauteurAuMoins);
+    // Un téléphone couché : trop bas pour la platine, et le meuble entier y serait minuscule. On lui demande de se redresser.
+    document.body.classList.toggle('couche', auDoigt && l > h && h < GRAND_ECRAN.hauteurAuMoins);
   };
   mesurer();
   window.addEventListener('resize', mesurer);

@@ -99,6 +99,23 @@ function unSilence(): Blob {
   return new Blob([octets], { type: 'audio/wav' });
 }
 
+/**
+ * Vrai s'il faut remettre l'extrait à sa place : il s'écarte de plus qu'on n'admet de là où il devrait en être, à l'heure du serveur.
+ * Pas coup sur coup, le temps qu'il reparte et que sa position suive. Jamais en changeant sa vitesse : l'iPhone saccade à chaque
+ * vitesse qu'on lui donne. Ni quand il attend ses données (le pousser plus loin le ferait attendre encore), ni pour un petit écart
+ * sur un iPhone, où chaque saut fait taire le son un instant.
+ * @param ecart sa position moins celle où il devrait être, en secondes.
+ * @param depuis le temps passé depuis qu'on l'a remis à sa place, la dernière fois ; rien s'il ne l'a jamais été.
+ */
+export function aRemettreEnPlace(
+  ecart: number,
+  o: { readonly surIOS: boolean; readonly enRecherche: boolean; readonly aDeQuoiJouer: boolean; readonly depuis: number | undefined },
+): boolean {
+  const admis = o.surIOS ? TELEPHONE.son.ecartAdmisSurIOS : TELEPHONE.son.ecartAdmis;
+  if (o.enRecherche || !o.aDeQuoiJouer || Math.abs(ecart) <= admis) return false;
+  return o.depuis === undefined || o.depuis >= TELEPHONE.son.entreDeuxSauts;
+}
+
 /** Vrai sur un iPhone, un iPad ou un iPod (un iPad récent se dit Mac, mais il est tactile). */
 const estUnAppareilApple = (): boolean =>
   /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -287,11 +304,10 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number |
         jouerMaintenant();
         return;
       }
-      // Il a dérivé : on le remet à sa place, mais pas coup sur coup, le temps qu'il reparte et que sa position suive. Jamais en
-      // changeant sa vitesse : l'iPhone saccade à chaque vitesse qu'on lui donne.
+      // Il a dérivé : on le remet à sa place, s'il le faut (voir `aRemettreEnPlace`).
       const ecart = audio.currentTime - position;
-      if (audio.seeking || Math.abs(ecart) <= TELEPHONE.son.ecartAdmis) return;
-      if (sauteA !== undefined && heure - sauteA < TELEPHONE.son.entreDeuxSauts) return;
+      const depuis = sauteA !== undefined ? heure - sauteA : undefined;
+      if (!aRemettreEnPlace(ecart, { surIOS, enRecherche: audio.seeking, aDeQuoiJouer: audio.readyState >= audio.HAVE_FUTURE_DATA, depuis })) return;
       noter?.(`remis à sa place : écart ${ecart.toFixed(2)} s`);
       sauteA = heure;
       audio.currentTime = position;

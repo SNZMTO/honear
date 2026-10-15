@@ -989,6 +989,25 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
     plein (à 30 % d'un volume cubique, un Android ne s'entendait presque pas). Sur un ordinateur, le bouton part aux deux tiers.
   - *Les touches* : aucune n'en chevauche une autre, sur aucun écran (un test les passe toutes, avec celles du coin) ; sa pochette
     refaite, « Au hasard » et « Retour » se chevauchaient : elles se posent l'une sous l'autre.
+- **Les bugs, essayés dans de vrais navigateurs** (le 15) : un banc Playwright (Chromium et WebKit, dans un conteneur, hors du dépôt)
+  joue des parties entières contre `dist/`, un PC, un iPhone et un Android à la fois. Ce qui était en ligne (7fba143) y lève, sur
+  iPhone, l'erreur de chaque image (le volume) que af1922c corrige : touches du coin sans zone, boutons figés, pas de pied.
+  - *Les feats* : ni la liste d'une playlist Deezer ni, souvent, le titre ne les donnent (« Tout oublier » n'a pas Roméo Elvis) :
+    la musique lit la fiche (`/track/{id}`) des trois prochaines pistes d'une room (`bientot`, `preciser`, `lireLesInvites`).
+    Un invité suffit pour le point du feat ; ce qu'on tape se lit aussi mot à mot (« kofs jul ») ; en First one, un invité vaut
+    l'artiste. Un titre perd ce qui dit son édition (« (2022 Remaster) », « - Radio Edit » : `titreSansEdition`).
+  - *Le son sur iPhone* : Safari coupe le son à chaque position qu'on donne à l'extrait en pleine lecture (bug WebKit 306350) ; il
+    n'y est plus remis qu'au-delà de 2,5 s d'écart, et jamais pendant qu'il attend ses données (`aRemettreEnPlace`).
+  - *La ligne* : l'iPhone qui revient de veille, ou de WhatsApp, garde parfois une ligne « ouverte » qui ne reçoit plus rien.
+    Muette 25 s, ou 5 s après le retour au premier plan (le téléphone redemande alors l'heure), elle est rouverte (`ligneMuette`).
+  - *PC et téléphone, deux dispositions* (`dispositionDe`, `GRAND_ECRAN.ordinateur`), plus de regard à demi ouvert qui coupait
+    le meuble aux bords : sous 0,8 de proportion, l'écran du téléphone ; au-dessus, le meuble entier, le même cadre d'un écran à
+    l'autre (le bac ne le fait plus glisser ; seules sa pochette et les titres joués se voient de près, sur la table), et une
+    fenêtre étroite le voit en entier, avec plus de table. Un meuble coupé au bord ne se dessine plus. Un téléphone couché lit
+    « Redresse ton téléphone ». Sur un ordinateur, plus de suivi du clavier virtuel (l'étiquette remontait parfois en tapant).
+  - *Ce qu'on voit* : plus de fondu sur la table nue après une piste (l'écran clignotait) ; la citrouille reste dans son coin
+    (`cherche`) ; « Lancer la face A », taillée à son libellé, ne mord plus sur la kraft ; dans le bac, la choisie ne passe plus
+    sur les crans. Un clavier qui compose un mot (Android) ne le voit plus récrit sous lui.
 
 ## Ce qui attend les étapes suivantes
 

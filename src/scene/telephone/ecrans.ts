@@ -355,8 +355,11 @@ export function vueDuSalon(
     const largeur = largeurDeLaTouche({ genre: 'cran', libelle, ajustee: true }, a.encrier.largeur);
     objets.push(touche('touche-ma-pochette', 'cran', libelle, r, [S.pochette[0] + largeur / 2, S.pochette[1]], a.encrier, 'repos', true));
   }
-  if (qui !== 'invite') objets.push(toucheAuBord('touche-lancer', 'principale', lancer, r, S.lancer, a.encrier));
-  else {
+  // La touche qui lance la face, taillée à son libellé : au bord, à côté de la pochette kraft, sans mordre dessus.
+  if (qui !== 'invite') {
+    const largeur = largeurDeLaTouche({ genre: 'principale', libelle: lancer, ajustee: true }, a.encrier.largeur);
+    objets.push(touche('touche-lancer', 'principale', lancer, r, [S.lancer[0] + largeur / 2, S.lancer[1]], a.encrier, 'repos', true));
+  } else {
     // L'invité n'a rien à lancer : on lui dit qui le fera, plutôt que de le laisser devant un salon muet.
     const hote = etat.joueurs.find((j) => j.id === etat.hote)?.pochette.artiste;
     if (hote !== undefined && hote !== '')

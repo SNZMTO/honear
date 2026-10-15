@@ -21,9 +21,11 @@ import {
   erreurDeDeezer,
   expirationDe,
   idDeezer,
+  avecSesInvites,
   laBonnePiste,
   lienDeezer,
   lireDesPistes,
+  lireLesInvites,
   lireDesPlaylists,
   lireLaPlaylist,
   lireUnePiste,
@@ -61,8 +63,16 @@ export interface Musique {
   importer(colle: string): Promise<PlaylistTrouvee | Extract<RaisonDeRefus, 'spotify' | 'introuvable'>>;
   /** Lit les pistes d'une playlist si on ne les a pas, ou plus assez fraîches : le serveur du jeu les trouvera dans `pistes`. */
   preparer(lien: string): Promise<void>;
-  /** Les pistes jouables d'une playlist, si on les a lues ; bientôt plus fraîches, elles se relisent en coulisses. */
+  /**
+   * Les pistes jouables d'une playlist, si on les a lues ; bientôt plus fraîches, elles se relisent en coulisses. Celles dont on
+   * connaît les invités ont leur feat.
+   */
   pistes(lien: string): readonly PisteDuMode[] | undefined;
+  /**
+   * Les pistes qu'une room va jouer, dans l'ordre : on lit en coulisses les invités des prochaines (la liste d'une playlist ne les
+   * donne pas), pour qu'elles aient leur feat quand on les lancera.
+   */
+  preciser(pistes: readonly PisteDuMode[]): void;
 }
 
 /** Une réponse gardée, et jusqu'à quand. */
@@ -116,6 +126,9 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
   const correspondances = new Map<string, Gardee<Correspondance | null>>();
   /** Les lectures en cours : deux téléphones qui demandent la même playlist ne la font lire qu'une fois. */
   const enCours = new Map<string, Promise<void>>();
+  /** Les invités de chaque piste de Deezer, par son identifiant ; et celles dont on les lit en ce moment. */
+  const invites = new Map<string, Gardee<readonly string[]>>();
+  const invitesEnCours = new Set<number>();
 
   /** Attend que la limite laisse passer un appel, et le compte. */
   async function sonTour(limite: Limite): Promise<void> {
@@ -243,6 +256,12 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
     return lecture;
   }
 
+  /** La piste avec son feat, si l'on connaît ses invités. */
+  const avecLeFeat = (p: PisteDuMode): PisteDuMode => {
+    const connus = p.deezer !== undefined ? invites.get(String(p.deezer))?.valeur : undefined;
+    return connus !== undefined && connus.length > 0 ? avecSesInvites(p, connus) : p;
+  };
+
   return {
     async chercher(recherche, theme) {
       const cle = `${theme ?? ''}:${recherche.trim().toLowerCase()}`;
@@ -286,7 +305,27 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
       const gardee = playlists.get(lien);
       // Bientôt plus fraîche : on la relit en coulisses, et la piste d'après aura des liens neufs sans qu'on l'attende.
       if (gardee !== undefined && !frais(gardee, D.avance)) void preparer(lien, D.avance).catch(() => undefined);
-      return gardee?.valeur.pistes;
+      return gardee?.valeur.pistes.map(avecLeFeat);
+    },
+    preciser(pistes) {
+      // Les premières qu'on ne connaît pas encore (la room joue dans l'ordre, celles d'avant sont déjà lues), sauf celles qu'on lit déjà.
+      const aLire = pistes
+        .flatMap((p) => (p.deezer !== undefined && !frais(invites.get(String(p.deezer))) ? [p] : []))
+        .slice(0, D.aVenir)
+        .filter((p) => !invitesEnCours.has(p.deezer ?? 0));
+      for (const p of aLire) {
+        const id = p.deezer ?? 0;
+        invitesEnCours.add(id);
+        const noter = (lus: readonly string[], pendant: number): void =>
+          garder(invites, String(id), { valeur: lus, jusqua: o.maintenant() + pendant }, o.maintenant(), D.invitesAuPlus);
+        // Une fiche qui ne se lit pas : la piste se joue sans feat, et l'on réessaiera plus tard.
+        void appeler(adresseDeLaPiste(id))
+          .then(
+            (fiche) => noter(lireLesInvites(fiche, p.reponse.artiste), D.invitesGardes),
+            () => noter([], D.invitesRates),
+          )
+          .finally(() => invitesEnCours.delete(id));
+      }
     },
   };
 }
