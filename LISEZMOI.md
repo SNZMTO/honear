@@ -48,7 +48,7 @@ npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
 docker build -t honear .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
 npm run controle    # passe les contrôles du rendu sur les 196 images, et dit ce qu'ils ont mesuré
-npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 532 tests
+npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 533 tests
 npm run format      # Prettier
 ```
 
@@ -1019,6 +1019,16 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
     comparaison à l'oreille (`aLOreille` : ph et f, c dur et k, c doux et s, y et i, z et s, w et ou, ou et u, au et o, ai et é,
     g doux et j, h muet, lettres doublées, e, s et x muets en fin de mot). « bionsé », « angel », « neckfeu », « johny halliday »
     sont justes ; « les démons du minou » reste « Presque. ».
+- **Le son coupé pour toutes les pistes d'après, sur iPhone** (le 15, au soir) :
+  - *Le serveur débranchait la nouvelle ligne* : un téléphone qui revient (de veille, d'une autre app, d'un réseau qui change)
+    rouvre une ligne et redonne son jeton, mais le serveur ne voit la vieille ligne morte qu'au battement d'après (15 s) ; quand
+    elle tombait enfin, il débranchait le joueur, revenu entre-temps : plus aucune piste ni aucun extrait ne lui arrivait, plus
+    rien de ce qu'il répondait ne comptait. Une ligne qui tombe ne débranche plus que si elle est encore celle du joueur
+    (`debrancher(id, heure, envoyer)`).
+  - *Un élément audio coincé* : après une interruption (un appel, une notification, des écouteurs qu'on retire), l'iPhone peut
+    laisser un `play()` sans réponse, le refuser pour autre chose qu'un geste, ou remettre l'extrait en pause aussitôt ; la page
+    restait muette sans rien dire. Passé `attenteDuPlay`, `figeAuPlus` ou `relancesAuPlus` (`TELEPHONE.son`), l'écran dit
+    « Pas de son ? Touche l'écran. » ; le toucher pose un élément neuf, à la bonne position, et le fait jouer dans ce geste.
 
 ## Ce qui attend les étapes suivantes
 

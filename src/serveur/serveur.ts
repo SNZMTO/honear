@@ -204,7 +204,7 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
           }
         },
         couper() {
-          if (lien !== undefined) lien.room.debrancher(lien.id, o.maintenant());
+          if (lien !== undefined) lien.room.debrancher(lien.id, o.maintenant(), recevoir);
           lien = undefined;
         },
       };

@@ -77,9 +77,12 @@ export const TELEPHONE = {
    * le remettre trop vite, trop souvent, le faisait saccader ; lui changer sa vitesse aussi). Safari coupe le son à chaque
    * position qu'on lui donne en pleine lecture, et la pose souvent un peu à côté (bug WebKit 306350) : sur un iPhone, on ne le
    * remet à sa place qu'au-delà de `ecartAdmisSurIOS` (un extrait resté en panne, un téléphone qui revient de veille). Il se
-   * tait en ce temps-là, là où le téléphone laisse baisser le volume.
+   * tait en ce temps-là, là où le téléphone laisse baisser le volume. Un `play()` sans réponse au bout de `attenteDuPlay`
+   * secondes, un extrait figé plus de `figeAuPlus` secondes en pleine lecture, ou relancé `relancesAuPlus` fois sans jamais
+   * avancer (l'iPhone après une interruption : un appel, une notification, des écouteurs qu'on retire), est tenu pour refusé :
+   * l'écran demande un toucher, qui relance un élément neuf.
    */
-  son: { ecartAdmis: 0.6, ecartAdmisSurIOS: 2.5, entreDeuxSauts: 5, fondu: 0.6 },
+  son: { ecartAdmis: 0.6, ecartAdmisSurIOS: 2.5, entreDeuxSauts: 5, fondu: 0.6, attenteDuPlay: 4, figeAuPlus: 6, relancesAuPlus: 3 },
   /**
    * Le volume du bouton, de 0 à 1, là où il y en a un (un ordinateur ; au téléphone, ce sont ses boutons à lui) : aux deux tiers
    * en arrivant, assez pour qu'on entende, sans agresser les oreilles. L'oreille l'entend à cette puissance (un volume « cubique »,

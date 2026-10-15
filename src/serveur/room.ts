@@ -44,8 +44,12 @@ export interface Room {
   arriver(id: string, pochette: Pochette, envoyer: Envoyer, heure: number, jeton: string): void;
   /** Un joueur qui revient (la page rechargée, le réseau retrouvé) : il reçoit l'état complet ; sa pochette se remet à l'endroit. */
   revenir(id: string, envoyer: Envoyer, heure: number): void;
-  /** Sa connexion tombe : sa place est gardée, sa pochette se retourne. */
-  debrancher(id: string, heure: number): void;
+  /**
+   * Sa connexion tombe : sa place est gardée, sa pochette se retourne.
+   * @param envoyer la ligne qui tombe : s'il est déjà revenu par une autre (le serveur ne voit une ligne morte qu'au battement
+   * d'après), il reste branché sur celle-là.
+   */
+  debrancher(id: string, heure: number, envoyer?: Envoyer): void;
   recevoir(id: string, action: Action, heure: number): void;
   /**
    * L'hôte change de playlist, quand il veut, même en pleine piste : celle-ci s'arrête là, et la partie repart sur la face A de la
@@ -300,9 +304,12 @@ export function ouvrirUneRoom(
       envoyer(etatComplet(id, heure));
       raconterDeLaRoom({ genre: 'retour' });
     },
-    debrancher(id, heure) {
+    debrancher(id, heure, envoyer) {
       activite = heure;
       avancer(heure);
+      // Revenu entre-temps par une autre ligne : celle qui tombe n'était plus la sienne. Sans cela, le serveur, qui ne voit une ligne
+      // morte qu'au battement d'après, débranchait la nouvelle : le téléphone ne recevait plus rien de la room, ni piste ni son.
+      if (envoyer !== undefined && branches.get(id) !== envoyer) return;
       if (!branches.delete(id)) return;
       if (!etat().joueurs.some((j) => j.id === id && j.connecte)) return;
       ajouter({ genre: 'deconnexion', a: heure, id });

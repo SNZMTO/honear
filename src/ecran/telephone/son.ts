@@ -140,6 +140,11 @@ const MoteurAudio = (): typeof AudioContext | undefined =>
 /** Ce que l'élément audio dit de lui, et qu'on note au diagnostic. */
 const EVENEMENTS_NOTES = ['loadedmetadata', 'canplay', 'playing', 'pause', 'waiting', 'stalled', 'ended', 'error'] as const;
 
+/** Les millisecondes d'une seconde : les minuteries comptent en millisecondes, nos tables en secondes. */
+const MS_PAR_SECONDE = 1000;
+/** Ce qu'on laisse à un `play()` pour répondre (voir `TELEPHONE.son`). */
+const ATTENTE_DU_PLAY = TELEPHONE.son.attenteDuPlay * MS_PAR_SECONDE;
+
 /**
  * Le haut-parleur du téléphone : un seul élément audio, posé dans le cadre, qui joue tous les extraits.
  * @param volume le volume du bouton, de 0 à 1, lu à chaque image ; rien quand il n'y a pas de bouton (un téléphone, où ce sont
@@ -148,10 +153,27 @@ const EVENEMENTS_NOTES = ['loadedmetadata', 'canplay', 'playing', 'pause', 'wait
  * @param noter le diagnostic, quand la page l'a demandé : chaque essai de jouer, ce qu'il a donné, ce que l'élément dit de lui.
  */
 export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number | undefined, noter?: (texte: string) => void): HautParleur {
-  const audio = document.createElement('audio');
-  audio.preload = 'auto';
-  audio.hidden = true;
-  audio.setAttribute('playsinline', '');
+  /** L'élément audio, tel qu'on le pose : un élément coincé (voir `coince`) est remplacé par un neuf, dans le geste d'une main. */
+  const creerLElement = (): HTMLAudioElement => {
+    const element = document.createElement('audio');
+    element.preload = 'auto';
+    element.hidden = true;
+    element.setAttribute('playsinline', '');
+    // L'adresse telle qu'on l'a mise (l'élément, lui, la rend normalisée) : un extrait qui ne se charge pas ne retient personne.
+    element.addEventListener('error', () => {
+      if (adresse !== undefined && element.getAttribute('src') === adresse) rate = true;
+    });
+    if (noter !== undefined)
+      for (const nom of EVENEMENTS_NOTES)
+        element.addEventListener(nom, () =>
+          noter(
+            `audio ${nom} : ${element.currentSrc.startsWith('blob:') ? 'silence' : (element.currentSrc.split('/')[2] ?? '')} prêt ${element.readyState} ` +
+              `muet ${element.muted} à ${element.currentTime.toFixed(1)}${element.error !== null ? ` erreur ${element.error.code}` : ''}`,
+          ),
+        );
+    return element;
+  };
+  let audio = creerLElement();
   // L'iPhone et l'iPad : le son ne se règle qu'avec les boutons de l'appareil. La page n'y touche pas, et n'y ouvre pas le moteur
   // audio des petits bruits, qui pourrait prendre la main sur le son de l'extrait.
   const surIOS = estUnAppareilApple();
@@ -186,29 +208,59 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number |
   let enJeu = false;
   /** L'heure du serveur où l'on a remis l'extrait à sa place, la dernière fois. */
   let sauteA: number | undefined;
+  /**
+   * L'élément ne répond plus comme il devrait : un `play()` resté sans réponse, refusé pour autre chose qu'un geste, ou un
+   * extrait figé en pleine lecture. L'iPhone fait cela après une interruption (un appel, une notification, des écouteurs qu'on
+   * retire) : la page restait muette jusqu'à ce qu'on la recharge. Le toucher suivant pose un élément neuf, et le fait jouer.
+   */
+  let coince = false;
+  /** Où devrait en être l'extrait, à la dernière image : un élément neuf y part. */
+  let derniereposition: number | undefined;
+  /** La position de l'extrait la dernière fois qu'elle a bougé, et l'heure du serveur à ce moment : de quoi le voir figé. */
+  let bouge: { readonly position: number; readonly a: number } | undefined;
+  /** Combien de fois on a relancé l'extrait, à l'arrêt, sans qu'il avance : l'iPhone qui le remet aussitôt en pause. */
+  let relances = 0;
 
-  // L'adresse telle qu'on l'a mise (l'élément, lui, la rend normalisée) : un extrait qui ne se charge pas ne retient personne.
-  audio.addEventListener('error', () => {
-    if (adresse !== undefined && audio.getAttribute('src') === adresse) rate = true;
-  });
   noter?.(`haut-parleur : iOS ${surIOS}, volume réglable ${volumeReglable}, séance audio ${seance !== undefined}, moteur ${moteur !== undefined}`);
-  if (noter !== undefined)
-    for (const nom of EVENEMENTS_NOTES)
-      audio.addEventListener(nom, () =>
-        noter(
-          `audio ${nom} : ${audio.currentSrc.startsWith('blob:') ? 'silence' : (audio.currentSrc.split('/')[2] ?? '')} prêt ${audio.readyState} ` +
-            `muet ${audio.muted} à ${audio.currentTime.toFixed(1)}${audio.error !== null ? ` erreur ${audio.error.code}` : ''}`,
-        ),
-      );
+
+  /** Met l'extrait à cette position ; un élément qui ne sait pas encore où il en est (un vieux Safari) refuse : il part du début. */
+  const placer = (position: number): void => {
+    try {
+      audio.currentTime = position;
+    } catch {
+      noter?.(`position ${position.toFixed(1)} refusée`);
+    }
+  };
+
+  /** Le son ne part plus de lui-même : l'écran demande un toucher (« Pas de son ? Touche l'écran. »), qui le relancera. */
+  const tenirPourBloque = (pourquoi: string, coincer: boolean): void => {
+    noter?.(`son bloqué : ${pourquoi}`);
+    bloque = true;
+    if (coincer) coince = true;
+  };
 
   /** Fait jouer l'élément ; ce que le navigateur répond dit s'il laisse partir le son. */
   function jouerMaintenant(puis?: (joue: boolean) => void, pourquoi = 'extrait'): void {
     const ce = ++tour;
+    const element = audio;
     demande = true;
-    noter?.(`play (${pourquoi}) muet ${audio.muted}`);
-    audio.play().then(
+    let repondu = false;
+    noter?.(`play (${pourquoi}) muet ${element.muted}`);
+    // Sans réponse au bout d'un moment, il est tenu pour refusé : il ne retient plus le son, et un toucher le relancera. Pas
+    // l'amorce, muette, qui charge : sur un réseau lent, elle peut tarder sans que rien ne soit coincé.
+    const sansReponse = (): void => {
+      if (repondu || ce !== tour) return;
+      tour++;
+      demande = false;
+      tenirPourBloque(`play (${pourquoi}) sans réponse`, true);
+      puis?.(false);
+    };
+    if (pourquoi !== 'amorce') window.setTimeout(sansReponse, ATTENTE_DU_PLAY);
+    element.play().then(
       () => {
+        repondu = true;
         noter?.(`play (${pourquoi}) : accepté`);
+        if (element !== audio) return;
         debloque = true;
         bloque = false;
         if (ce !== tour) return;
@@ -216,14 +268,31 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number |
         puis?.(true);
       },
       (erreur: unknown) => {
+        repondu = true;
         noter?.(`play (${pourquoi}) : refusé, ${erreur instanceof Error ? `${erreur.name} ${erreur.message}` : String(erreur)}`);
-        // Refusé faute de geste : on attend le prochain toucher. Une autre erreur (un lien mort) se voit à l'élément.
-        if (erreur instanceof DOMException && erreur.name === 'NotAllowedError') bloque = true;
-        if (ce !== tour) return;
+        // Une réponse d'un ancien essai (l'extrait a changé entre-temps, qui l'a interrompu) ne compte plus.
+        if (ce !== tour || element !== audio) return;
         demande = false;
+        // Refusé faute de geste : on attend le prochain toucher ; pour autre chose, aussi, avec un élément neuf. Un lien mort, lui,
+        // se voit à l'élément (`rate`), et ne retient personne.
+        if (!rate) tenirPourBloque(`play (${pourquoi}) refusé`, !(erreur instanceof DOMException && erreur.name === 'NotAllowedError'));
         puis?.(false);
       },
     );
+  }
+
+  /** Un élément neuf à la place de celui qui est coincé, avec l'extrait, à la position où il devrait être. */
+  function remplacerLElement(): void {
+    const vieux = audio;
+    audio = creerLElement();
+    vieux.pause();
+    vieux.removeAttribute('src');
+    vieux.load();
+    vieux.replaceWith(audio);
+    if (!cadre.contains(audio)) cadre.append(audio);
+    if (adresse !== undefined) audio.src = adresse;
+    if (enJeu && derniereposition !== undefined) placer(derniereposition);
+    noter?.('élément audio neuf');
   }
 
   /** L'iPhone ne charge un extrait que si on le fait jouer : on le fait jouer muet un instant, dès qu'on en a le droit. */
@@ -247,6 +316,8 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number |
     rate = false;
     amorce = false;
     demande = false;
+    bouge = undefined;
+    relances = 0;
     tour++;
     audio.pause();
     audio.muted = false;
@@ -270,6 +341,15 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number |
       if (debloque && !bloque) return;
       noter?.(`geste ${geste ?? ''} : on débloque (${adresse === undefined ? 'silence' : enJeu ? 'extrait' : 'amorce'})`);
       bloque = false;
+      // Coincé : un élément neuf, que ce geste-ci laisse jouer.
+      if (coince) {
+        coince = false;
+        amorce = false;
+        demande = false;
+        bouge = undefined;
+        relances = 0;
+        remplacerLElement();
+      }
       if (adresse === undefined) {
         // Rien à jouer encore : un instant de silence, joué dans ce geste-ci.
         silence ??= URL.createObjectURL(unSilence());
@@ -293,15 +373,33 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number |
       const fini = Number.isFinite(audio.duration) && position !== undefined && position >= audio.duration;
       if (position === undefined || position < 0 || fini || (voulu.jusqua !== undefined && heure >= voulu.jusqua)) return taire();
       enJeu = true;
+      derniereposition = position;
       // C'est l'heure : s'il chargeait en sourdine, il s'entend désormais.
       amorce = false;
       audio.muted = false;
       if (volumeReglable) audio.volume = gainDuVolume(volume() ?? 1) * volumeA(voulu, heure);
       if (audio.paused) {
+        bouge = undefined;
         if (demande || bloque || rate) return;
-        audio.currentTime = position;
+        // Relancé coup sur coup sans jamais avancer (le système le remet en pause aussitôt) : il est coincé.
+        if (relances >= TELEPHONE.son.relancesAuPlus) {
+          relances = 0;
+          tenirPourBloque('extrait remis en pause sans cesse', true);
+          return;
+        }
+        relances++;
+        placer(position);
         sauteA = heure;
         jouerMaintenant();
+        return;
+      }
+      // Il joue, ou croit jouer : figé trop longtemps (rien n'avance, sans qu'on le cherche), il est coincé.
+      if (bouge === undefined || audio.currentTime !== bouge.position) {
+        if (bouge !== undefined) relances = 0;
+        bouge = { position: audio.currentTime, a: heure };
+      } else if (!audio.seeking && !bloque && heure - bouge.a > TELEPHONE.son.figeAuPlus) {
+        bouge = undefined;
+        tenirPourBloque('extrait figé', true);
         return;
       }
       // Il a dérivé : on le remet à sa place, s'il le faut (voir `aRemettreEnPlace`).
@@ -310,7 +408,7 @@ export function brancherLeHautParleur(cadre: HTMLElement, volume: () => number |
       if (!aRemettreEnPlace(ecart, { surIOS, enRecherche: audio.seeking, aDeQuoiJouer: audio.readyState >= audio.HAVE_FUTURE_DATA, depuis })) return;
       noter?.(`remis à sa place : écart ${ecart.toFixed(2)} s`);
       sauteA = heure;
-      audio.currentTime = position;
+      placer(position);
     },
     pret(a) {
       return bloque || (adresse === a && (rate || audio.readyState >= audio.HAVE_FUTURE_DATA));

@@ -13,7 +13,7 @@
 
 > **In English.** Honear is a multiplayer music blind test, live at [honear.fr](https://honear.fr). A shared screen shows a
 > low‑poly hi‑fi cabinet, everyone answers from their phone, and a Node/WebSocket server keeps every game in sync. Strict
-> TypeScript, 532 tests (some of which enforce the architecture itself), a hardened Docker deployment and a GDPR register.
+> TypeScript, 533 tests (some of which enforce the architecture itself), a hardened Docker deployment and a GDPR register.
 > Every picture on this page is drawn by the game's own renderer. Code and docs are in French.
 
 <img src=".github/vitrine/bandeau-face-a.svg" alt="Face A : le jeu" width="100%">
@@ -43,7 +43,7 @@ passe.
 <table>
   <tr>
     <td align="center" width="33%"><a href="#mise-en-prod"><img src=".github/vitrine/pochette-production.svg" alt="Pochette « Mise en prod » : Docker durci, RGPD" width="100%"></a></td>
-    <td align="center" width="33%"><a href="#tests-au-vert"><img src=".github/vitrine/pochette-code.svg" alt="Pochette « Tests au vert » : 532 tests, TypeScript strict" width="100%"></a></td>
+    <td align="center" width="33%"><a href="#tests-au-vert"><img src=".github/vitrine/pochette-code.svg" alt="Pochette « Tests au vert » : 533 tests, TypeScript strict" width="100%"></a></td>
     <td align="center" width="33%"><a href="#tous-en-rythme"><img src=".github/vitrine/pochette-temps-reel.svg" alt="Pochette « Tous en rythme » : WebSocket, une seule horloge" width="100%"></a></td>
   </tr>
   <tr>
@@ -53,7 +53,7 @@ passe.
   </tr>
 </table>
 
-<p align="center"><img src=".github/vitrine/pastilles.svg" alt="532 tests, TypeScript strict, zéro any, 196 images contrôlées, registre RGPD" width="80%"></p>
+<p align="center"><img src=".github/vitrine/pastilles.svg" alt="533 tests, TypeScript strict, zéro any, 196 images contrôlées, registre RGPD" width="80%"></p>
 
 ### Mise en prod
 
@@ -75,7 +75,7 @@ passe.
 ### Tests au vert
 
 - **TypeScript au plus strict** (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`…), sans `any`.
-- **532 tests**, dont une vingtaine qui vérifient l'architecture elle-même ([`tests/sources.test.ts`](tests/sources.test.ts)) :
+- **533 tests**, dont une vingtaine qui vérifient l'architecture elle-même ([`tests/sources.test.ts`](tests/sources.test.ts)) :
   chaque couche ne lit que celles du dessous, aucune couleur hors de la palette, aucune durée écrite en chiffres, aucun
   `Math.random`.
 - **Un rendu déterministe** : le hasard est une graine et l'heure ne se lit qu'à un endroit, donc le même état redonne toujours la
@@ -135,7 +135,7 @@ Il faut Node 22.
 
 ```sh
 npm ci
-npm test                            # les types, puis les 532 tests
+npm test                            # les types, puis les 533 tests
 npm run construire && npm run site  # le jeu sur http://127.0.0.1:8080
 ```
 
