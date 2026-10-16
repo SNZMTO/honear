@@ -1,7 +1,8 @@
 # Honear en ligne, sur le VPS : un conteneur, qui n'ouvre aucun port. Le frontal du VPS (Caddy, dans le dépôt « vps ») tient le
 # HTTPS de honear.fr et lui passe tout par le réseau « honear », à l'adresse « honear:8080 ». Le jeu ne sort que vers Deezer,
-# Spotify et le serveur d'envoi des e-mails. Il n'a aucun droit : pas de capacités, rien à gagner en route, un système de fichiers
-# en lecture seule, de la mémoire et des processus comptés.
+# Spotify et le serveur d'envoi des e-mails ; il lit les listes sur mesure du MCP de Honear sur le réseau interne « honear-listes ».
+# Il n'a aucun droit : pas de capacités, rien à gagner en route, un système de fichiers en lecture seule, de la mémoire et des
+# processus comptés.
 #
 # Posé dans /srv/honear par deploiement/mettre-en-ligne.sh, avec un .env à côté : VERSION (l'image, étiquetée à son commit),
 # UID_DU_JEU et GID_DU_JEU (l'utilisateur honear, à qui appartiennent les comptes), DOMAINE.
@@ -23,6 +24,8 @@ services:
     environment:
       ORIGINES: https://${DOMAINE:?}
       SITE: https://${DOMAINE:?}
+      # Le MCP de Honear (mcp.honear.fr) sert les listes sur ce réseau ; tant qu'il n'y est pas, elles sont introuvables.
+      LISTES: http://honear-mcp:8791
     # Les comptes et les statistiques : le seul dossier où le jeu écrit.
     volumes:
       - /var/lib/honear:/donnees
@@ -38,8 +41,12 @@ services:
     networks:
       honear:
         aliases: [honear]
+      honear-listes: {}
 
-# Le réseau du jeu, que le frontal rejoint.
+# Le réseau du jeu, que le frontal rejoint ; et celui des listes, que le MCP rejoint, d'où l'on ne sort pas.
 networks:
   honear:
     name: honear
+  honear-listes:
+    name: honear-listes
+    internal: true

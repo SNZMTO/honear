@@ -11,7 +11,7 @@ import { assezLongue, codeDePartie, type EtatDeLaPartie } from '../regles/partie
 import type { Tirage } from '../regles/pochette';
 import { SERVEUR } from '../ressources/reglages';
 import { avecDesChoix } from './choix';
-import { dansLOrdre, unOrdreAuHasard } from './ordre';
+import { dansLOrdre, lOrdreDeLaPlaylist, unOrdreAuHasard } from './ordre';
 import type { RoomEnDirect } from '../regles/statistiques';
 import type { Raconter } from './faits';
 import { ouvrirUneRoom, type Room } from './room';
@@ -41,6 +41,8 @@ export interface OptionsDuServeur {
   readonly quandUneFaceFinit?: (code: string, etat: EtatDeLaPartie) => void;
   /** L'ordre où une room joue les n pistes de sa playlist ; sans lui, tiré au hasard. */
   readonly ordre?: (n: number) => readonly number[];
+  /** Vrai si une playlist se joue dans son ordre à elle (une liste sur mesure dont la difficulté monte) : elle n'est pas mélangée. */
+  readonly gardeSonOrdre?: (lien: string) => boolean;
   /** Les pistes qu'une room va jouer, dans l'ordre, chaque fois qu'elle les relit : la source s'y prépare (les invités de chacune). */
   readonly bientot?: (pistes: readonly PisteDuMode[]) => void;
   /** Ce qui se passe dans les rooms, pour qu'on le compte (voir faits.ts). */
@@ -95,10 +97,11 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
 
   /**
    * Les pistes d'une playlist, telles qu'une room les joue : elles se relisent à chaque lancer (la source a peut-être renouvelé les
-   * liens de leurs extraits), dans un ordre tiré au hasard quand la room la prend.
+   * liens de leurs extraits), dans un ordre tiré au hasard quand la room la prend, ou dans le sien si elle le garde.
    */
   function lire(lien: string, pistes: readonly PisteDuMode[], mode: CleDeMode): () => readonly PisteDuMode[] {
-    const ordre = o.ordre?.(pistes.length) ?? unOrdreAuHasard(pistes.length, o.tirage);
+    const sonOrdre = o.gardeSonOrdre?.(lien) === true ? lOrdreDeLaPlaylist(pistes.length) : undefined;
+    const ordre = o.ordre?.(pistes.length) ?? sonOrdre ?? unOrdreAuHasard(pistes.length, o.tirage);
     const dansSonOrdre = (): PisteDuMode[] => dansLOrdre(o.playlist(lien) ?? pistes, ordre);
     // Dès qu'elle la prend, puis à chaque lancer : la source lit en coulisses ce qu'il faut des pistes qui viennent.
     o.bientot?.(dansSonOrdre());

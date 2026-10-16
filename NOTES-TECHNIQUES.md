@@ -231,11 +231,20 @@ durée de l'extrait.
 
 Deezer donne les playlists et les extraits : son API publique (sans clé) rend des extraits MP3 de 30 secondes, dont les liens sont
 signés et expirent. Spotify ne donne plus ni extraits, ni le contenu des playlists des autres (depuis février 2026) : une playlist
-Spotify se lit sur sa page publique, et chacun de ses titres se retrouve chez Deezer, par artiste et par nom. Le jeu garde une playlist
-sous un lien à lui : `deezer:1306931615`, `spotify:37i9dQZF1DXcBWIGoYBM5M` ; la playlist d'essai est `essai:…`.
+Spotify se lit sur sa page publique, et chacun de ses titres se retrouve chez Deezer, par artiste et par nom. Une liste sur mesure,
+celle qu'un assistant (Claude, ChatGPT…) a faite avec le MCP de Honear (mcp.honear.fr, dépôt `honear-mcp`), se lit chez le MCP, et
+chacune de ses pistes se relit chez Deezer par son identifiant. Le jeu garde une playlist sous un lien à lui : `deezer:1306931615`,
+`spotify:37i9dQZF1DXcBWIGoYBM5M`, `liste:iTRYNDDqk3g0zBoA` ; la playlist d'essai est `essai:…`.
 
-- `serveur/sources/deezer.ts`, `spotify.ts` : purs. Les adresses à demander, et la lecture de ce qui revient (`lireDesPistes`,
-  `laBonnePiste`, `lireLaPage`) ; jamais d'appel. `liens.ts` dit ce que désigne un lien collé.
+- `serveur/sources/deezer.ts`, `spotify.ts`, `liste.ts` : purs. Les adresses à demander, et la lecture de ce qui revient
+  (`lireDesPistes`, `laBonnePiste`, `lireLaPage`, `lireLaListe`) ; jamais d'appel. `liens.ts` dit ce que désigne un lien collé.
+- Une liste sur mesure se colle dans le bac par son lien (`https://honear.fr/?liste=<id>`, que le MCP donne). Le MCP la sert sur
+  un réseau interne que seul le jeu rejoint (`honear-listes`, l'adresse est dans `LISTES` : `http://honear-mcp:8791/listes/<id>`) ;
+  la lire, pour lui, c'est la jouer : elle vit de nouveau trente jours. Ses pistes portent des surnoms (d'autres réponses justes,
+  « Matthieu Chedid » pour « -M- ») : `ciblesDe` les ajoute à ce que la saisie libre accepte, derrière le vrai nom, et ils restent au
+  serveur. Une liste dont la difficulté monte (`dans_l_ordre`) se joue dans son ordre (`gardeSonOrdre`), sans être mélangée.
+- Deezer est partagé : le jeu et le MCP sortent par la même adresse, et Deezer compte 50 appels par 5 secondes pour les deux. Le jeu
+  en fait 30, le MCP 10 (`ressources/reseau.ts`, et `ressources/reglages.py` du MCP).
 - `reseau/musique.ts` appelle : une limite de débit par service, une file plafonnée, des réponses gardées (une recherche une heure, une
   playlist dix minutes et jamais jusqu'à moins de deux minutes de l'expiration de ses liens), une lecture à la fois par playlist, une
   relecture en coulisses quand elle va expirer. Le serveur du jeu ne voit que `pistes(lien)`, déjà lues ; la ligne (`reseau/ligne.ts`)
