@@ -1042,7 +1042,9 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Le jugement, une seule vérité pour deux** : le MCP porte en Python le jugement d'une saisie et la saisie libre (pour ses
   surnoms, et le mini blind test qu'il montrera dans la conversation). `npm run exporter-pour-le-mcp -- ~/honear-mcp` lui écrit
   les réglages du jugement, la part de Deezer du jeu, et une table de saisies jugées ici : les cas de `tests/cas-du-jugement.ts`,
-  que `tests/jugement.test.ts` vérifie aussi, et des variantes tirées d'une graine. `morceauAuMoins` rejoint `JUGEMENT`.
+  que `tests/jugement.test.ts` vérifie aussi, et des variantes tirées d'une graine. `morceauAuMoins` rejoint `JUGEMENT`. Il lui
+  écrit aussi le moins de pistes qu'une playlist doit avoir pour une partie (la plus courte face) : une liste sur mesure plus
+  courte, le MCP la refuse, au lieu d'un lien que le bac dirait « Trop court pour une face ».
 
 ## Ce qui attend les étapes suivantes
 
