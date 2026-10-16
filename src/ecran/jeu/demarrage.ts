@@ -10,7 +10,7 @@ import { MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { estUnePochette } from '../../regles/pochette';
 import { PLAYLIST_D_ESSAI } from '../../ressources/bac';
 import { GRAND_ECRAN } from '../../ressources/ecran';
-import { META_DE_LA_VERSION, PARTIE, REGLAGES } from '../../ressources/reglages';
+import { META_DE_LA_VERSION, PARTIE, REGLAGES, SITE } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
 import { CARACTERES, ROLES_DE_TEXTE } from '../../ressources/typo';
 import { VERSO_DU_JEU } from '../../scene/disque/verso';
@@ -46,6 +46,15 @@ function lienDeConnexion(): string | undefined {
   const lien = /^#connexion=([A-Za-z0-9_-]{20,64})$/.exec(window.location.hash)?.[1];
   if (window.location.hash !== '') window.history.replaceState(null, '', window.location.pathname);
   return lien;
+}
+
+/** L'identifiant d'une liste sur mesure, tel que le MCP les tire (voir `serveur/sources/liste.ts`). */
+const ID_LISTE = /^[A-Za-z0-9_-]{16}$/;
+
+/** La liste sur mesure du MCP que l'adresse de la page nomme (« honear.fr/?liste=… »), en lien à coller dans le bac ; rien sinon. */
+function listeOuverte(): string | undefined {
+  const id = new URLSearchParams(window.location.search).get('liste');
+  return id !== null && ID_LISTE.test(id) ? `https://${SITE.adresse}/?liste=${id}` : undefined;
 }
 
 /** Lire ce que le navigateur a gardé : rien, s'il n'a rien gardé, s'il refuse qu'on y lise, ou si ce n'est plus lisible. */
@@ -280,6 +289,7 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
   // Arrivé par le QR code de la kraft (« #qr »), qu'on lit avant que l'adresse ne s'en défasse.
   const parLeQr = window.location.hash === '#qr';
   const lien = lienDeConnexion();
+  const liste = listeOuverte();
   // Un lien de connexion touché alors que la page est déjà ouverte : seule l'ancre change ; la page repart, et le lit.
   window.addEventListener('hashchange', () => {
     if (window.location.hash.startsWith('#connexion=')) window.location.reload();
@@ -290,6 +300,7 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
     ...(mienne !== undefined ? { pochette: mienne } : {}),
     ...(typeof session === 'string' && SECRET.test(session) ? { session } : {}),
     ...(lien !== undefined ? { lien } : {}),
+    ...(liste !== undefined ? { liste } : {}),
     mesPlaylists,
   });
 
