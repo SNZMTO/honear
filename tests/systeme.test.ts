@@ -73,7 +73,11 @@ test('le bac : un intercalaire par thème, chacun son titre et sa couleur ; troi
   const pochettes = calques(bac).filter((c) => c.nom.startsWith('pochette-'));
   assert.equal(intercalaires.length, themes.length);
   // Chacun a son onglet, un calque à lui : c'est lui qu'on touche, pas le carton que ceux de devant cachent.
-  for (const i of intercalaires) assert.ok(calques(bac).some((c) => c.nom === `${i.nom}/onglet`), `${i.nom} a son onglet`);
+  for (const i of intercalaires)
+    assert.ok(
+      calques(bac).some((c) => c.nom === `${i.nom}/onglet`),
+      `${i.nom} a son onglet`,
+    );
   assert.ok(pochettes.length >= 10 && pochettes.length <= 14, `une douzaine de playlists : ${pochettes.length}`);
   for (const rangee of [...intercalaires, ...pochettes]) assert.equal(rangee.role, 'image', `${rangee.nom} est figé en image et bouge d'un bloc`);
   const { places } = BAC.intercalaire.onglet;
