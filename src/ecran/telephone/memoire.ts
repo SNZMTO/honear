@@ -697,13 +697,18 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       const choisie = prep.bac.choisie ?? (prep.cran === 'chercher' ? prep.bac.resultats?.[0] : undefined);
       if (choisie === undefined && p.chercher) return rien;
       const playlist = choisie?.lien ?? p.playlist;
+      // Une playlist plus courte que la face réglée (une liste sur mesure de douze titres, quand la face en veut quinze) se règle sur
+      // la plus longue face qu'elle remplit : sans cela, le salon la refusait, et l'on revenait au bac.
+      const jouables = choisie?.jouables;
+      const remplies = REGLAGES.pistes.choix.filter((n) => jouables === undefined || n <= jouables);
+      const face = jouables === undefined || jouables >= pistes || remplies.length === 0 ? pistes : Math.max(...remplies);
       // Dans la room, l'hôte change de playlist : la room repart dessus, réglée comme elle l'était ; le serveur dira si elle est trop courte.
       if (m.room !== undefined)
         return { memoire: { ...m, refus: undefined, preparation: { ecran: 'accueil' } }, actions: [{ genre: 'changerDePlaylist', playlist }] };
       return seul({
         ...m,
         refus: undefined,
-        preparation: { ecran: 'reglages', pochette: prep.pochette, playlist, bac: prep.bac, cran: prep.cran, mode, pistes, extrait, son },
+        preparation: { ecran: 'reglages', pochette: prep.pochette, playlist, bac: prep.bac, cran: prep.cran, mode, pistes: face, extrait, son },
       });
     }
     case 'tournerLeBouton': {

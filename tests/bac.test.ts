@@ -170,3 +170,17 @@ test('ouverte sur une liste sur mesure du MCP, la page la met dans le bac de l�
   const sansListe = creer(memoireDeDepart(PREPARATIFS, {}));
   assert.deepEqual([sansListe.actions, bacDe(sansListe.memoire)?.lien], [[], '']);
 });
+
+test('une playlist plus courte que la face réglée se règle sur la plus longue face qu’elle remplit ; assez longue, rien ne change', () => {
+  const lien = 'https://honear.fr/?liste=5SiHPU4qQHlXgbM3';
+  const quinze: Preparatifs = { ...PREPARATIFS, pistes: 15 };
+  const pochette = saisir(toucher(memoireDeDepart(quinze, { liste: lien }), { genre: 'poser' }, 0, quinze).memoire, 'Lady Dédicace', 'nom');
+  const bac = toucher(pochette, { genre: 'cEstMoi' }, 1, quinze).memoire;
+  const reglee = (jouables: number) => {
+    const liste = { lien: 'liste:5SiHPU4qQHlXgbM3', titre: 'Kaaris x Dominic Fike', total: jouables, jouables };
+    const prete = recevoir(bac, { genre: 'importee', heure: 2, playlist: liste });
+    const p = toucher(prete, { genre: 'choisir' }, 3, quinze).memoire.preparation;
+    return p.ecran === 'reglages' ? p.pistes : undefined;
+  };
+  assert.deepEqual([reglee(12), reglee(10), reglee(15), reglee(20)], [10, 10, 15, 15]);
+});
