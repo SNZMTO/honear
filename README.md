@@ -4,16 +4,16 @@
 
 <p align="center">
   <a href="https://honear.fr"><img src="https://img.shields.io/badge/en%20ligne-honear.fr-E2A72E?style=flat-square&labelColor=2A1E17" alt="En ligne sur honear.fr"></a>
-  <a href="https://github.com/SNZMTO/honear/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/SNZMTO/honear/tests.yml?branch=main&label=tests&style=flat-square&labelColor=2A1E17&color=1F3A33" alt="Tests"></a>
+  <a href="https://github.com/SNZMTO/honear/actions/workflows/tests.yml"><img src="https://img.shields.io/github/actions/workflow/status/SNZMTO/honear/tests.yml?branch=main&label=tests&style=flat-square&labelColor=2A1E17" alt="Tests"></a>
   <img src="https://img.shields.io/badge/TypeScript-strict-734929?style=flat-square&labelColor=2A1E17" alt="TypeScript strict">
-  <img src="https://img.shields.io/badge/Node-22-1F3A33?style=flat-square&labelColor=2A1E17" alt="Node 22">
+  <img src="https://img.shields.io/badge/Node-24-1F3A33?style=flat-square&labelColor=2A1E17" alt="Node 24">
   <img src="https://img.shields.io/badge/Docker-durci-1E6E78?style=flat-square&labelColor=2A1E17" alt="Docker durci">
   <img src="https://img.shields.io/badge/RGPD-registre-C4432F?style=flat-square&labelColor=2A1E17" alt="Registre RGPD">
 </p>
 
 > **In English.** Honear is a multiplayer music blind test, live at [honear.fr](https://honear.fr). A shared screen shows a
 > low‑poly hi‑fi cabinet, everyone answers from their phone, and a Node/WebSocket server keeps every game in sync. Strict
-> TypeScript, 541 tests (some of which enforce the architecture itself), a hardened Docker deployment and a GDPR register.
+> TypeScript, over 500 tests (some of which enforce the architecture itself), a hardened Docker deployment and a GDPR register.
 > Every picture on this page is drawn by the game's own renderer. Code and docs are in French.
 
 <img src=".github/vitrine/bandeau-face-a.svg" alt="Face A : le jeu" width="100%">
@@ -43,7 +43,7 @@ passe.
 <table>
   <tr>
     <td align="center" width="33%"><a href="#mise-en-prod"><img src=".github/vitrine/pochette-production.svg" alt="Pochette « Mise en prod » : Docker durci, RGPD" width="100%"></a></td>
-    <td align="center" width="33%"><a href="#tests-au-vert"><img src=".github/vitrine/pochette-code.svg" alt="Pochette « Tests au vert » : 541 tests, TypeScript strict" width="100%"></a></td>
+    <td align="center" width="33%"><a href="#tests-au-vert"><img src=".github/vitrine/pochette-code.svg" alt="Pochette « Tests au vert » : plus de 500 tests, TypeScript strict" width="100%"></a></td>
     <td align="center" width="33%"><a href="#tous-en-rythme"><img src=".github/vitrine/pochette-temps-reel.svg" alt="Pochette « Tous en rythme » : WebSocket, une seule horloge" width="100%"></a></td>
   </tr>
   <tr>
@@ -53,7 +53,7 @@ passe.
   </tr>
 </table>
 
-<p align="center"><img src=".github/vitrine/pastilles.svg" alt="541 tests, TypeScript strict, zéro any, 199 images contrôlées, registre RGPD" width="80%"></p>
+<p align="center"><img src=".github/vitrine/pastilles.svg" alt="Plus de 500 tests, TypeScript strict, zéro any, un rendu contrôlé, registre RGPD" width="80%"></p>
 
 ### Mise en prod
 
@@ -75,11 +75,11 @@ passe.
 ### Tests au vert
 
 - **TypeScript au plus strict** (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`…), sans `any`.
-- **541 tests**, dont une vingtaine qui vérifient l'architecture elle-même ([`tests/sources.test.ts`](tests/sources.test.ts)) :
+- **Plus de 500 tests**, dont une quinzaine qui vérifient l'architecture elle-même ([`tests/sources.test.ts`](tests/sources.test.ts)) :
   chaque couche ne lit que celles du dessous, aucune couleur hors de la palette, aucune durée écrite en chiffres, aucun
   `Math.random`.
 - **Un rendu déterministe** : le hasard est une graine et l'heure ne se lit qu'à un endroit, donc le même état redonne toujours la
-  même image. `npm run controle` mesure les 199 images du projet (contrastes, taille des textes, poids du dessin).
+  même image. `npm run controle` mesure toutes les images du projet (contrastes, taille des textes, poids du dessin).
 - **Le script de la page** est vérifié contre ce que savaient les navigateurs d'il y a cinq ans (ES2019).
 
 ### Tous en rythme
@@ -93,8 +93,8 @@ passe.
 
 ### Tout est dessiné par le code
 
-Aucune image dans le jeu : le meuble, la platine, les pochettes et les pastilles sont du SVG en low-poly, calculé à partir d'une
-palette de dix-sept couleurs et de deux polices. La platine, éclatée calque par calque :
+L'interface n'a aucune image dessinée à la main : le meuble, la platine, les pochettes des joueurs et les pastilles sont du SVG en
+low-poly, calculé à partir d'une palette de dix-sept couleurs et de deux polices (seules les pochettes d'albums viennent de Deezer). La platine, éclatée calque par calque :
 
 <p align="center"><img src=".github/vitrine/platine-eclatee.svg" alt="La platine éclatée : chaque calque, son nombre de polygones et son ombre" width="80%"></p>
 
@@ -131,11 +131,11 @@ Le détail de chaque module est dans [`LISEZMOI.md`](LISEZMOI.md), le serveur et
 
 ### Lancer en local
 
-Il faut Node 22.
+Il faut Node 22 ou plus récent ; la production et la CI tournent en Node 24.
 
 ```sh
 npm ci
-npm test                            # les types, puis les 541 tests
+npm test                            # les types, puis tous les tests
 npm run construire && npm run site  # le jeu sur http://127.0.0.1:8080
 ```
 
@@ -145,8 +145,9 @@ une partie jouable de bout en bout contre un serveur simulé (`sortie/prototype.
 <img src=".github/vitrine/bandeau-piste-cachee.svg" alt="Piste cachée : comment je l'ai construit" width="100%">
 
 Honear est mon projet de bout en bout : l'idée, le meuble et son style, le découpage en couches, les règles du code, la
-sécurité et l'hébergement. Pour écrire le code, je travaille avec un assistant de code, Claude Code, et les commits co-signés
-le montrent. Il écrit vite ; c'est moi qui pose le cadre, qui tranche et qui vérifie.
+sécurité et l'hébergement. Claude Code écrit l'essentiel du code et des tests, et les commits co-signés le montrent ; moi, je
+conçois, je fixe les règles que les tests vérifient, je tranche (souvent sur ses recommandations) et j'essaie sur de vrais
+téléphones.
 
 - **Concevoir avant de coder.** Le jeu est passé par sept étapes, chacune validée sur des planches avant la suivante : le
   dessin, l'animation, le système visuel, les écrans du téléphone, l'écran de l'hôte, puis un prototype jouable contre un
@@ -160,8 +161,9 @@ le montrent. Il écrit vite ; c'est moi qui pose le cadre, qui tranche et qui v�
   journal du serveur, et deux passes d'« audit mobile » ont suivi.
 - **Relire.** Les commits gardent la trace de ce que la relecture a corrigé.
 - **L'historique.** Ce dépôt commence le 12 octobre 2026. Son premier commit importe d'un bloc le projet, développé jusque-là
-  ailleurs sous son ancien nom, Miel d'oreilles ; il est signé Claude parce qu'il est parti d'une session Claude Code. Le chemin
-  d'avant se lit dans les planches et dans les « Ce qui a été tranché » du LISEZMOI.
+  ailleurs sous son ancien nom, Miel d'oreilles ; il est signé Claude parce qu'il est parti d'une session Claude Code (`git blame`
+  lui attribue donc l'essentiel des lignes). Le chemin d'avant se lit dans les planches et dans les « Ce qui a été tranché » du
+  LISEZMOI.
 
 <br>
 
