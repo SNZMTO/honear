@@ -19,11 +19,12 @@ export const MONTAGE = {
 
 /**
  * Le téléphone, d'un écran à l'autre, en secondes : la réponse reste à l'écran ce temps après que le disque s'est retourné, avant
- * le hit-parade ou la finale ; l'ampli qu'on vient d'allumer reste de près ce temps-là, avant que le regard ne revienne au salon ;
+ * le hit-parade ou la finale (celui-ci, quand une anecdote se lit dessous) ; l'ampli qu'on vient d'allumer reste de près ce temps-là, avant que le regard ne revienne au salon ;
  * le clavier qui tape tout seul met ce temps par lettre, et laisse ce temps à la réponse tapée avant de l'envoyer.
  */
 export const TELEPHONE = {
   apresLaReponse: 4,
+  apresLAnecdote: 9,
   ampliDePres: 1.6,
   clavier: { parLettre: 0.045, avantDEnvoyer: 0.35 },
   /**

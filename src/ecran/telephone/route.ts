@@ -14,11 +14,11 @@ import { FONDS_DE_POCHETTE, MOTIFS_DE_POCHETTE, type Pochette } from '../../ress
 import type { Textes } from '../../ressources/textes';
 import type { Vignette } from '../../ressources/vignettes';
 import type { PisteEnScene } from '../../scene/piste/etat';
-import { instantsDeLaPiste } from '../../scene/piste/instants';
 import type { BacOuvert, QuiRegardeLeSalon } from '../../scene/telephone/ecrans';
 import type { CompteOuvertAuTelephone } from '../../scene/telephone/compte';
 import type { AutourDeLaPiste } from '../../scene/telephone/piste';
 import { estUnRefusDuCompte, tapeA, type Memoire, type Preparatifs, type RoomConnue } from './memoire';
+import { finDeLaReponse } from './son';
 
 export type EcranDuTelephone =
   /** L'accueil ; sa touche « Mon compte » quand le serveur tient des comptes. */
@@ -177,7 +177,8 @@ function ecranDeLaPiste(
   const lanceeA = room.seance.find((a) => a.genre === 'lancer')?.a;
   if (piste === undefined || lanceeA === undefined) return undefined;
   // La réponse reste à l'écran un moment après que le disque s'est retourné ; puis le hit-parade, ou la finale.
-  if (piste.revelation !== undefined && heure >= instantsDeLaPiste(piste).retournement + TELEPHONE.apresLaReponse) return undefined;
+  const fin = finDeLaReponse(piste, room.journal, lanceeA);
+  if (fin !== undefined && heure >= fin) return undefined;
   const depuis = room.journal.filter((e) => e.a >= lanceeA);
   const extrait = depuis.filter(estUn('extrait'))[0];
   const revelation = depuis.filter(estUn('revelation'))[0];

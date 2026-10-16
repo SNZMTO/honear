@@ -47,8 +47,8 @@ npm run prototype   # étape 7 : écrit sortie/prototype.html (la page à publie
 npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist/serveur.mjs (le serveur, à lancer avec Node 22 ou plus récent)
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
 docker build -t honear .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
-npm run controle    # passe les contrôles du rendu sur les 196 images, et dit ce qu'ils ont mesuré
-npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 539 tests
+npm run controle    # passe les contrôles du rendu sur les 199 images, et dit ce qu'ils ont mesuré
+npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 541 tests
 npm run format      # Prettier
 ```
 
@@ -82,7 +82,7 @@ Sept outils, à côté, sont en Python ; deux d'entre eux pilotent des modules �
 | `piste/11` | La réponse avec l'autre verso : tout le disque est la pochette | — | 1 053 | bras, 145 |
 | `systeme/*.svg` | La planche du système (étape 3) : le meuble entier, l'ampli éteint et allumé, un vumètre de près, le bac, les touches, les pastilles, et ce qui est repris de l'étape 1 | — | 1 713 au plus (le meuble entier) | bras, 145 ; à l'ampli, le voyant, 114 |
 | `pochette/*.svg` | « Fais ta pochette » (étape 4) : l'écran au téléphone, chaque tête et chaque dessus de tête sur une pochette, les expressions, les motifs, douze tirages au sort, douze pochettes sur le noyer | — | 354 au plus (l'écran) | une touche, 42 |
-| `ecrans/*.svg` | Les écrans du téléphone (étape 5) : 33 écrans et états d'une partie, l'ampli à cinq instants de la danse, 13 pellicules d'animations (75 images, tirées des animations de l'étape 7 : réglées, pas redessinées) | — | 2 500 au plus | bras, 145 |
+| `ecrans/*.svg` | Les écrans du téléphone (étape 5) : 36 écrans et états d’une partie, l'ampli à cinq instants de la danse, 13 pellicules d'animations (75 images, tirées des animations de l'étape 7 : réglées, pas redessinées) | — | 2 500 au plus | bras, 145 |
 | `hote/*.svg` | L'écran de l'hôte (étape 6) : six moments d'une partie, le meuble entier en 1440 × 900 | — | 2 500 au plus | bras, 145 |
 
 Un calque mobile pèse ses polygones et les lettres de ses textes : une lettre est tracée en contour, comme le reste.
@@ -1034,8 +1034,7 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   Collé dans le bac, il se lit comme une playlist : la source `liste` (`serveur/sources/liste.ts`) lit la liste chez le MCP, sur
   le réseau interne `honear-listes`, et chaque piste se relit chez Deezer par son identifiant, pour un extrait frais. Ses surnoms
   (« Matthieu Chedid » pour « -M- ») s'ajoutent à ce que la saisie libre accepte ; une liste dont la difficulté monte se joue dans
-  son ordre. Le jeu passe de 40 à 30 appels Deezer par 5 secondes : le MCP, qui sort par la même adresse, en prend 10. L'anecdote
-  qu'une liste peut porter attend son dessin sur l'écran de l'hôte.
+  son ordre. Le jeu passe de 40 à 30 appels Deezer par 5 secondes : le MCP, qui sort par la même adresse, en prend 10.
 - **Le lien d'une liste ouvert directement** (le 16) : la page lit `?liste=<id>` au démarrage (`ecran/jeu/demarrage.ts`) ; quand
   l'hôte pose un disque et finit sa pochette, son bac s'ouvre sur « Mes playlists » et la liste part comme un lien collé : il
   n'y a plus qu'à la prendre (« Celle-là »). Une fois : la room d'après choisit comme d'habitude. Aucun écran neuf.
@@ -1045,6 +1044,16 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   que `tests/jugement.test.ts` vérifie aussi, et des variantes tirées d'une graine. `morceauAuMoins` rejoint `JUGEMENT`. Il lui
   écrit aussi le moins de pistes qu'une playlist doit avoir pour une partie (la plus courte face) : une liste sur mesure plus
   courte, le MCP la refuse, au lieu d'un lien que le bac dirait « Trop court pour une face ».
+- **L'anecdote d'une liste sur mesure, à la révélation** (le 16) : un papier crème sous le classement, posé de la colonne vers la
+  droite, à la place de ce qu'on touchait (sous la phrase d'un état, s'il y en a une), en cinq lignes au plus ; au téléphone comme
+  sur un grand écran, où il glisse sous le vinyle avec le reste (`papierDeLAnecdote`). En 4 choix, il prend la place de la bonne
+  étiquette : la réponse est déjà au verso du disque. La réponse reste alors 9 secondes au lieu de 4 (`TELEPHONE.apresLAnecdote`),
+  le son aussi ; le décor de saison l'évite. Trois écrans de l'étape 5 la montrent (`libre-anecdote`, `choix-anecdote`,
+  `etat-personne-anecdote`).
+- **Ce que l'extrait publie** (le 16) : seulement la réponse masquée et les étiquettes du 4 choix. Il publiait la piste entière,
+  sauf son extrait : l'identifiant Deezer (de quoi trouver la réponse avant tout le monde) et les surnoms partaient aux téléphones.
+- **Une playlist plus courte que la face réglée** (le 16) : choisie, elle règle « Titres » sur la plus longue face qu'elle remplit
+  (une liste de douze titres, quand la face en veut quinze : dix). Le salon la refusait, et l'on revenait au bac.
 
 ## Ce qui attend les étapes suivantes
 

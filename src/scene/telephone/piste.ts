@@ -1,8 +1,8 @@
 /**
  * Ce qu'on pose autour de la piste, au téléphone : le classement (ce que chacun a trouvé, puis ce que la piste lui a rapporté, son
- * nom et ses points), ou l'éventail des pochettes quand le clavier est ouvert ; l'étiquette vierge où l'on tape ou les quatre étiquettes à toucher, la phrase d'un état, le clavier ouvert ; et la
- * place de la vraie pochette, au milieu du disque retourné. Tout est placé dans le regard : ces objets restent à l'écran pendant
- * que le regard suit la piste.
+ * nom et ses points), ou l'éventail des pochettes quand le clavier est ouvert ; l'étiquette vierge où l'on tape ou les quatre étiquettes à toucher, la phrase d'un état, le clavier ouvert ;
+ * l'anecdote d'une liste sur mesure, à la révélation ; et la place de la vraie pochette, au milieu du disque retourné. Tout est
+ * placé dans le regard : ces objets restent à l'écran pendant que le regard suit la piste.
  */
 
 import { surLEcran } from '../../lowpoly/projection';
@@ -16,12 +16,13 @@ import { CORPS } from '../../ressources/typo';
 import type { Textes } from '../../ressources/textes';
 import { VERSO } from '../../ressources/verso';
 import type { Calque } from '../calque';
+import { empriseDe } from '../rendu/emprise';
 import { dessinerLeClassement, lesPremiersEtToi, lignesDuClassement, type LigneDuClassement } from '../classement';
 import type { Regard } from '../meuble';
 import type { PoseDeLaPiste } from '../piste/pose';
 import { regardDeLaPiste } from '../piste/regard';
 import { dessinerLaTablee, eventail, placesEnEventail } from '../tablee';
-import { phrase, type Ecritoire } from './pieces';
+import { papier, papierDeLaPhrase, phrase, type Ecritoire } from './pieces';
 import { clavier, etiquetteDeReponse, etiquettesAToucher, reponseLaPlusGrande } from './reponse';
 
 /** Ce que la projection garde de la profondeur du meuble : une image posée à plat y est écrasée d'autant. */
@@ -139,7 +140,10 @@ export function pouceDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste)
   const { revelee, repondre } = o;
   const { ouvert, dessus, remonte } = auDessusDuClavier(regard, o);
   const objets: Calque[] = [];
+  const anecdote = revelee?.anecdote;
   if (repondre.genre === 'choix') {
+    // La bonne étiquette, que la révélation laisse seule, cède sa place à l'anecdote : la réponse est déjà au verso du disque.
+    if (anecdote !== undefined) return papierDeLAnecdote(a, regard, anecdote);
     objets.push(...etiquettesAToucher(a, regard, repondre.proposes, revelee, revelee !== undefined ? undefined : repondre.touchee));
     return objets;
   }
@@ -158,9 +162,41 @@ export function pouceDeLaPiste(a: Ecritoire, regard: Regard, o: AutourDeLaPiste)
     );
   // La pochette de la réponse est au milieu du disque retourné : rien d'autre ne se pose à côté de la kraft.
   const M = T.message;
-  if (o.phrase !== undefined) objets.push(...phrase(o.phrase, regard, a.encrier, M.en, M.largeur));
+  const dite = o.phrase !== undefined ? papierDeLaPhrase(o.phrase, regard, a.encrier, M.en, M.largeur).calques : [];
+  objets.push(...dite);
+  if (anecdote !== undefined) objets.push(...papierDeLAnecdote(a, regard, anecdote, basDans(regard, dite, a)));
   if (ouvert && !(repondre.genre === 'saisie' && repondre.vrai === true)) objets.push(clavier(regard, dessus));
   return objets;
+}
+
+/** Le bas de ces calques, en px depuis le haut du regard ; rien s'ils ne dessinent rien. */
+function basDans(regard: Regard, calques: readonly Calque[], a: Ecritoire): number | undefined {
+  const e = empriseDe(calques, a.encrier.largeur);
+  return e === undefined ? undefined : e.y + e.hauteur - regard.origine[1];
+}
+
+/**
+ * L'anecdote d'une piste révélée : un papier crème posé par son bord gauche sur la colonne, et par son haut sous le classement, ou
+ * sous ce qu'on lui donne (la phrase d'un état). Taillé à son texte, il prend jusqu'à cinq lignes : on a le temps de la lire.
+ */
+export function papierDeLAnecdote(a: Ecritoire, regard: Regard, anecdote: string, sous?: number): Calque[] {
+  const A = T.anecdote;
+  const haut = sous !== undefined ? sous + A.sousLaPhrase : A.haut;
+  const poser = (y: number): Calque[] =>
+    papier(
+      'etiquette-anecdote',
+      regard,
+      [T.colonne.gauche + A.largeur / 2, y],
+      A.largeur,
+      A.angle,
+      [{ contenu: anecdote, role: 'titrage', auPlus: 'texte' }],
+      a.encrier,
+      { alignement: 'debut', ancre: 'debut', lignesAuPlus: A.lignesAuPlus },
+    ).calques;
+  // Posé une fois pour savoir sa hauteur, puis là où son haut doit être.
+  const essai = poser(haut);
+  const e = empriseDe(essai.slice(-1), a.encrier.largeur);
+  return e === undefined ? essai : poser(haut + (haut - (e.y - regard.origine[1])));
 }
 
 /**

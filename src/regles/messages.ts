@@ -10,7 +10,7 @@
 import { COULEURS_DES_THEMES, type CleDeTheme } from '../ressources/bac';
 import type { Pochette } from '../ressources/pochettes';
 import { MOT_DE_PASSE, REGLAGES } from '../ressources/reglages';
-import { MODES, type CleDeMode, type Proposition } from './modes';
+import { MODES, type CleDeMode, type PisteDuMode, type Proposition } from './modes';
 import { departageDeLaPiste, jugerUneReponse, ROOM_VIDE, suivre, type EvenementDePartie } from './partie';
 import type { ActionDePiste, Reponse } from './piste';
 import { estUnePochette } from './pochette';
@@ -208,18 +208,22 @@ export type Nouvelle =
  */
 export const REPONSE_MASQUEE: Reponse = { titre: '', artiste: '', pochette: { adresse: '' } };
 
+/** La réponse que la révélation publie : celle de la piste, avec son anecdote, s'il y en a une. */
+const reponseRevelee = ({ reponse, anecdote }: PisteDuMode): Reponse => (anecdote !== undefined ? { ...reponse, anecdote } : reponse);
+
 /**
- * Le journal tel que le serveur le publie : l'extrait sans la réponse, chaque réponse jugée sans ce qui a été tapé,
- * la révélation avec la réponse. Rejoué par un téléphone, il donne les mêmes points, les mêmes têtes, le même classement.
+ * Le journal tel que le serveur le publie : l'extrait sans la réponse (ni rien qui la dise : son identifiant chez Deezer, ses
+ * surnoms, son anecdote), chaque réponse jugée sans ce qui a été tapé, la révélation avec la réponse et son anecdote. Rejoué par
+ * un téléphone, il donne les mêmes points, les mêmes têtes, le même classement.
  */
 export function publier(journal: readonly EvenementDePartie[]): EvenementDePartie[] {
   let etat = ROOM_VIDE;
   const publies: EvenementDePartie[] = [];
   for (const e of [...journal].sort((x, y) => x.a - y.a)) {
     if (e.genre === 'extrait') {
-      // L'adresse de l'extrait voyage avec le lancer de la piste, pas dans le journal.
-      const { extrait: _adresse, ...piste } = e.piste;
-      publies.push({ ...e, piste: { ...piste, reponse: REPONSE_MASQUEE } });
+      // Le téléphone n'en apprend que les étiquettes du 4 choix ; l'adresse de l'extrait voyage avec le lancer de la piste.
+      const { choix } = e.piste;
+      publies.push({ ...e, piste: { reponse: REPONSE_MASQUEE, ...(choix !== undefined ? { choix } : {}) } });
     } else if (e.genre === 'reponse') {
       const jugee = jugerUneReponse(etat, e.id, e.proposition);
       // Une réponse qui ne compte pas (hors d'un extrait, déjà tout trouvé) n'est pas publiée : elle ne change rien.
@@ -230,7 +234,7 @@ export function publier(journal: readonly EvenementDePartie[]): EvenementDeParti
       const departage = piste !== undefined ? departageDeLaPiste(MODES[etat.mode], piste) : {};
       publies.push({
         ...e,
-        ...(piste !== undefined ? { reponse: piste.attendue.reponse } : {}),
+        ...(piste !== undefined ? { reponse: reponseRevelee(piste.attendue) } : {}),
         ...(Object.keys(departage).length > 0 ? { departage } : {}),
       });
     } else publies.push(e);

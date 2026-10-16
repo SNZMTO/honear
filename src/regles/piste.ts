@@ -19,6 +19,8 @@ export interface Reponse {
   /** L'année de sortie, quand la source de musique la donne. */
   readonly annee?: number;
   readonly pochette: { readonly vignette: Vignette; readonly image?: string } | { readonly adresse: string };
+  /** L'anecdote de la piste, quand sa source en donne une : seule la réponse révélée la porte, sur un papier sous la platine. */
+  readonly anecdote?: string;
 }
 
 /** Vrai si deux réponses disent la même chose : le même titre, le même artiste, la même pochette. */

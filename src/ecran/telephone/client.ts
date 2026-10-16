@@ -1179,10 +1179,20 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const { repondre } = e.autour;
     const clavierOuvert = repondre.genre === 'saisie' && repondre.clavier ? (repondre.dessus ?? true) : false;
     // La tablée : elle ne change qu'avec les points, les trouvailles, les têtes, le clavier qui s'ouvre, ce qu'on répond (taper, ou
-    // toucher une étiquette) et la phrase d'un état, que le décor de saison évite.
+    // toucher une étiquette), la phrase d'un état et l'anecdote révélée, que le décor de saison évite.
     const lignes = lignesDeLaPiste(a.textes, e.autour);
     const proposes = repondre.genre === 'choix' ? repondre.proposes : undefined;
-    const cleDeLaTablee = JSON.stringify([lignes, clavierOuvert, sousLeBac !== undefined, repondre.genre, proposes, e.autour.phrase, ...laFenetre]);
+    const anecdote = e.autour.revelee?.anecdote;
+    const cleDeLaTablee = JSON.stringify([
+      lignes,
+      clavierOuvert,
+      sousLeBac !== undefined,
+      repondre.genre,
+      proposes,
+      e.autour.phrase,
+      anecdote,
+      ...laFenetre,
+    ]);
     if (tablee?.cle !== cleDeLaTablee) {
       const tableeDuTelephone = tableeDeLaPiste(a, SUR_LA_PLATINE, e.autour, sousLeBac !== undefined);
       // Ce qu'on touche, à sa plus grande place : le décor de saison s'en tient à l'écart, et, sur un grand écran, tout ce qu'on pose
@@ -1197,7 +1207,9 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       ];
       // Le décor de saison : pendant la piste, le regard glisse sous ce qu'on pose ; rien de posé sur le bois, loin du meuble et de la
       // kraft, ni de ce qu'on touche.
-      const eviter = [...objets, ...glisserSousLeDisque(pouceLePlusGrand, glissementDeLaPiste), ...meubleAutour(a, [], regard), ...kraftAuRepos(a)];
+      // L'anecdote, plus grande que ce qu'on touchait, n'en change pas le glissement : le décor l'évite à part, une fois révélée.
+      const pouceAEviter = anecdote !== undefined ? [...pouceLePlusGrand, ...pouceDeLaPiste(a, SUR_LA_PLATINE, e.autour)] : pouceLePlusGrand;
+      const eviter = [...objets, ...glisserSousLeDisque(pouceAEviter, glissementDeLaPiste), ...meubleAutour(a, [], regard), ...kraftAuRepos(a)];
       const saison = decorDeLaSaison(enVue(SUR_LA_PLATINE, p), [...eviter, ...touchesDuCoin(regard)], a.encrier.largeur, false);
       const arbre = calque('regard-tablee', [...saison.dessous, ...objets, ...saison.dessus]);
       tablee = monterDans(coucheDeLaTablee, tablee, cleDeLaTablee, arbre, regard, d, new Map());

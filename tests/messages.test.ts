@@ -38,3 +38,22 @@ test('avant la révélation, rien de publié ne dit la réponse ; ce que chacun 
   const derniere = PUBLIE[derniereRevelation];
   assert.ok(derniere?.genre === 'revelation' && derniere.reponse?.titre === titre);
 });
+
+test('l’extrait publié ne dit rien qui mène à la réponse : ni son identifiant Deezer, ni ses surnoms, ni son anecdote', () => {
+  const anecdote = 'Écrite en une nuit, pour un film qui ne l’a jamais gardée.';
+  const piste = {
+    reponse: { ...REPONSE_MASQUEE, titre: 'Bella', artiste: 'GIMS' },
+    deezer: 72717420,
+    surnoms: { artiste: ['Maître Gims'], titre: [] },
+    anecdote,
+  };
+  const journal: EvenementDePartie[] = [
+    { genre: 'ouverture', a: 0, mode: 'libre', pistes: 10 },
+    { genre: 'extrait', a: 1, piste: { ...piste, extrait: 'https://cdnt-preview.dzcdn.net/extrait.mp3' } },
+    { genre: 'revelation', a: 30 },
+  ];
+  const [, extrait, revelation] = publier(journal);
+  assert.deepEqual(extrait?.genre === 'extrait' && extrait.piste, { reponse: REPONSE_MASQUEE });
+  // La révélation apporte la réponse et son anecdote, pour le papier sous la platine.
+  assert.deepEqual(revelation?.genre === 'revelation' && revelation.reponse, { ...piste.reponse, anecdote });
+});

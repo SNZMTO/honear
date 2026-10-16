@@ -3,7 +3,8 @@
  * assistant (Claude, ChatGPT…) : « des chansons avec une couleur dans le titre », « les 30 ans de Léa ». Le MCP les range et
  * les sert sur un réseau que seul le jeu voit ; chacune nomme ses pistes par leur identifiant Deezer, et chaque piste se relit
  * chez Deezer (`deezer.ts`), pour son extrait. Une piste porte aussi ses surnoms : d'autres réponses justes, que le jugement
- * accepte en plus des siennes. Ce module ne parle pas au réseau : il dit quelle adresse lire, et ce qu'elle dit.
+ * accepte en plus des siennes ; et parfois une anecdote, montrée à la révélation. Ce module ne parle pas au réseau : il dit quelle
+ * adresse lire, et ce qu'elle dit.
  */
 
 import type { PisteDuMode } from '../../regles/modes';
@@ -29,11 +30,11 @@ export interface ListeLue {
   readonly titre: string;
   /** Vrai quand la difficulté monte : la room la joue dans cet ordre, sans la mélanger. */
   readonly dansLOrdre: boolean;
-  readonly pistes: readonly { readonly deezer: number; readonly surnoms: Surnoms }[];
+  readonly pistes: readonly { readonly deezer: number; readonly surnoms: Surnoms; readonly anecdote?: string }[];
 }
 
 /** Ce qu'une liste porte au plus : ce que le MCP borne déjà, revérifié ici, d'où que vienne la réponse. */
-const BORNES = { pistes: 50, titre: 60, surnoms: 3, surnom: 40 } as const;
+const BORNES = { pistes: 50, titre: 60, surnoms: 3, surnom: 40, anecdote: 160 } as const;
 
 type Objet = Readonly<Record<string, unknown>>;
 const objet = (x: unknown): Objet | undefined => (typeof x === 'object' && x !== null && !Array.isArray(x) ? (x as Objet) : undefined);
@@ -55,7 +56,14 @@ export function lireLaListe(reponse: unknown): ListeLue | undefined {
       const deezer = p?.['deezer'];
       if (typeof deezer !== 'number' || !Number.isSafeInteger(deezer) || deezer <= 0) return [];
       const surnoms = objet(p?.['surnoms']);
-      return [{ deezer, surnoms: { artiste: textes(surnoms?.['artiste']), titre: textes(surnoms?.['titre']) } }];
+      const anecdote = texte(p?.['anecdote'], BORNES.anecdote);
+      return [
+        {
+          deezer,
+          surnoms: { artiste: textes(surnoms?.['artiste']), titre: textes(surnoms?.['titre']) },
+          ...(anecdote !== undefined ? { anecdote } : {}),
+        },
+      ];
     }),
   };
 }

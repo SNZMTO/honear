@@ -98,6 +98,7 @@ export function papier(
     readonly teinte?: NomDeTeinte;
     /** Un papier enfoncé, plaqué sur la table : sans ombre. */
     readonly plaque?: boolean;
+    readonly lignesAuPlus?: number;
   } = {},
 ): { readonly calques: Calque[]; readonly haut: number; readonly milieu: Vec2; readonly largeur: number } {
   const p = dessinerUnPapier(
@@ -113,6 +114,7 @@ export function papier(
       ...(options.auMoins !== undefined ? { auMoins: options.auMoins } : {}),
       ...(options.ancre !== undefined ? { ancre: options.ancre } : {}),
       ...(options.teinte !== undefined ? { teinte: options.teinte } : {}),
+      ...(options.lignesAuPlus !== undefined ? { lignesAuPlus: options.lignesAuPlus } : {}),
     },
     encrier.largeur,
   );
@@ -126,9 +128,19 @@ export const phrase = (
   encrier: Encrier,
   en: readonly [number, number] = T.message.en,
   largeur: number = T.message.largeur,
-): Calque[] =>
-  papier('etiquette-message', regard, en, largeur, T.message.angle, [{ contenu, role: 'titrage', auPlus: 'intertitre' }], encrier, { ancre: 'debut' })
-    .calques;
+): Calque[] => papierDeLaPhrase(contenu, regard, encrier, en, largeur).calques;
+
+/** Le papier d'une phrase, et où il se tient : pour poser quelque chose dessous. */
+export const papierDeLaPhrase = (
+  contenu: string,
+  regard: Regard,
+  encrier: Encrier,
+  en: readonly [number, number] = T.message.en,
+  largeur: number = T.message.largeur,
+): ReturnType<typeof papier> =>
+  papier('etiquette-message', regard, en, largeur, T.message.angle, [{ contenu, role: 'titrage', auPlus: 'intertitre' }], encrier, {
+    ancre: 'debut',
+  });
 
 /** Une pastille de mot collée sur une étiquette, à tant du regard, de travers : telle qu'on la dessine, ou qu'on la règle. */
 export function pastilleDeMot(

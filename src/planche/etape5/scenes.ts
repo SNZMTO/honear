@@ -222,6 +222,8 @@ interface ArretDePiste {
   readonly phrase?: string;
   /** Le joueur qui regarde, s'il n'est pas « toi ». */
   readonly qui?: string;
+  /** Vrai quand la piste vient d'une liste sur mesure qui lui donne une anecdote : la révélation la montre. */
+  readonly anecdote?: boolean;
 }
 
 /** La piste en saisie libre, à des instants : la séance de l'atelier, et autour d'elle ce que le téléphone y pose. */
@@ -241,7 +243,7 @@ function ecransDeLaPisteLibre(a: Ecritoire, journal: readonly EvenementDePartie[
           clavier: arret.clavier === true,
         },
         // Avant l'extrait (le décompte), rien n'est encore révélé : la piste n'a juste pas commencé.
-        ...(t >= revelation ? { revelee: reponse } : {}),
+        ...(t >= revelation ? { revelee: arret.anecdote === true ? { ...reponse, anecdote: L.partie.anecdote } : reponse } : {}),
         ...(arret.phrase !== undefined ? { phrase: arret.phrase } : {}),
       });
     const regard =
@@ -278,29 +280,34 @@ function ecransDeLaPisteEnQuatreChoix(a: Ecritoire): ImageDePlanche[] {
     { genre: 'reponse', a: x + 4, id: 'dj', proposition: { genre: 'choix', rang: 1 } },
     { genre: 'revelation', a: revelation },
   ];
-  const autour = (t: number, regard: Regard): Calque[] =>
-    autourDeLaPiste(a, regard, {
-      etat: partieA(journal, t),
-      avantLExtrait: partieA(journal, x - 0.01),
-      toi: 'toi',
-      repondre: { genre: 'choix', proposes: choix, touchee: 0 },
-      ...(t >= revelation ? { revelee: reponse } : {}),
-    });
-  return arreterLaSeance(
-    {
-      textes: a.textes,
-      encrier: a.encrier,
-      densite: DENSITE,
-      verso: VERSO_DU_JEU,
-      seance,
-      autour,
-      decor: decorDuMode(a.textes, MODES.quatreChoix.cran, journal, x),
-    },
-    [
+  const revelee = { reponse, anecdote: { ...reponse, anecdote: L.partie.anecdote } };
+  const arreter = (laquelle: keyof typeof revelee, arrets: Parameters<typeof arreterLaSeance>[1]): ImageDePlanche[] =>
+    arreterLaSeance(
+      {
+        textes: a.textes,
+        encrier: a.encrier,
+        densite: DENSITE,
+        verso: VERSO_DU_JEU,
+        seance,
+        autour: (t: number, regard: Regard): Calque[] =>
+          autourDeLaPiste(a, regard, {
+            etat: partieA(journal, t),
+            avantLExtrait: partieA(journal, x - 0.01),
+            toi: 'toi',
+            repondre: { genre: 'choix', proposes: choix, touchee: 0 },
+            ...(t >= revelation ? { revelee: revelee[laquelle] } : {}),
+          }),
+        decor: decorDuMode(a.textes, MODES.quatreChoix.cran, journal, x),
+      },
+      arrets,
+    );
+  return [
+    ...arreter('reponse', [
       { a: L.instants.rayure, fichier: 'choix-extrait', titre: L.ecrans.choixExtrait },
       { a: L.instants.reponse, fichier: 'choix-reponse', titre: L.ecrans.choixReponse },
-    ],
-  );
+    ]),
+    ...arreter('anecdote', [{ a: L.instants.reponse, fichier: 'choix-anecdote', titre: L.ecrans.choixAnecdote }]),
+  ];
 }
 
 // ————— Le hit-parade et la finale —————
@@ -390,6 +397,7 @@ export function imagesDesEcrans(textes: Textes, encrier: Encrier): ImagesDesEcra
       { a: x + 6.7, fichier: 'libre-trouve', titre: L.ecrans.trouve, tape: 'les démons de minuit' },
       { a: x + 5.5, fichier: 'libre-clavier', titre: L.ecrans.clavier, tape: 'les dém', clavier: true },
       { a: L.instants.reponse, fichier: 'libre-reponse', titre: L.ecrans.reponse },
+      { a: L.instants.reponse, fichier: 'libre-anecdote', titre: L.ecrans.anecdote, anecdote: true },
     ]).concat(
       ecransDeLaPisteLibre(a, journalAvecUnFeat(textes), [
         { a: x + 5.6, fichier: 'libre-feat', titre: L.ecrans.feat, tape: textes.exemples.avecUnFeat.saisie },
@@ -421,6 +429,7 @@ export function imagesDesEcrans(textes: Textes, encrier: Encrier): ImagesDesEcra
       ),
       ...ecransDeLaPisteLibre(a, journalOuPersonneNeTrouve(textes), [
         { a: L.instants.reponse, fichier: 'etat-personne', titre: L.etats.personne, phrase: E.personne },
+        { a: L.instants.reponse, fichier: 'etat-personne-anecdote', titre: L.etats.personneEtAnecdote, phrase: E.personne, anecdote: true },
       ]),
       ecranDuSalon(a, salon, code, 'nouvelHote'),
     ],
