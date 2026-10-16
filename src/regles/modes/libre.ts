@@ -37,9 +37,6 @@ function enchainements(parties: readonly Partie[]): Partie[][] {
 
 const RANG: Readonly<Record<Verdict, number>> = { faux: 0, presque: 1, juste: 2 };
 
-/** Un morceau de saisie plus court que ça (sans espaces) ne vaut une partie que s'il est toute la saisie : « m » n'est pas -M-. */
-const MORCEAU_AU_MOINS = 3;
-
 /**
  * Les morceaux d'une saisie, mot à mot : chaque suite de mots qui se suivent. « Kofs Jul » donne « kofs », « jul » et « kofs jul ».
  * Une partie se trouve dans l'un d'eux, sans qu'on ait à séparer ce qu'on tape d'une virgule ou d'un « feat ».
@@ -52,7 +49,7 @@ function suitesDeMots(texte: string): string[] {
   for (let debut = 0; debut < mots.length; debut++)
     for (let fin = debut + 1; fin <= mots.length; fin++) {
       const suite = mots.slice(debut, fin).join(' ');
-      if (suite.replace(/ /g, '').length >= MORCEAU_AU_MOINS || (debut === 0 && fin === mots.length)) suites.push(suite);
+      if (suite.replace(/ /g, '').length >= JUGEMENT.morceauAuMoins || (debut === 0 && fin === mots.length)) suites.push(suite);
     }
   return suites;
 }

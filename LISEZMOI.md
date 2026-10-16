@@ -48,7 +48,7 @@ npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
 docker build -t honear .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
 npm run controle    # passe les contrôles du rendu sur les 196 images, et dit ce qu'ils ont mesuré
-npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 539 tests
+npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 538 tests
 npm run format      # Prettier
 ```
 
@@ -1036,6 +1036,10 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   (« Matthieu Chedid » pour « -M- ») s'ajoutent à ce que la saisie libre accepte ; une liste dont la difficulté monte se joue dans
   son ordre. Le jeu passe de 40 à 30 appels Deezer par 5 secondes : le MCP, qui sort par la même adresse, en prend 10. L'anecdote
   qu'une liste peut porter attend son dessin sur l'écran de l'hôte, et le lien ouvert directement (pas collé), ses écrans.
+- **Le jugement, une seule vérité pour deux** : le MCP porte en Python le jugement d'une saisie et la saisie libre (pour ses
+  surnoms, et le mini blind test qu'il montrera dans la conversation). `npm run exporter-pour-le-mcp -- ~/honear-mcp` lui écrit
+  les réglages du jugement, la part de Deezer du jeu, et une table de saisies jugées ici : les cas de `tests/cas-du-jugement.ts`,
+  que `tests/jugement.test.ts` vérifie aussi, et des variantes tirées d'une graine. `morceauAuMoins` rejoint `JUGEMENT`.
 
 ## Ce qui attend les étapes suivantes
 
