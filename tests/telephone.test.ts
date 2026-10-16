@@ -479,3 +479,21 @@ test('dans le bac, un intercalaire se touche à son onglet, pas à son carton qu
     recherche: TEXTES.bac.themes['rock'],
   });
 });
+
+test('dans le bac, depuis « Mes playlists » ou la recherche, un thème touché y ramène : on n’y reste pas coincé', () => {
+  const p: Preparatifs = { ...preparatifs('libre'), chercher: true };
+  const auBac = toucher(saisir(toucher(MEMOIRE_VIDE, { genre: 'poser' }, 0, p).memoire, 'Tonton Mateo'), { genre: 'cEstMoi' }, 0, p).memoire;
+  const mes = choseATouche('intercalaire-mesPlaylists/onglet', ecranDuTelephone(auBac, 0, p, TEXTES), TEXTES)?.toucher;
+  assert.deepEqual(mes, { genre: 'cranDuBac', cran: 'laMienne' });
+  const ailleurs = {
+    laMienne: toucher(auBac, { genre: 'cranDuBac', cran: 'laMienne' }, 1, p).memoire,
+    chercher: toucher(auBac, { genre: 'cranDuBac', cran: 'chercher' }, 1, p).memoire,
+  };
+  for (const [depuis, m] of Object.entries(ailleurs)) {
+    const rock = choseATouche('intercalaire-rock/onglet', ecranDuTelephone(m, 1, p, TEXTES), TEXTES)?.toucher;
+    assert.deepEqual(rock, { genre: 'theme', cle: 'rock', recherche: TEXTES.bac.themes['rock'] }, depuis);
+    const apres = rock !== undefined ? toucher(m, rock, 2, p) : undefined;
+    assert.equal(apres?.memoire.preparation.ecran === 'bac' && apres.memoire.preparation.cran, 'pretes', depuis);
+    assert.deepEqual(apres?.actions, [{ genre: 'chercher', recherche: TEXTES.bac.themes['rock'], theme: 'rock' }], depuis);
+  }
+});

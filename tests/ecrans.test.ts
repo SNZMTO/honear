@@ -13,7 +13,7 @@ import type { Calque, Texte } from '../src/scene/calque';
 import { regardSurLaPlatine } from '../src/scene/meuble';
 import { controler, LIMITES } from '../src/scene/rendu/controle';
 import { empriseDe, type Emprise } from '../src/scene/rendu/emprise';
-import { vueDeLaFinale, vueDuBac, vueDuHitParade, vueDuSalon } from '../src/scene/telephone/ecrans';
+import { TOUCHES_DU_BAC, vueDeLaFinale, vueDuBac, vueDuHitParade, vueDuSalon } from '../src/scene/telephone/ecrans';
 import { vueDeLaPochette } from '../src/scene/telephone/pochette';
 import { toucheAutrePlaylist, toucheQuitter } from '../src/scene/telephone/quitter';
 import { pochetteDExemple } from '../src/planche/exemples';
@@ -136,7 +136,7 @@ test('les champs où l’on tape sont assez larges pour qu’on voie où taper, 
   assert.ok(e !== undefined && e.largeur >= S.auMoins && e.largeur <= S.largeur + 20, `${e?.largeur}`);
   for (const fichier of ['bac-pretes', 'bac-chercher', 'bac-laMienne']) {
     const crans = posesSur(fichier, /^touche-bac-[a-zA-Z]+$/).map((c) => empriseDe([c], ENCRIER.largeur));
-    assert.equal(crans.length, 3, fichier);
+    assert.equal(crans.length, TOUCHES_DU_BAC.length, fichier);
     for (let i = 1; i < crans.length; i++) {
       const [g, d] = [crans[i - 1], crans[i]];
       assert.ok(g !== undefined && d !== undefined && g.x + g.largeur < d.x, `${fichier} : les crans ${i} et ${i + 1} se chevauchent`);
