@@ -1,16 +1,19 @@
 /**
  * Ce que le MCP de Honear (dépôt honear-mcp) reprend du jeu, sans jamais le recopier à la main : les réglages du jugement d'une
- * saisie, une table de cas jugés par le jeu (ceux de tests/cas-du-jugement.ts, et des variantes tirées d'une graine), et la part
- * de Deezer que le jeu prend. Il écrit deux fichiers dans le dossier du MCP, qui les versionne et ne les retouche pas :
- * src/honear_mcp/ressources/honear.py et tests/jugement-de-honear.json. Si le jeu change de jugement, le portage du MCP rougit.
+ * saisie, une table de cas jugés par le jeu (ceux de tests/cas-du-jugement.ts, et des variantes tirées d'une graine), la part
+ * de Deezer que le jeu prend, sa palette et ses polices (pour le mini blind test, qui a son allure). Il écrit dans le dossier du
+ * MCP, qui les versionne et ne les retouche pas : src/honear_mcp/ressources/honear.py, src/honear_mcp/ressources/polices/ et
+ * tests/jugement-de-honear.json. Si le jeu change de jugement, le portage du MCP rougit.
  *
  *   npm run exporter-pour-le-mcp -- ~/honear-mcp
  */
-import { writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { copyFileSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { hasard } from '../src/lowpoly/aleatoire';
 import { aLOreille, juger, normaliser } from '../src/regles/jugement';
 import { MODES } from '../src/regles/modes';
+import { PALETTE } from '../src/ressources/palette';
 import { JUGEMENT } from '../src/ressources/reglages';
 import { RESEAU } from '../src/ressources/reseau';
 import { CAS_DE_JUGER, CAS_DES_PARTIES } from '../tests/cas-du-jugement';
@@ -102,8 +105,21 @@ class DeezerDeHonear:
 
 
 DEEZER_DE_HONEAR = DeezerDeHonear(fenetre=${RESEAU.deezer.fenetre}, par_fenetre=${RESEAU.deezer.parFenetre})
+
+PALETTE: dict[str, str] = {
+${Object.entries(PALETTE)
+  .map(([nom, couleur]) => `    "${nom}": "${couleur}",`)
+  .join('\n')}
+}
+"""La palette de Honear (src/ressources/palette.ts), couleur par couleur."""
 `;
 
 writeFileSync(join(mcp, 'src', 'honear_mcp', 'ressources', 'honear.py'), python);
+// Les polices du site (le .woff2 de chacune) et leur licence, que le MCP sert à la fenêtre du mini blind test.
+const polices = join(dirname(fileURLToPath(import.meta.url)), '..', 'polices');
+const versLeMcp = join(mcp, 'src', 'honear_mcp', 'ressources', 'polices');
+mkdirSync(versLeMcp, { recursive: true });
+for (const fichier of readdirSync(polices).filter((f) => f.endsWith('.woff2') || f === 'LICENCES.md'))
+  copyFileSync(join(polices, fichier), join(versLeMcp, fichier));
 writeFileSync(join(mcp, 'tests', 'jugement-de-honear.json'), `${JSON.stringify(table, null, 1)}\n`);
 console.log(`${table.juger.length} saisies jugées, ${table.parties.length} saisies libres, écrites dans ${mcp}`);
