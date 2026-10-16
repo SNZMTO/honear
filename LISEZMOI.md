@@ -1054,6 +1054,16 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   sauf son extrait : l'identifiant Deezer (de quoi trouver la réponse avant tout le monde) et les surnoms partaient aux téléphones.
 - **Une playlist plus courte que la face réglée** (le 16) : choisie, elle règle « Titres » sur la plus longue face qu'elle remplit
   (une liste de douze titres, quand la face en veut quinze : dix). Le salon la refusait, et l'on revenait au bac.
+- **Une saisie ne fige plus le serveur** (le 16) : la saisie libre découpait toute la réponse en suites de mots, et chaque « & »
+  devient un mot ; cent soixante « & » demandaient près d'une minute de calcul, pendant laquelle aucune room ne répondait, et le
+  serveur rejugeait chaque réponse à chaque message (il rejoue le journal). Désormais :
+  - seuls les huit premiers mots se découpent (`JUGEMENT.motsAuPlus`) ;
+  - le serveur refuse une saisie plus longue que ce que le téléphone laisse taper (`JUGEMENT.saisieAuPlus`, 120 au lieu de 160) ;
+  - deux longueurs trop éloignées ne comptent plus leurs fautes (`fautesAuPlus`, sans changer aucun verdict) ;
+  - une saisie déjà jugée ne se rejuge pas (`JUGEMENT.memoire`).
+
+  La pire saisie coûte quelques millisecondes. Deux cas de `tests/cas-du-jugement.ts` le tiennent, et le MCP, qui porte ce
+  jugement, reçoit les réglages par l'export.
 
 ## Ce qui attend les étapes suivantes
 

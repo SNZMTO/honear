@@ -9,7 +9,7 @@
 
 import { COULEURS_DES_THEMES, type CleDeTheme } from '../ressources/bac';
 import type { Pochette } from '../ressources/pochettes';
-import { MOT_DE_PASSE, REGLAGES } from '../ressources/reglages';
+import { JUGEMENT, MOT_DE_PASSE, REGLAGES } from '../ressources/reglages';
 import { MODES, type CleDeMode, type PisteDuMode, type Proposition } from './modes';
 import { departageDeLaPiste, jugerUneReponse, ROOM_VIDE, suivre, type EvenementDePartie } from './partie';
 import type { ActionDePiste, Reponse } from './piste';
@@ -251,7 +251,7 @@ export function publier(journal: readonly EvenementDePartie[]): EvenementDeParti
 const BORNES = {
   code: 8,
   jeton: 64,
-  saisie: 160,
+  saisie: JUGEMENT.saisieAuPlus,
   playlist: 300,
   rang: 15,
   recherche: 100,
