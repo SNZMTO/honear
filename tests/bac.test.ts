@@ -7,7 +7,17 @@
 
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BAC_VIDE, MEMOIRE_VIDE, recevoir, saisir, toucher, valider, type Memoire, type Preparatifs } from '../src/ecran/telephone/memoire';
+import {
+  BAC_VIDE,
+  MEMOIRE_VIDE,
+  memoireDeDepart,
+  recevoir,
+  saisir,
+  toucher,
+  valider,
+  type Memoire,
+  type Preparatifs,
+} from '../src/ecran/telephone/memoire';
 import { pochetteDExemple } from '../src/planche/exemples';
 import { lireUnePolice } from '../src/planche/polices';
 import { CARACTERES } from '../src/ressources/typo';
@@ -139,4 +149,24 @@ test('dans le bac, un lien collé part ; trop courte, Spotify privée ou introuv
     recevoir(ailleurs, { genre: 'importee', heure: 2, playlist: { lien: 'spotify:x', titre: 'Ma soirée', total: 22, jouables: 21 } }),
     ailleurs,
   );
+});
+
+test('ouverte sur une liste sur mesure du MCP, la page la met dans le bac de l’hôte, comme un lien collé ; la room d’après, non', () => {
+  const lien = 'https://honear.fr/?liste=5SiHPU4qQHlXgbM3';
+  const creer = (m: Memoire) => {
+    const pochette = saisir(toucher(m, { genre: 'poser' }, 0, PREPARATIFS).memoire, 'Lady Dédicace', 'nom');
+    return toucher(pochette, { genre: 'cEstMoi' }, 1, PREPARATIFS);
+  };
+  const ouverte = creer(memoireDeDepart(PREPARATIFS, { liste: lien }));
+  assert.deepEqual(ouverte.actions, [{ genre: 'importer', lien }]);
+  assert.deepEqual(
+    [ouverte.memoire.preparation.ecran === 'bac' && ouverte.memoire.preparation.cran, bacDe(ouverte.memoire)?.lien],
+    ['laMienne', lien],
+  );
+  const liste = { lien: 'liste:5SiHPU4qQHlXgbM3', titre: 'Kaaris x Dominic Fike', total: 20, jouables: 20 };
+  assert.equal(bacDe(recevoir(ouverte.memoire, { genre: 'importee', heure: 2, playlist: liste }))?.choisie?.lien, 'liste:5SiHPU4qQHlXgbM3');
+  const ensuite = creer({ ...ouverte.memoire, preparation: { ecran: 'accueil' } });
+  assert.deepEqual([ensuite.actions, ensuite.memoire.preparation.ecran === 'bac' && ensuite.memoire.preparation.cran], [[], 'pretes']);
+  const sansListe = creer(memoireDeDepart(PREPARATIFS, {}));
+  assert.deepEqual([sansListe.actions, bacDe(sansListe.memoire)?.lien], [[], '']);
 });

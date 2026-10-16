@@ -180,6 +180,11 @@ export interface Memoire {
   readonly lienCopieA?: number;
   /** Vrai quand le navigateur a refusé de jouer l'extrait faute d'un geste : l'écran demande qu'on le touche. */
   readonly sonBloque?: boolean;
+  /**
+   * Le lien de la liste sur mesure du MCP qui a ouvert la page (« honear.fr/?liste=… ») : le bac de l'hôte s'ouvre dessus, comme
+   * s'il l'avait collé. Une fois : la room d'après choisit comme d'habitude.
+   */
+  readonly listeOuverte?: string;
 }
 
 /** Le navigateur refuse le son tant qu'on n'a pas touché l'écran, ou le laisse partir. */
@@ -314,6 +319,20 @@ function pochetteDansLaRoom(room: RoomConnue): Pochette | undefined {
   return partieA(room.journal, Infinity).joueurs.find((j) => j.id === room.toi)?.pochette;
 }
 
+/**
+ * Le bac de l'hôte qui crée sa room. Si la page s'est ouverte sur une liste sur mesure du MCP, il s'ouvre sur « Mes playlists » et
+ * la liste part, comme un lien collé : il n'y a plus qu'à la prendre.
+ */
+function bacDeLHote(m: Memoire, pochette: Pochette, p: Preparatifs): Suite {
+  const { listeOuverte: lien, ...sansElle } = m;
+  if (lien === undefined || !p.chercher)
+    return { memoire: { ...sansElle, pochette, preparation: { ecran: 'bac', pochette, cran: 'pretes', bac: BAC_VIDE } }, actions: [] };
+  return {
+    memoire: { ...sansElle, pochette, preparation: { ecran: 'bac', pochette, cran: 'laMienne', bac: { ...BAC_VIDE, lien, enAttente: lien } } },
+    actions: [{ genre: 'importer', lien }],
+  };
+}
+
 /** Un nom qu'on a tapé soi-même, pas l'un de ceux qu'on tire au sort : « Au hasard » le laisse où il est. */
 const nomAMoi = (nom: string, p: Preparatifs): boolean => nom.trim() !== '' && !p.listes.artistes.includes(nom);
 
@@ -333,6 +352,8 @@ export function memoireDeDepart(
     readonly lien?: string;
     /** Les playlists que l'appareil a gardées. */
     readonly mesPlaylists?: readonly PlaylistTrouvee[];
+    /** Le lien de la liste sur mesure que l'adresse de la page nomme. */
+    readonly liste?: string;
   },
 ): Memoire {
   // Son ampli était allumé : il l'est encore, depuis toujours (le regard ne s'y attarde pas) ; le son repartira au premier toucher.
@@ -344,6 +365,7 @@ export function memoireDeDepart(
     ampliAllumeA,
     session: depart.session,
     mesPlaylists: depart.mesPlaylists ?? [],
+    ...(depart.liste !== undefined ? { listeOuverte: depart.liste } : {}),
   };
   if (depart.lien !== undefined && depart.reprise === undefined)
     return { ...m, preparation: { ecran: 'compte', etape: 'lien', email: '', lien: depart.lien, enAttente: false } };
@@ -616,7 +638,7 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
         return { memoire: { ...m, pochette, preparation: { ecran: 'accueil' } }, actions: dire ? [{ genre: 'changerDePochette', pochette }] : [] };
       }
       // L'hôte va choisir sa playlist ; l'invité rejoint la room de son code, et c'est le serveur qui dira s'il y entre.
-      if (prep.venue.genre === 'creer') return seul({ ...m, pochette, preparation: { ecran: 'bac', pochette, cran: 'pretes', bac: BAC_VIDE } });
+      if (prep.venue.genre === 'creer') return bacDeLHote(m, pochette, p);
       return { memoire: { ...m, pochette }, actions: [{ genre: 'rejoindre', code: prep.venue.code, pochette }] };
     }
     case 'cranDuBac':

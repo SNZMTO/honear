@@ -238,7 +238,8 @@ chacune de ses pistes se relit chez Deezer par son identifiant. Le jeu garde une
 
 - `serveur/sources/deezer.ts`, `spotify.ts`, `liste.ts` : purs. Les adresses à demander, et la lecture de ce qui revient
   (`lireDesPistes`, `laBonnePiste`, `lireLaPage`, `lireLaListe`) ; jamais d'appel. `liens.ts` dit ce que désigne un lien collé.
-- Une liste sur mesure se colle dans le bac par son lien (`https://honear.fr/?liste=<id>`, que le MCP donne). Le MCP la sert sur
+- Une liste sur mesure se colle dans le bac par son lien (`https://honear.fr/?liste=<id>`, que le MCP donne), ou s'ouvre par
+  lui : le bac de l'hôte s'ouvre alors dessus, comme collé (`listeOuverte`, dans la mémoire du téléphone). Le MCP la sert sur
   un réseau interne que seul le jeu rejoint (`honear-listes`, l'adresse est dans `LISTES` : `http://honear-mcp:8791/listes/<id>`) ;
   la lire, pour lui, c'est la jouer : elle vit de nouveau trente jours. Ses pistes portent des surnoms (d'autres réponses justes,
   « Matthieu Chedid » pour « -M- ») : `ciblesDe` les ajoute à ce que la saisie libre accepte, derrière le vrai nom, et ils restent au
