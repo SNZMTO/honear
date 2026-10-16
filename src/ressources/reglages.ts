@@ -86,4 +86,6 @@ export const JUGEMENT = {
   articles: ['le', 'la', 'les', 'l', 'un', 'une', 'des', 'the', 'a', 'an'],
   /** Les mots qui lient un artiste à son feat dans une saisie (« Angèle feat. Roméo Elvis ») : ils séparent, ils ne comptent pas. */
   liaisons: ['feat', 'ft', 'featuring', 'avec', 'x'],
+  /** Un morceau de saisie plus court que ça (sans espaces) ne vaut une partie que s'il est toute la saisie : « m » n'est pas -M-. */
+  morceauAuMoins: 3,
 } as const;

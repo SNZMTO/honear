@@ -22,6 +22,7 @@ npm run prototype      # sortie/prototype.html : une partie cliquable contre le 
 npm run ecrans         # sortie/ecrans/*.svg : tous les écrans du téléphone (étape 5)
 npm run vitrine        # .github/vitrine/*.svg : les images du README, dessinées par le moteur du site
 npm run format         # Prettier
+npm run exporter-pour-le-mcp -- ~/honear-mcp   # pour le MCP de Honear : les réglages du jugement, une table de cas jugés
 ```
 
 `sortie/` et `dist/` ne sont pas suivis : ils se refont.
