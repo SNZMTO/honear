@@ -252,7 +252,7 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
   }
 
   /**
-   * Une liste sur mesure : ce que le MCP en dit (son nom, ses pistes par leur identifiant Deezer, leurs surnoms), puis chaque piste
+   * Une liste sur mesure : ce que le MCP en dit (son nom, ses pistes par leur identifiant Deezer, leurs surnoms et anecdotes), puis chaque piste
    * relue chez Deezer, toutes à la fois (la limite de débit les étale), pour des extraits frais. Une piste que Deezer ne donne plus
    * est passée ; une liste que le MCP ne connaît pas, ou plus, n'a rien à jouer. La lire, pour le MCP, c'est la jouer : elle vit
    * de nouveau un mois.
@@ -265,9 +265,9 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
       return;
     }
     const lues = await Promise.all(
-      decrite.pistes.map(async ({ deezer, surnoms }) => {
+      decrite.pistes.map(async ({ deezer, surnoms, anecdote }) => {
         const piste = lireUnePiste(await appeler(adresseDeLaPiste(deezer)).catch(() => undefined));
-        return piste !== undefined ? [{ ...piste, surnoms }] : [];
+        return piste !== undefined ? [{ ...piste, surnoms, ...(anecdote !== undefined ? { anecdote } : {}) }] : [];
       }),
     );
     const pistes = lues.flat();

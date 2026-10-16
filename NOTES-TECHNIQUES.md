@@ -155,8 +155,9 @@ et publie un événement à la fois. Tout est dans `regles/messages.ts`, typé, 
 a tout trouvé), `revelation` (la réponse, et le départage s'il y en a un).
 
 **Ce que le serveur garde pour lui.** Il tient le vrai journal ; il n'envoie que `publier(journal)`. Ce journal-là a l'extrait sans la
-réponse (`REPONSE_MASQUEE`), chaque `reponse` remplacée par sa `jugee` (ce qu'elle vaut, jamais ce qui a été tapé), et la révélation
-avec la réponse et le départage. Rejoué par un téléphone, il donne exactement les mêmes points, les mêmes têtes, le même classement :
+réponse (`REPONSE_MASQUEE`) ni rien qui y mène (il n'en garde que les étiquettes du 4 choix : ni l'identifiant Deezer, ni les surnoms,
+ni l'anecdote), chaque `reponse` remplacée par sa `jugee` (ce qu'elle vaut, jamais ce qui a été tapé), et la révélation avec la réponse,
+son anecdote s'il y en a une, et le départage. Rejoué par un téléphone, il donne exactement les mêmes points, les mêmes têtes, le même classement :
 `tests/messages.test.ts` le vérifie à chaque instant d'une partie, et vérifie que le titre n'apparaît nulle part avant sa révélation.
 
 **Recharger ne casse rien.** À la connexion, le téléphone reçoit `etat`, rejoue le journal (`partieA`) et le déroulé de la piste
@@ -243,7 +244,10 @@ chacune de ses pistes se relit chez Deezer par son identifiant. Le jeu garde une
   un réseau interne que seul le jeu rejoint (`honear-listes`, l'adresse est dans `LISTES` : `http://honear-mcp:8791/listes/<id>`) ;
   la lire, pour lui, c'est la jouer : elle vit de nouveau trente jours. Ses pistes portent des surnoms (d'autres réponses justes,
   « Matthieu Chedid » pour « -M- ») : `ciblesDe` les ajoute à ce que la saisie libre accepte, derrière le vrai nom, et ils restent au
-  serveur. Une liste dont la difficulté monte (`dans_l_ordre`) se joue dans son ordre (`gardeSonOrdre`), sans être mélangée.
+  serveur. Une piste peut aussi porter une anecdote, de 160 signes au plus : elle ne part qu'avec la réponse révélée, et se lit sur
+  un papier crème sous la platine (`papierDeLAnecdote`), cinq secondes de plus. Une liste dont la difficulté monte (`dans_l_ordre`)
+  se joue dans son ordre (`gardeSonOrdre`), sans être mélangée. Plus courte que la face réglée, les réglages la règlent sur la plus
+  longue face qu'elle remplit.
 - Deezer est partagé : le jeu et le MCP sortent par la même adresse, et Deezer compte 50 appels par 5 secondes pour les deux. Le jeu
   en fait 30, le MCP 10 (`ressources/reseau.ts`, et `ressources/reglages.py` du MCP).
 - `reseau/musique.ts` appelle : une limite de débit par service, une file plafonnée, des réponses gardées (une recherche une heure, une

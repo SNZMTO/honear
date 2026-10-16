@@ -10,8 +10,8 @@
  */
 
 import { MODES } from '../../regles/modes';
-import { partieA } from '../../regles/partie';
-import { jouer } from '../../regles/piste';
+import { partieA, type EvenementDePartie } from '../../regles/partie';
+import { jouer, type Piste } from '../../regles/piste';
 import { BRUITS, TELEPHONE, type NomDeBruit } from '../../ressources/ecran';
 import { instantsDeLaPiste } from '../../scene/piste/instants';
 import type { Memoire } from './memoire';
@@ -27,6 +27,17 @@ export interface SonVoulu {
   readonly jusqua: number | undefined;
 }
 
+/**
+ * L'heure où l'écran de la piste s'en va, la réponse vue : un moment après que le disque s'est retourné, plus long quand une
+ * anecdote se lit sous la platine. Inconnue avant la révélation.
+ */
+export function finDeLaReponse(piste: Piste, journal: readonly EvenementDePartie[], lanceeA: number): number | undefined {
+  if (piste.revelation === undefined) return undefined;
+  const revelation = journal.find((e) => e.genre === 'revelation' && e.a >= lanceeA);
+  const anecdote = revelation?.genre === 'revelation' && revelation.reponse?.anecdote !== undefined;
+  return instantsDeLaPiste(piste).retournement + (anecdote ? TELEPHONE.apresLAnecdote : TELEPHONE.apresLaReponse);
+}
+
 /** Ce que le téléphone doit jouer, d'après ce qu'il sait : rien si l'ampli est éteint, si la source n'a pas d'extrait, ou si ce n'est pas à lui de jouer. */
 export function sonVoulu(m: Memoire): SonVoulu | undefined {
   const room = m.room;
@@ -36,7 +47,7 @@ export function sonVoulu(m: Memoire): SonVoulu | undefined {
   const piste = room.seance.reduce(jouer, undefined);
   const lanceeA = room.seance.find((a) => a.genre === 'lancer')?.a;
   if (piste === undefined || lanceeA === undefined) return undefined;
-  const aLaReponse = piste.revelation !== undefined ? instantsDeLaPiste(piste).retournement + TELEPHONE.apresLaReponse : undefined;
+  const aLaReponse = finDeLaReponse(piste, room.journal, lanceeA);
   // Un mode qui ne fait entendre que le début (la première note) : le son se tait passé ces secondes, le temps d'un fondu.
   const entendu = MODES[etat.mode].son;
   const auBout = entendu !== undefined && piste.extraitA !== undefined ? piste.extraitA + entendu + TELEPHONE.son.fondu : undefined;

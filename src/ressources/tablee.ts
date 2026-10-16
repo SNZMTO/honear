@@ -105,6 +105,12 @@ export const TABLEE = {
      * Taillé à sa phrase, il garde son bord gauche.
      */
     message: { en: [132, 636], largeur: 228, angle: -1.5, aCoteDeLaVraie: { en: [128, 660], largeur: 220 } },
+    /**
+     * L'anecdote d'une liste sur mesure, à la révélation : un papier crème sous le classement, de la colonne vers la droite (la kraft
+     * n'y est plus), à la place de ce qu'on touchait. Son haut, sa largeur au plus, son angle, ses lignes au plus ; sous la phrase
+     * d'un état, à cet écart, quand il y en a une.
+     */
+    anecdote: { haut: 612, largeur: 280, angle: 1, lignesAuPlus: 5, sousLaPhrase: 10 },
     /** Un mot sur une pastille (« Presque. », « Rayé. ») collée à cheval sur le bord droit de l'étiquette vierge. */
     mot: { decalage: [22, -2], angle: -8 },
     /**

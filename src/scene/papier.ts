@@ -1,7 +1,7 @@
 /**
  * Le papier : une étiquette posée sur le bois, un peu de travers, et ce qu'on y écrit. C'est l'étiquette vierge où l'on tape
- * (un pseudo, un code, une réponse, un lien de playlist), l'étiquette qu'on touche en mode 4 choix, et le bout de papier qui dit
- * ce qui se passe quand c'est trop long pour une pastille (« Connais pas ce disque. Vérifie le code. »).
+ * (un pseudo, un code, une réponse, un lien de playlist), l'étiquette qu'on touche en mode 4 choix, le bout de papier qui dit
+ * ce qui se passe quand c'est trop long pour une pastille (« Connais pas ce disque. Vérifie le code. »), et l'anecdote d'une piste.
  * Le texte est écrit à plat, droit : le papier n'est penché que d'un ou deux degrés.
  * Le papier est taillé à son texte : sa hauteur à ses lignes, sa largeur à la plus longue (et au curseur), jusqu'à sa largeur
  * au plus, où le texte passe à la ligne. Celui où l'on tape s'allonge vers la droite à mesure qu'on tape ; celui qu'on lit garde son milieu.
@@ -36,8 +36,10 @@ export interface Papier {
   readonly auMoins?: number;
   /** Ce qui reste en place quand il se taille à son texte : son bord gauche (par défaut, pour ce qu'on aligne au début), ou son milieu. */
   readonly ancre?: 'debut' | 'milieu';
-  /** Ce qu'on y lit, de haut en bas ; une ligne trop longue passe à la ligne suivante, deux fois au plus. */
+  /** Ce qu'on y lit, de haut en bas ; une ligne trop longue passe à la ligne suivante, deux fois au plus (voir `lignesAuPlus`). */
   readonly lignes: readonly LigneDePapier[];
+  /** Le plus de lignes que chacune y prend : trois, sauf sur un papier qu'on prend le temps de lire (une anecdote). */
+  readonly lignesAuPlus?: number;
   /** Le texte, aligné à gauche (ce qu'on tape) ou centré (ce qu'on lit). */
   readonly alignement: 'debut' | 'milieu';
   /**
@@ -65,7 +67,7 @@ export function dessinerUnPapier(p: Papier, mesurer: Mesure): PapierDessine {
   const utile = p.largeur - 2 * PAPIER.marge;
   const blocs = p.lignes.map((l) => ({
     l,
-    ...mettreEnLignes(mesurer, { contenu: l.contenu, role: l.role }, utile, l.auPlus, 1, PAPIER.lignesAuPlus),
+    ...mettreEnLignes(mesurer, { contenu: l.contenu, role: l.role }, utile, l.auPlus, 1, p.lignesAuPlus ?? PAPIER.lignesAuPlus),
   }));
   const hauteurDesLignes = blocs.reduce(
     (somme, b, rang) =>
