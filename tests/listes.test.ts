@@ -57,7 +57,6 @@ function uneMusique(listes: string | undefined) {
       if (fiche === '72717420') return Promise.resolve(uneFiche(72717420, 'Bella', 'GIMS'));
       return Promise.resolve({ error: { type: 'DataException', message: 'no data', code: 800 } });
     },
-    page: () => Promise.reject(new Error('pas de Spotify')),
     suivre: () => Promise.reject(new Error('pas de réseau')),
     maintenant: () => 0,
     monde: () => MONDE,

@@ -254,7 +254,7 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
             ? `${lue}. ${a.textes.etats.tropCourt}`
             : undefined;
     const technique = bac.refus === 'spotify' || bac.refus === 'introuvable';
-    // Le lien part : on fouille (une playlist Spotify prend quelques secondes) ; puis la playlist importée, son titre et ce qu'on peut en jouer.
+    // Le lien part : on fouille (une longue playlist prend quelques secondes) ; puis la playlist importée, son titre et ce qu'on peut en jouer.
     const lignes: Parameters<typeof papier>[5] | undefined =
       bac.etat === 'fouille'
         ? [{ contenu: P.fouille, role: 'titrage', auPlus: 'intertitre' }]

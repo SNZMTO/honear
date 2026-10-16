@@ -205,8 +205,7 @@ export interface Textes {
 
   /**
    * Les playlists, dans le bac : la touche qui cherche, « Mes playlists », ce qu'on tape pour chercher ou coller sa playlist, ce qui
-   * reste jouable après l'import, le message à qui colle le lien d'une playlist Spotify qui ne se laisse pas lire, et la touche qui
-   * choisit.
+   * reste jouable après l'import, le message à qui colle un lien Spotify (le jeu ne lit pas Spotify), et la touche qui choisit.
    */
   readonly playlists: {
     readonly chercher: string;

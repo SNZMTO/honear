@@ -69,11 +69,6 @@ export const RESEAU = {
     invitesAuPlus: 4000,
   },
   /**
-   * Spotify : on lit la page publique d'une playlist, au plus tant de fois par fenêtre. On en cherche les premiers titres chez Deezer,
-   * jusqu'à en trouver assez pour deux faces de vingt pistes ; un titre que Deezer n'a pas est oublié une heure, avant qu'on le recherche.
-   */
-  spotify: { fenetre: 10, parFenetre: 5, attente: 8, titresAuPlus: 60, pistesAuPlus: 40, sansDeezer: 3600 },
-  /**
    * Les comptes. Un lien de connexion marche une fois, un quart d'heure ; une session dure six mois, et se prolonge à chaque retour.
    * Un compte dont personne ne se sert s'efface au bout de deux ans.
    * On envoie un lien par adresse et par minute au plus, cinq par heure ; dix par heure depuis un même téléphone (sa même adresse

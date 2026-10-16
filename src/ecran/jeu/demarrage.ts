@@ -282,7 +282,7 @@ export function lancerLeJeu(polices: Readonly<Record<string, string>>, textes: T
       typeof p === 'object' &&
       p !== null &&
       typeof (p as PlaylistTrouvee).lien === 'string' &&
-      /^(deezer|spotify):[\w-]+$/.test((p as PlaylistTrouvee).lien) &&
+      /^deezer:[\w-]+$/.test((p as PlaylistTrouvee).lien) &&
       typeof (p as PlaylistTrouvee).titre === 'string' &&
       typeof (p as PlaylistTrouvee).total === 'number',
   );

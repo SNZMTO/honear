@@ -28,33 +28,17 @@ function unSite(origines: readonly string[] = [], deezer?: string, comptes?: Con
   const dossier = mkdtempSync(join(tmpdir(), 'honear-'));
   const page = join(dossier, 'index.html');
   writeFileSync(page, PAGE);
-  // Le faux Deezer sert aussi les pages de Spotify.
   return lancerLeSite({
     port: 0,
     hote: '127.0.0.1',
     origines: [...origines],
     page,
     deezer,
-    ...(deezer !== undefined ? { spotify: deezer } : {}),
     ...(comptes !== undefined ? { comptes } : {}),
   });
 }
 
-/** Une playlist Spotify d'essai : son identifiant, et sa page publique, qui nomme ses vingt chansons. */
-const SPOTIFY = '1a2B3c4D5e6F7g8H9i0JkL';
-const PAGE_SPOTIFY = `<html><body><script id="resource" type="text/plain">${Buffer.from(
-  JSON.stringify({
-    type: 'playlist',
-    name: 'Ma playlist Spotify',
-    uri: `spotify:playlist:${SPOTIFY}`,
-    trackList: Array.from({ length: 20 }, (_, k) => ({ uri: `spotify:track:t${k}`, title: `Chanson ${k + 1}`, subtitle: `Groupe ${k + 1}` })),
-  }),
-).toString('base64')}</script></body></html>`;
-
-/**
- * Un faux Deezer, sur un port de la machine : une recherche qui trouve une playlist de vingt titres, cette playlist, et chacun de
- * ses titres quand on le cherche par son artiste et son nom. Il sert aussi la page publique d'une playlist Spotify.
- */
+/** Un faux Deezer, sur un port de la machine : une recherche qui trouve une playlist de vingt titres, et cette playlist. */
 async function unFauxDeezer() {
   const demandes: string[] = [];
   const piste = (n: number) => ({
@@ -68,21 +52,14 @@ async function unFauxDeezer() {
   const serveur = createServer((requete, reponse) => {
     const url = new URL(requete.url ?? '/', 'http://deezer');
     demandes.push(url.pathname);
-    if (url.pathname === `/embed/playlist/${SPOTIFY}`) {
-      reponse.writeHead(200, { 'content-type': 'text/html' }).end(PAGE_SPOTIFY);
-      return;
-    }
-    const cherche = /^artist:"Groupe (\d+)" track:"Chanson \1"$/.exec(url.searchParams.get('q') ?? '');
     const corps =
-      url.pathname === '/search/track'
-        ? { data: cherche !== null ? [piste(Number(cherche[1]))] : [] }
-        : url.pathname === '/search/playlist'
-          ? { data: [{ id: 4242, title: 'Soirée 2000', nb_tracks: 20 }] }
-          : url.pathname === '/playlist/4242'
-            ? { id: 4242, title: 'Soirée 2000', nb_tracks: 20 }
-            : url.pathname === '/playlist/4242/tracks'
-              ? { data: Array.from({ length: 20 }, (_, k) => piste(k + 1)), total: 20 }
-              : { error: { type: 'DataException', message: 'no data', code: 800 } };
+      url.pathname === '/search/playlist'
+        ? { data: [{ id: 4242, title: 'Soirée 2000', nb_tracks: 20 }] }
+        : url.pathname === '/playlist/4242'
+          ? { id: 4242, title: 'Soirée 2000', nb_tracks: 20 }
+          : url.pathname === '/playlist/4242/tracks'
+            ? { data: Array.from({ length: 20 }, (_, k) => piste(k + 1)), total: 20 }
+            : { error: { type: 'DataException', message: 'no data', code: 800 } };
     reponse.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(corps));
   });
   const port = await new Promise<number>((ecoute) =>
@@ -240,15 +217,10 @@ test('dans le bac, la ligne cherche chez Deezer et importe un lien ; la room jou
     assert.equal(trouvees.recherche, 'soirée 2000');
     assert.deepEqual(trouvees.playlists, [{ lien: 'deezer:4242', titre: 'Soirée 2000', total: 20 }]);
 
-    hote.envoyer({ genre: 'importer', lien: 'https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M' });
-    assert.equal((await hote.attendre('refus')).raison, 'spotify', 'une playlist Spotify privée');
-    hote.envoyer({ genre: 'importer', lien: `https://open.spotify.com/intl-fr/playlist/${SPOTIFY}?si=abc` });
-    assert.deepEqual((await hote.attendre('importee')).playlist, {
-      lien: `spotify:${SPOTIFY}`,
-      titre: 'Ma playlist Spotify',
-      total: 20,
-      jouables: 20,
-    });
+    const avantSpotify = deezer.demandes.length;
+    hote.envoyer({ genre: 'importer', lien: 'https://open.spotify.com/intl-fr/playlist/37i9dQZF1DXcBWIGoYBM5M?si=abc' });
+    assert.equal((await hote.attendre('refus')).raison, 'spotify', 'un lien Spotify, que le jeu ne lit pas');
+    assert.equal(deezer.demandes.length, avantSpotify);
     hote.envoyer({ genre: 'importer', lien: 'https://www.deezer.com/fr/playlist/4242' });
     assert.deepEqual((await hote.attendre('importee')).playlist, { lien: 'deezer:4242', titre: 'Soirée 2000', total: 20, jouables: 20 });
     hote.envoyer({ genre: 'importer', lien: 'deezer.com/playlist/1' });
@@ -272,17 +244,7 @@ test('dans le bac, la ligne cherche chez Deezer et importe un lien ; la room jou
     hote.envoyer({ genre: 'quelleHeure', depart: 1 });
     await hote.attendre('heure');
     assert.ok(!deezer.demandes.slice(lectures).includes('/search/playlist'));
-
-    // Une room sur la playlist Spotify : ses extraits sont ceux que Deezer a pour ses chansons.
-    const autreHote = await unTelephone(port);
-    autreHote.envoyer({ genre: 'creer', mode: 'libre', pistes: 10, extrait: 20, son: 'tous', playlist: `spotify:${SPOTIFY}`, pochette: POCHETTE });
-    const autre = await autreHote.attendre('etat');
-    const autreInvite = await unTelephone(port);
-    autreInvite.envoyer({ genre: 'rejoindre', code: autre.code, pochette: POCHETTE });
-    await autreInvite.attendre('etat');
-    autreHote.envoyer({ genre: 'lancer' });
-    assert.match((await autreInvite.attendre('piste')).extrait ?? '', /\/\d+\.mp3\?/);
-    for (const t of [hote, invite, autreHote, autreInvite]) t.socket.close();
+    for (const t of [hote, invite]) t.socket.close();
   } finally {
     await site.fermer();
     await deezer.fermer();
