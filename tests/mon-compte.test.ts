@@ -191,7 +191,11 @@ test('dans son compte, on choisit un mot de passe : trop faible, il ne part pas 
   assert.equal(ecranDuCompte(m).e.genre === 'compte' && ecranDuCompte(m).e.compte.jugement, 'bon');
   const s = valider(m, 3, EN_LIGNE);
   assert.deepEqual(s.actions, [{ genre: 'choisirUnMotDePasse', motDePasse: 'Le 45 tours de Mamie' }]);
-  const garde = recevoir(s.memoire, { genre: 'compte', heure: 4, compte: { email: 'mateo@example.com', parties: 2, victoires: 1, motDePasse: true } });
+  const garde = recevoir(s.memoire, {
+    genre: 'compte',
+    heure: 4,
+    compte: { email: 'mateo@example.com', parties: 2, victoires: 1, motDePasse: true },
+  });
   const e = ecranDuCompte(garde).e;
   assert.deepEqual(e.genre === 'compte' && [e.compte.etape, e.compte.garde], ['dedans', true]);
   assert.equal(garde.preparation.ecran === 'compte' && garde.preparation.motDePasse, undefined, 'le mot de passe tapé est oublié');
