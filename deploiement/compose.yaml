@@ -1,6 +1,6 @@
 # Honear en ligne, sur le VPS : un conteneur, qui n'ouvre aucun port. Le frontal du VPS (Caddy, dans le dépôt « vps ») tient le
-# HTTPS de honear.fr et lui passe tout par le réseau « honear », à l'adresse « honear:8080 ». Le jeu ne sort que vers Deezer,
-# Spotify et le serveur d'envoi des e-mails ; il lit les listes sur mesure du MCP de Honear sur le réseau interne « honear-listes ».
+# HTTPS de honear.fr et lui passe tout par le réseau « honear », à l'adresse « honear:8080 ». Le jeu ne sort que vers Deezer et
+# le serveur d'envoi des e-mails ; il lit les listes sur mesure du MCP de Honear sur le réseau interne « honear-listes ».
 # Il n'a aucun droit : pas de capacités, rien à gagner en route, un système de fichiers en lecture seule, de la mémoire et des
 # processus comptés.
 #

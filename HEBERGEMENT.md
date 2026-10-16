@@ -82,19 +82,18 @@ répond par le frontal.
 - Un compte s'ouvre sans mot de passe, par un lien qui ne sert qu'une fois ; le téléphone garde un secret de session, que le serveur
   ne garde qu'en empreinte.
 
-## La musique : Deezer, et les playlists Spotify
+## La musique : Deezer
 
 Le serveur va chercher la musique lui-même, depuis le VPS : l'API publique de Deezer (`api.deezer.com`, sans clé ni compte) pour les
-playlists et leurs extraits de 30 secondes, et la page publique d'une playlist Spotify (`open.spotify.com`) quand on en colle le lien.
-Rien à configurer : il suffit que le VPS sorte sur Internet, ce qu'il fait d'origine. Les téléphones, eux, jouent les extraits
+playlists et leurs extraits de 30 secondes. Rien à configurer : il suffit que le VPS sorte sur Internet, ce qu'il fait d'origine. Les téléphones, eux, jouent les extraits
 directement depuis les serveurs de Deezer : aucun son ne passe par le VPS, ni n'y est gardé.
 
 - **Deezer** admet 50 appels par 5 secondes : le serveur en fait 40 au plus, attend quand Deezer dit qu'on va trop vite, et garde ce qu'il
   a lu (une recherche une heure, une playlist dix minutes, ses liens d'extraits expirant).
-- **Spotify** ne donne plus le contenu d'une playlist par son API qu'à son propriétaire connecté (depuis février 2026, et une appli de
-  particulier est limitée à cinq comptes). Le serveur lit donc la page publique de la playlist, celle de son lecteur intégré, puis
-  retrouve ses titres chez Deezer. Ce n'est pas un usage que Spotify prévoit : s'il change sa page, l'import Spotify cessera de marcher
-  (le bac le dira) jusqu'à ce qu'on adapte `src/serveur/sources/spotify.ts`. Une playlist privée ne se lit pas.
+- **Spotify** : le jeu n'en lit rien. Son API ne donne plus le contenu d'une playlist qu'à son propriétaire connecté (depuis février
+  2026), ses règles pour les développeurs interdisent d'en faire un jeu, quiz compris, et ses conditions interdisent qu'un programme
+  lise ses pages. Un lien Spotify collé dans le bac est donc refusé, sans qu'aucune requête parte vers Spotify : le bac propose un lien
+  Deezer, ou une playlist sur mesure faite avec le MCP de Honear.
 - **Les conditions de Deezer** : les extraits de 30 secondes sont permis à tous par l'API, et il est interdit d'en garder le son ; le bac
   cite Deezer. Pour un jeu public à grande échelle ou payant, lis d'abord ses conditions d'utilisation et ses règles sur le logo
   (developers.deezer.com).

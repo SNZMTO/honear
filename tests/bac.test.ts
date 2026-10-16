@@ -1,6 +1,6 @@
 /**
  * Le bac, chez l'hôte : chacun de ses états se dessine, avec les polices du site, sans un signe qu'elles n'auraient pas (c'est ce
- * qu'on a écrit, et l'encrier des tests s'arrête à la première faute). Un titre venu d'ailleurs (de Deezer, de Spotify), lui, peut
+ * qu'on a écrit, et l'encrier des tests s'arrête à la première faute). Un titre venu d'ailleurs (de Deezer, d'une liste sur mesure), lui, peut
  * porter n'importe quoi : la page du jeu le dessine quand même, ce qui manque aux polices remplacé. Et ce qu'on y fait : un thème,
  * une recherche, un lien collé, ce que le serveur en dit.
  */
@@ -137,7 +137,7 @@ test('dans le bac, un thème cherche ses playlists et les montre en disques : on
   assert.equal(m.preparation.ecran === 'reglages' ? m.preparation.playlist : undefined, 'deezer:1');
 });
 
-test('dans le bac, un lien collé part ; trop courte, Spotify privée ou introuvable, on le dit ; changer de cran abandonne ce qu’on attendait', () => {
+test('dans le bac, un lien collé part ; trop courte, Spotify ou introuvable, on le dit ; changer de cran abandonne ce qu’on attendait', () => {
   let m = saisir(auBac('laMienne'), 'https://open.spotify.com/playlist/1a2B3c4D5e6F7g8H9i0JkL');
   const s = valider(m, 0, PREPARATIFS);
   assert.deepEqual(s.actions, [{ genre: 'importer', lien: 'https://open.spotify.com/playlist/1a2B3c4D5e6F7g8H9i0JkL' }]);
@@ -147,15 +147,15 @@ test('dans le bac, un lien collé part ; trop courte, Spotify privée ou introuv
       bacDe(recevoir(m, { genre: 'refus', heure: 1, raison: 'spotify' }))?.refus,
     'spotify',
   );
-  const courte = recevoir(m, { genre: 'importee', heure: 1, playlist: { lien: 'spotify:x', titre: 'Courte', total: 5, jouables: 4 } });
+  const courte = recevoir(m, { genre: 'importee', heure: 1, playlist: { lien: 'deezer:7', titre: 'Courte', total: 5, jouables: 4 } });
   assert.deepEqual([bacDe(courte)?.refus, bacDe(courte)?.choisie], ['tropCourt', undefined]);
-  const bonne = recevoir(m, { genre: 'importee', heure: 1, playlist: { lien: 'spotify:x', titre: 'Ma soirée', total: 22, jouables: 21 } });
-  assert.deepEqual([bacDe(bonne)?.refus, bacDe(bonne)?.choisie?.lien], [undefined, 'spotify:x']);
+  const bonne = recevoir(m, { genre: 'importee', heure: 1, playlist: { lien: 'deezer:7', titre: 'Ma soirée', total: 22, jouables: 21 } });
+  assert.deepEqual([bacDe(bonne)?.refus, bacDe(bonne)?.choisie?.lien], [undefined, 'deezer:7']);
   // On passe à la recherche avant la réponse : on ne l'attend plus, et elle ne change rien.
   const ailleurs = toucher(m, { genre: 'cranDuBac', cran: 'chercher' }, 1, PREPARATIFS).memoire;
   assert.equal(bacDe(ailleurs)?.enAttente, undefined);
   assert.equal(
-    recevoir(ailleurs, { genre: 'importee', heure: 2, playlist: { lien: 'spotify:x', titre: 'Ma soirée', total: 22, jouables: 21 } }),
+    recevoir(ailleurs, { genre: 'importee', heure: 2, playlist: { lien: 'deezer:7', titre: 'Ma soirée', total: 22, jouables: 21 } }),
     ailleurs,
   );
 });

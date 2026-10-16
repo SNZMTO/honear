@@ -1,8 +1,7 @@
 /**
- * La source Deezer : les playlists publiques de Deezer et leurs extraits de 30 secondes, et les titres qu'on y retrouve par leur
- * artiste et leur nom (ceux d'une playlist Spotify). Ce module ne parle pas au réseau : il dit quelles adresses demander, et lit
- * ce que Deezer répond. C'est le réseau (`reseau/musique.ts`) qui demande, étale les appels sous la limite de débit, et garde les
- * réponses un moment. Une piste n'est jouable que si Deezer la laisse lire et lui donne un extrait.
+ * La source Deezer : les playlists publiques de Deezer et leurs extraits de 30 secondes. Ce module ne parle pas au réseau : il dit
+ * quelles adresses demander, et lit ce que Deezer répond. C'est le réseau (`reseau/musique.ts`) qui demande, étale les appels sous
+ * la limite de débit, et garde les réponses un moment. Une piste n'est jouable que si Deezer la laisse lire et lui donne un extrait.
  */
 
 import type { PlaylistTrouvee } from '../../regles/messages';
@@ -190,36 +189,8 @@ export function expirationDe(extrait: string): number | undefined {
   return exp !== undefined ? Number(exp) : undefined;
 }
 
-/** Un titre qu'on cherche chez Deezer : son nom et son premier artiste, tels qu'une autre source les donne. */
-export interface TitreACherche {
-  readonly titre: string;
-  readonly artiste: string;
-}
-
-/** Combien de pistes on demande quand on cherche un titre : la bonne est presque toujours dans les premières. */
-export const PISTES_PAR_RECHERCHE = 5;
-
-/**
- * L'adresse où chercher un titre : par son artiste et son nom (la recherche avancée de Deezer, `artist:"…" track:"…"`), ou en vrac,
- * quand la première n'a rien trouvé. Le nom est cherché sans ce qui l'habille (« - Remastered 2011 », « (feat. …) »).
- */
-export function adresseDeRechercheDeTitre(cherche: TitreACherche, precise: boolean): string {
-  const nom = nomNu(cherche.titre);
-  const q = precise ? `artist:"${cherche.artiste.replace(/"/g, '')}" track:"${nom.replace(/"/g, '')}"` : `${cherche.artiste} ${nom}`;
-  return `${API_DE_DEEZER}/search/track?q=${encodeURIComponent(q)}&limit=${PISTES_PAR_RECHERCHE}`;
-}
-
 /** L'adresse d'une piste de Deezer : de quoi relire son extrait quand son lien a expiré. */
 export const adresseDeLaPiste = (id: number): string => `${API_DE_DEEZER}/track/${id}`;
-
-/** Le nom d'un titre, sans ce qui l'habille : ce qui suit un tiret (« - Remastered 2011 », « - Radio Edit »), ce qui est entre parenthèses ou crochets. */
-export function nomNu(titre: string): string {
-  const nu = titre
-    .replace(/\s+[-–—]\s+.*$/, '')
-    .replace(/\s*[([][^)\]]*[)\]]/g, '')
-    .trim();
-  return nu !== '' ? nu : titre.trim();
-}
 
 /** Une chaîne qu'on compare : en minuscules, sans accents, sans rien d'autre que ses lettres et ses chiffres. */
 const comparable = (x: string): string =>
@@ -229,30 +200,6 @@ const comparable = (x: string): string =>
     .toLowerCase()
     .replace(/&/g, 'and')
     .replace(/[^\p{L}\p{N}]/gu, '');
-
-/** Vrai si deux noms disent la même chose, ou si l'un contient l'autre (« Bim Bam toi » et « Bim Bam toi (Radio Edit) »). */
-function proches(un: string, autre: string): boolean {
-  const [a, b] = [comparable(un), comparable(autre)];
-  return a !== '' && b !== '' && (a === b || a.includes(b) || b.includes(a));
-}
-
-/**
- * Parmi les pistes qu'une recherche a trouvées, celle qui est ce titre : même nom et même artiste, aux accents et à l'habillage
- * près, et qu'on peut jouer. Rien si aucune ne l'est : mieux vaut sauter un titre que faire deviner une autre chanson.
- */
-export function laBonnePiste(reponse: unknown, cherche: TitreACherche): { readonly id: number; readonly piste: PisteDuMode } | undefined {
-  for (const x of liste(reponse)) {
-    const p = objet(x);
-    const id = nombre(p?.['id']);
-    const nom = texte(p?.['title_short']) ?? texte(p?.['title']);
-    const artiste = texte(objet(p?.['artist'])?.['name']);
-    if (id === undefined || nom === undefined || artiste === undefined) continue;
-    if (!proches(nomNu(nom), nomNu(cherche.titre)) || !proches(artiste, cherche.artiste)) continue;
-    const piste = lireUnePiste(x);
-    if (piste !== undefined) return { id, piste };
-  }
-  return undefined;
-}
 
 /** Une page des pistes d'une playlist : celles qu'on peut jouer, combien elle en compte en tout, et s'il reste des pages. */
 export function lireDesPistes(reponse: unknown): { readonly pistes: PisteDuMode[]; readonly lues: number; readonly total: number | undefined } {

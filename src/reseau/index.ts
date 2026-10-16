@@ -2,7 +2,7 @@
  * Le site en ligne : le point d'entrée du serveur, sur le VPS. Il lit sa configuration dans l'environnement, sert la page du jeu,
  * branche les téléphones par WebSocket au serveur du jeu, et fait avancer celui-ci à ses rendez-vous (l'extrait qui part,
  * la révélation). Il écoute en local : c'est le relais devant lui (Caddy) qui parle HTTPS au monde. Il va chercher la musique chez
- * Deezer, et les titres d'une playlist sur sa page Spotify (DEEZER et SPOTIFY : d'autres adresses, celles de faux, pour essayer le site).
+ * Deezer (DEEZER : une autre adresse, celle d'un faux, pour essayer le site).
  * Il compte ce qui s'y passe pour la page des statistiques (STATISTIQUES, le fichier, sinon à côté des comptes ; STATISTIQUES_CLE,
  * la clé qui l'ouvre : sans elle, la page est fermée).
  * Il garde les comptes dans un fichier (COMPTES, sinon à côté de lui), et envoie leurs liens de connexion par
@@ -24,7 +24,6 @@ import { ADRESSES_DES_STATISTIQUES } from '../ressources/statistiques';
 import type { Textes } from '../ressources/textes';
 import { demarrerLeServeur } from '../serveur/serveur';
 import { API_DE_DEEZER } from '../serveur/sources/deezer';
-import { PAGES_DE_SPOTIFY } from '../serveur/sources/spotify';
 import { PISTES_D_ESSAI, PLAYLIST_D_ESSAI } from '../serveur/sources/essai';
 import { adresseEmail, enHtml, lettreDAvertissement, lettreDuLien, lettreDuMotDePasse, ouvrirLesComptes, type Comptes } from './comptes';
 import { posterParSmtp, type ConfigurationDuCourrier, type Poster } from './courrier';
@@ -52,8 +51,6 @@ export interface ConfigurationDuSite {
   readonly page: string;
   /** L'API de Deezer ; rien : le site ne joue que sa playlist d'essai. */
   readonly deezer: string | undefined;
-  /** Le site des pages publiques de Spotify. */
-  readonly spotify?: string;
   /** Le MCP de Honear, qui sert les listes sur mesure sur le réseau du jeu ; rien : pas de listes. */
   readonly listes?: string;
   /** L'adresse où écrire à l'éditeur, que disent les pages légales (CONTACT, sinon celle qui envoie les liens des comptes). */
@@ -75,7 +72,6 @@ export interface ConfigurationDuSite {
 function configuration(): ConfigurationDuSite {
   const ici = dirname(fileURLToPath(import.meta.url));
   const deezer = process.env['DEEZER'] ?? API_DE_DEEZER;
-  const spotify = process.env['SPOTIFY'] ?? PAGES_DE_SPOTIFY;
   const listes = process.env['LISTES'];
   const origines = (process.env['ORIGINES'] ?? '')
     .split(',')
@@ -97,7 +93,6 @@ function configuration(): ConfigurationDuSite {
     origines,
     page: process.env['PAGE'] ?? join(ici, 'index.html'),
     deezer: deezer === 'non' ? undefined : deezer.replace(/\/+$/, ''),
-    spotify: spotify.replace(/\/+$/, ''),
     ...(listes !== undefined && /^https?:\/\/[^/?#]+\/?$/.test(listes) ? { listes: listes.replace(/\/+$/, '') } : {}),
     ...(typeof TEXTES_DU_COMPTE !== 'undefined' && TEXTES_DU_COMPTE !== undefined
       ? {
@@ -254,46 +249,25 @@ const OUBLI = RESEAU.comptes.oubli * 1000;
 /** Entre deux écritures des statistiques, en millisecondes. */
 const ECRITURE_DES_STATISTIQUES = RESEAU.statistiques.ecriture * 1000;
 
-/** Ce qu'on laisse à Deezer, à Spotify, pour répondre, en millisecondes. */
+/** Ce qu'on laisse à Deezer pour répondre, en millisecondes. */
 const PATIENCE = RESEAU.deezer.attente * 1000;
-const PATIENCE_DE_SPOTIFY = RESEAU.spotify.attente * 1000;
-
-/** Une playlist Spotify nommée dans une page : ce qu'un lien court montre quand il ne redirige pas tout de suite. */
-const PLAYLIST_SPOTIFY_DANS_UNE_PAGE = /https:\/\/open\.spotify\.com\/(?:intl-[a-z-]+\/)?playlist\/[A-Za-z0-9]{22}/;
 
 /**
- * La musique, par le réseau : chaque appel à Deezer, chaque page de Spotify, est une requête HTTPS, abandonnée si elle tarde.
- * @param ailleurs d'autres adresses pour l'API de Deezer et le site de Spotify : de faux, pour essayer le site sans eux ; et celle
- * du MCP qui sert les listes, s'il y en a un.
+ * La musique, par le réseau : chaque appel à Deezer est une requête HTTPS, abandonnée si elle tarde.
+ * @param ailleurs une autre adresse pour l'API de Deezer : celle d'un faux, pour essayer le site sans lui ; et celle du MCP qui
+ * sert les listes, s'il y en a un.
  */
-function musiqueEnLigne(
-  ailleurs: { readonly deezer: string; readonly spotify: string; readonly listes?: string },
-  maintenant: () => number,
-): Musique {
-  const vers = (adresse: string): string =>
-    adresse.startsWith(API_DE_DEEZER)
-      ? ailleurs.deezer + adresse.slice(API_DE_DEEZER.length)
-      : adresse.startsWith(PAGES_DE_SPOTIFY)
-        ? ailleurs.spotify + adresse.slice(PAGES_DE_SPOTIFY.length)
-        : adresse;
+function musiqueEnLigne(ailleurs: { readonly deezer: string; readonly listes?: string }, maintenant: () => number): Musique {
+  const vers = (adresse: string): string => (adresse.startsWith(API_DE_DEEZER) ? ailleurs.deezer + adresse.slice(API_DE_DEEZER.length) : adresse);
   return brancherLaMusique({
     async lire(adresse) {
       const reponse = await fetch(vers(adresse), { signal: AbortSignal.timeout(PATIENCE), headers: { accept: 'application/json' } });
       return (await reponse.json()) as unknown;
     },
-    async page(adresse) {
-      const reponse = await fetch(vers(adresse), {
-        signal: AbortSignal.timeout(PATIENCE_DE_SPOTIFY),
-        headers: { accept: 'text/html', 'accept-language': 'fr-FR,fr;q=0.9' },
-      });
-      return reponse.ok ? await reponse.text() : '';
-    },
     async suivre(adresse) {
       const reponse = await fetch(adresse, { redirect: 'follow', signal: AbortSignal.timeout(PATIENCE) });
-      // Certains liens courts ne redirigent pas : ils montrent une page qui nomme la playlist.
-      const nommee = reponse.url === adresse ? PLAYLIST_SPOTIFY_DANS_UNE_PAGE.exec(await reponse.text())?.[0] : undefined;
-      if (nommee === undefined) await reponse.body?.cancel();
-      return nommee ?? reponse.url;
+      await reponse.body?.cancel();
+      return reponse.url;
     },
     maintenant,
     monde: heureDuMonde,
@@ -322,12 +296,7 @@ export interface SiteLance {
 export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
   const maintenant = horlogeDuServeur();
   const musique =
-    c.deezer !== undefined
-      ? musiqueEnLigne(
-          { deezer: c.deezer, spotify: c.spotify ?? PAGES_DE_SPOTIFY, ...(c.listes !== undefined ? { listes: c.listes } : {}) },
-          maintenant,
-        )
-      : undefined;
+    c.deezer !== undefined ? musiqueEnLigne({ deezer: c.deezer, ...(c.listes !== undefined ? { listes: c.listes } : {}) }, maintenant) : undefined;
   const comptes = c.comptes !== undefined ? comptesDansUnFichier(c.comptes) : undefined;
   const statistiques = c.statistiques !== undefined ? statistiquesDansUnFichier(c.statistiques.fichier) : undefined;
   // Les statistiques s'écrivent de temps en temps, et une dernière fois quand le site s'arrête.
