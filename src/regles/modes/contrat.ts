@@ -19,6 +19,11 @@ export interface PisteDuMode {
   readonly extrait?: string;
   /** Son identifiant chez Deezer, quand elle en vient : de quoi y lire ses invités, que la liste d'une playlist ne donne pas. */
   readonly deezer?: number;
+  /**
+   * D'autres façons justes de dire son artiste et son titre, quand sa source en donne (une liste sur mesure : « Maître Gims » pour
+   * « GIMS ») : la saisie libre les accepte aussi. Ils restent au serveur, comme la réponse jusqu'à la révélation.
+   */
+  readonly surnoms?: { readonly artiste: readonly string[]; readonly titre: readonly string[] };
 }
 
 /** La dernière proposition d'un joueur à une piste, et l'instant où il l'a faite : ce qu'un mode peut départager à la révélation. */

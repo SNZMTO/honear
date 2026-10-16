@@ -54,6 +54,8 @@ export interface ConfigurationDuSite {
   readonly deezer: string | undefined;
   /** Le site des pages publiques de Spotify. */
   readonly spotify?: string;
+  /** Le MCP de Honear, qui sert les listes sur mesure sur le réseau du jeu ; rien : pas de listes. */
+  readonly listes?: string;
   /** L'adresse où écrire à l'éditeur, que disent les pages légales (CONTACT, sinon celle qui envoie les liens des comptes). */
   readonly contact?: string;
   /**
@@ -74,6 +76,7 @@ function configuration(): ConfigurationDuSite {
   const ici = dirname(fileURLToPath(import.meta.url));
   const deezer = process.env['DEEZER'] ?? API_DE_DEEZER;
   const spotify = process.env['SPOTIFY'] ?? PAGES_DE_SPOTIFY;
+  const listes = process.env['LISTES'];
   const origines = (process.env['ORIGINES'] ?? '')
     .split(',')
     .map((o) => o.trim())
@@ -95,6 +98,7 @@ function configuration(): ConfigurationDuSite {
     page: process.env['PAGE'] ?? join(ici, 'index.html'),
     deezer: deezer === 'non' ? undefined : deezer.replace(/\/+$/, ''),
     spotify: spotify.replace(/\/+$/, ''),
+    ...(listes !== undefined && /^https?:\/\/[^/?#]+\/?$/.test(listes) ? { listes: listes.replace(/\/+$/, '') } : {}),
     ...(typeof TEXTES_DU_COMPTE !== 'undefined' && TEXTES_DU_COMPTE !== undefined
       ? {
           comptes: {
@@ -259,9 +263,13 @@ const PLAYLIST_SPOTIFY_DANS_UNE_PAGE = /https:\/\/open\.spotify\.com\/(?:intl-[a
 
 /**
  * La musique, par le réseau : chaque appel à Deezer, chaque page de Spotify, est une requête HTTPS, abandonnée si elle tarde.
- * @param ailleurs d'autres adresses pour l'API de Deezer et le site de Spotify : de faux, pour essayer le site sans eux.
+ * @param ailleurs d'autres adresses pour l'API de Deezer et le site de Spotify : de faux, pour essayer le site sans eux ; et celle
+ * du MCP qui sert les listes, s'il y en a un.
  */
-function musiqueEnLigne(ailleurs: { readonly deezer: string; readonly spotify: string }, maintenant: () => number): Musique {
+function musiqueEnLigne(
+  ailleurs: { readonly deezer: string; readonly spotify: string; readonly listes?: string },
+  maintenant: () => number,
+): Musique {
   const vers = (adresse: string): string =>
     adresse.startsWith(API_DE_DEEZER)
       ? ailleurs.deezer + adresse.slice(API_DE_DEEZER.length)
@@ -289,6 +297,7 @@ function musiqueEnLigne(ailleurs: { readonly deezer: string; readonly spotify: s
     },
     maintenant,
     monde: heureDuMonde,
+    ...(ailleurs.listes !== undefined ? { listes: ailleurs.listes } : {}),
     attendre: (secondes) =>
       new Promise<void>((fini) => {
         const duree = Math.max(0, secondes) * 1000;
@@ -312,7 +321,13 @@ export interface SiteLance {
 
 export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
   const maintenant = horlogeDuServeur();
-  const musique = c.deezer !== undefined ? musiqueEnLigne({ deezer: c.deezer, spotify: c.spotify ?? PAGES_DE_SPOTIFY }, maintenant) : undefined;
+  const musique =
+    c.deezer !== undefined
+      ? musiqueEnLigne(
+          { deezer: c.deezer, spotify: c.spotify ?? PAGES_DE_SPOTIFY, ...(c.listes !== undefined ? { listes: c.listes } : {}) },
+          maintenant,
+        )
+      : undefined;
   const comptes = c.comptes !== undefined ? comptesDansUnFichier(c.comptes) : undefined;
   const statistiques = c.statistiques !== undefined ? statistiquesDansUnFichier(c.statistiques.fichier) : undefined;
   // Les statistiques s'écrivent de temps en temps, et une dernière fois quand le site s'arrête.
@@ -336,6 +351,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
     playlist: (lien) => (lien === PLAYLIST_D_ESSAI ? PISTES_D_ESSAI : musique?.pistes(lien)),
     // Les pistes qui viennent : la musique lit leurs invités, pour leur feat.
     bientot: (pistes) => musique?.preciser(pistes),
+    gardeSonOrdre: (lien) => musique?.gardeSonOrdre(lien) === true,
     // Une face finie : ceux qui jouaient sous un compte y comptent une partie ; le premier (s'il a marqué), une victoire.
     quandUneFaceFinit: (code, etat) =>
       comptes?.faceFinie(

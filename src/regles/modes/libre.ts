@@ -87,10 +87,13 @@ export function jugerLesParties(
   return { trouve: [], verdict: presque ? 'presque' : 'faux' };
 }
 
-/** Ce que chaque partie d'une piste accepte : son artiste, son titre, son feat entier ou l'un de ses invités. */
-export const ciblesDe = ({ reponse }: PisteDuMode): Readonly<Record<Partie, readonly string[]>> => ({
-  artiste: [reponse.artiste],
-  titre: [reponse.titre],
+/**
+ * Ce que chaque partie d'une piste accepte : son artiste, son titre, ou l'un de leurs surnoms ; son feat entier ou l'un de ses
+ * invités. Le vrai nom vient toujours en premier.
+ */
+export const ciblesDe = ({ reponse, surnoms }: PisteDuMode): Readonly<Record<Partie, readonly string[]>> => ({
+  artiste: [reponse.artiste, ...(surnoms?.artiste ?? [])],
+  titre: [reponse.titre, ...(surnoms?.titre ?? [])],
   feat: reponse.feat !== undefined ? [reponse.feat, ...lesInvites(reponse.feat).filter((n) => n !== reponse.feat)] : [],
 });
 
