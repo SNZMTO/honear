@@ -655,11 +655,17 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
           })
         : rien;
     case 'theme':
+      // D'où qu'on vienne (« Mes playlists », la recherche), un thème touché ramène aux thèmes : ce qu'on attendait ailleurs ne compte plus.
       if (prep.ecran !== 'bac' || !p.chercher) return rien;
       return {
         memoire: {
           ...m,
-          preparation: { ...prep, bac: { ...prep.bac, theme: t.cle, enAttente: t.recherche, resultats: undefined, choisie: undefined } },
+          refus: undefined,
+          preparation: {
+            ...prep,
+            cran: 'pretes',
+            bac: { ...prep.bac, theme: t.cle, enAttente: t.recherche, resultats: undefined, choisie: undefined, refus: undefined, touche: undefined },
+          },
         },
         actions: [{ genre: 'chercher', recherche: t.recherche, ...(estUnThemeDuBac(t.cle) ? { theme: t.cle } : {}) }],
       };

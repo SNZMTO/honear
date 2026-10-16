@@ -78,9 +78,15 @@ export function vueDeLAccueil(a: Ecritoire, avecLeCompte = false, maPochette = f
   };
 }
 
-/** Les trois façons de choisir sa playlist dans le bac, dans l'ordre de leurs crans. */
+/**
+ * Les trois façons de choisir sa playlist dans le bac : un thème touché dans le bac, la recherche, ou « Mes playlists » (sa pochette
+ * personnalisée, dans le bac elle aussi).
+ */
 export const CRANS_DU_BAC = ['pretes', 'chercher', 'laMienne'] as const;
 export type CranDuBac = (typeof CRANS_DU_BAC)[number];
+
+/** Le seul cran qui a sa touche, sous le bac : « Chercher ». Les thèmes et « Mes playlists » se touchent dans le bac lui-même. */
+export const TOUCHES_DU_BAC = ['chercher'] as const satisfies readonly CranDuBac[];
 
 /** Ce que montre le bac de l'hôte : le cran choisi, et ce qu'on y a trouvé. */
 export interface BacOuvert {
@@ -118,8 +124,9 @@ export interface BacOuvert {
 }
 
 /**
- * Le bac, chez l'hôte : trois façons de choisir sa playlist, en crans ; ce qu'on y voit, selon le cran choisi ; en bas, la touche qui
- * choisit, quand il y a de quoi choisir, et « Retour », petit, à sa gauche. Chaque cran s'appelle « touche-bac-… ».
+ * Le bac, chez l'hôte : en haut, le bac, dont on touche un thème ou « Mes playlists » ; dessous, « Chercher » (« touche-bac-chercher ») ;
+ * ce qu'on y voit, selon ce qu'on a touché ; en bas, la touche qui choisit, quand il y a de quoi choisir, et « Retour », petit, à sa
+ * gauche.
  */
 export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
   const P = a.textes.playlists;
@@ -134,10 +141,10 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
   const surLeBac = regardSur(auRepos, a.encrier);
   const haut = empriseDe([auRepos], a.encrier.largeur)?.y ?? surLeBac.origine[1];
   const r: Regard = { ...surLeBac, origine: [surLeBac.origine[0], Math.min(surLeBac.origine[1], haut - B.auDessus)] };
-  // Les trois crans, chacun taillé à son libellé, côte à côte et centrés, un écart entre eux : aucun ne mord sur l'autre.
-  const largeurs = CRANS_DU_BAC.map((c) => largeurDeLaTouche({ genre: 'cran', libelle: P[c], ajustee: true }, a.encrier.largeur));
+  // Sous le bac, « Chercher », taillé à son libellé et centré (les crans qui ont une touche, côte à côte, un écart entre eux).
+  const largeurs = TOUCHES_DU_BAC.map((c) => largeurDeLaTouche({ genre: 'cran', libelle: P[c], ajustee: true }, a.encrier.largeur));
   const enTout = largeurs.reduce((somme, l) => somme + l, 0) + B.crans.ecart * (largeurs.length - 1);
-  const crans = CRANS_DU_BAC.map((c, rang) => {
+  const crans = TOUCHES_DU_BAC.map((c, rang) => {
     const avant = largeurs.slice(0, rang).reduce((somme, l) => somme + l + B.crans.ecart, 0);
     const x = (r.largeur - enTout) / 2 + avant + (largeurs[rang] ?? 0) / 2;
     return touche(`touche-bac-${c}`, 'cran', P[c], r, [x, B.crans.y], a.encrier, c === bac.cran ? 'allumee' : 'repos', true);
