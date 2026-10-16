@@ -88,4 +88,13 @@ export const JUGEMENT = {
   liaisons: ['feat', 'ft', 'featuring', 'avec', 'x'],
   /** Un morceau de saisie plus court que ça (sans espaces) ne vaut une partie que s'il est toute la saisie : « m » n'est pas -M-. */
   morceauAuMoins: 3,
+  /**
+   * Une saisie se découpe en suites de mots pour y chercher chaque partie, mais sur ses premiers mots seulement : chaque mot de
+   * plus multiplie les suites à juger, et le serveur les juge pour toute la tablée. Une réponse tient en bien moins.
+   */
+  motsAuPlus: 8,
+  /** Ce qu'une réponse tapée peut compter de caractères : le téléphone s'arrête là, le serveur refuse au-delà. */
+  saisieAuPlus: 120,
+  /** Les saisies déjà jugées que le serveur garde en mémoire, pour ne pas les rejuger à chaque message de la room. */
+  memoire: 2000,
 } as const;

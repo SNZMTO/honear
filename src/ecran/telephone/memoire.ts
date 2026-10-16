@@ -15,7 +15,7 @@ import { autreAlbum, nomTape, pochetteAuHasard, type ListesAuHasard } from '../.
 import type { ChoixDeLAvatar } from '../../ressources/avatar';
 import { TELEPHONE } from '../../ressources/ecran';
 import type { Pochette } from '../../ressources/pochettes';
-import { MOT_DE_PASSE, PARTIE, REGLAGES } from '../../ressources/reglages';
+import { JUGEMENT, MOT_DE_PASSE, PARTIE, REGLAGES } from '../../ressources/reglages';
 import { TABLEE } from '../../ressources/tablee';
 import type { RefusDuCompte } from '../../scene/telephone/compte';
 import type { CranDuBac } from '../../scene/telephone/ecrans';
@@ -904,8 +904,8 @@ export function aLaNouvelle(avant: Memoire, apres: Memoire): readonly Action[] {
 /** Les millisecondes d'une seconde : la graine d'un tirage change à chaque milliseconde. */
 const MS_PAR_SECONDE = 1000;
 
-/** Ce qu'une réponse tapée peut compter de caractères ; une adresse e-mail, au plus. */
-export const SAISIE_AU_PLUS = 120;
+/** Ce qu'une réponse tapée peut compter de caractères (le serveur refuse au-delà) ; une adresse e-mail, au plus. */
+export const SAISIE_AU_PLUS = JUGEMENT.saisieAuPlus;
 export const ADRESSE_AU_PLUS = 254;
 
 /**

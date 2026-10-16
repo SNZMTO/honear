@@ -109,4 +109,8 @@ export const CAS_DES_PARTIES: readonly CasDesParties[] = [
   { ...M, texte: 'matthieu chedid', deja: [], trouve: [], verdict: 'presque' },
   juste({ artiste: 'GIMS', titre: 'Bella' }, 'maître gims', ['artiste']),
   juste({ artiste: 'Diddy', titre: "I'll Be Missing You" }, 'puff daddy', ['artiste']),
+  // Une saisie ne se découpe que sur ses premiers mots (`JUGEMENT.motsAuPlus`) : au neuvième, la réponse n'est plus lue seule,
+  // seulement dans toute la saisie (« Presque. ») ; et cent vingt « & » (cent vingt « et ») se jugent comme une saisie courte.
+  { ...DEMONS, texte: `${'oui '.repeat(8)}images`, deja: [], trouve: [], verdict: 'presque' },
+  { ...DEMONS, texte: '&'.repeat(120), deja: [], trouve: [], verdict: 'faux' },
 ];

@@ -39,12 +39,15 @@ const RANG: Readonly<Record<Verdict, number>> = { faux: 0, presque: 1, juste: 2 
 
 /**
  * Les morceaux d'une saisie, mot à mot : chaque suite de mots qui se suivent. « Kofs Jul » donne « kofs », « jul » et « kofs jul ».
- * Une partie se trouve dans l'un d'eux, sans qu'on ait à séparer ce qu'on tape d'une virgule ou d'un « feat ».
+ * Une partie se trouve dans l'un d'eux, sans qu'on ait à séparer ce qu'on tape d'une virgule ou d'un « feat ». Seuls les premiers
+ * mots se découpent (`JUGEMENT.motsAuPlus`) : sans borne, une saisie de cent « & » (cent « et ») ferait juger des milliers de
+ * suites, et figerait le serveur pour toutes les rooms.
  */
 function suitesDeMots(texte: string): string[] {
   const mots = normaliser(texte, false)
     .split(' ')
-    .filter((m) => m !== '');
+    .filter((m) => m !== '')
+    .slice(0, JUGEMENT.motsAuPlus);
   const suites: string[] = [];
   for (let debut = 0; debut < mots.length; debut++)
     for (let fin = debut + 1; fin <= mots.length; fin++) {
@@ -53,6 +56,15 @@ function suitesDeMots(texte: string): string[] {
     }
   return suites;
 }
+
+type PartiesJugees = { readonly trouve: Partie[]; readonly verdict: Verdict };
+
+/**
+ * Les saisies déjà jugées. Le serveur rejoue le journal d'une room à chaque message, et chaque réponse avec lui ; or le jugement
+ * ne dépend que de ce qu'on lui donne : la même saisie, devant la même piste et ce qui était déjà trouvé, redonne le même verdict,
+ * sans le recalculer. Au-delà de `JUGEMENT.memoire` saisies, la plus ancienne s'oublie.
+ */
+const DEJA_JUGEES = new Map<string, PartiesJugees>();
 
 /**
  * Juge une saisie, partie par partie.
@@ -63,7 +75,23 @@ export function jugerLesParties(
   parties: readonly Partie[],
   cibles: Readonly<Record<Partie, readonly string[]>>,
   dejaTrouve: readonly string[],
-): { readonly trouve: Partie[]; readonly verdict: Verdict } {
+): PartiesJugees {
+  const cle = JSON.stringify([texte, parties, cibles, dejaTrouve]);
+  const connue = DEJA_JUGEES.get(cle) ?? jugerSansMemoire(texte, parties, cibles, dejaTrouve);
+  if (!DEJA_JUGEES.has(cle)) {
+    const plusAncienne = DEJA_JUGEES.size >= JUGEMENT.memoire ? DEJA_JUGEES.keys().next().value : undefined;
+    if (plusAncienne !== undefined) DEJA_JUGEES.delete(plusAncienne);
+    DEJA_JUGEES.set(cle, connue);
+  }
+  return { trouve: [...connue.trouve], verdict: connue.verdict };
+}
+
+function jugerSansMemoire(
+  texte: string,
+  parties: readonly Partie[],
+  cibles: Readonly<Record<Partie, readonly string[]>>,
+  dejaTrouve: readonly string[],
+): PartiesJugees {
   // Une saisie se lit entière, et en morceaux de part et d'autre d'un « feat » : « Angèle feat. Roméo Elvis ».
   const morceaux = [texte, ...texte.split(LIAISON)].filter((m) => m.trim() !== '');
   const meilleur = (p: Partie): Verdict =>

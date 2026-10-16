@@ -84,6 +84,13 @@ export function aLOreille(texte: string): string {
     .join(' ');
 }
 
+/**
+ * Les fautes d'un mot à l'autre, quand elles peuvent compter : au-delà de `auPlus`, le compte exact ne change aucun verdict. Deux
+ * longueurs trop éloignées le disent d'avance (une faute change la longueur d'une lettre au plus), sans rien compter : une saisie
+ * très longue, comparée à une réponse courte, ne coûte plus rien.
+ */
+const fautesAuPlus = (a: string, b: string, auPlus: number): number => (Math.abs(a.length - b.length) > auPlus ? auPlus + 1 : fautes(a, b));
+
 /** Une saisie comparée à ce qu'on attend : juste, presque, ou faux. */
 export function juger(saisie: string, attendu: string): Verdict {
   const s = normaliser(saisie);
@@ -91,12 +98,19 @@ export function juger(saisie: string, attendu: string): Verdict {
   if (s === '' || t === '') return 'faux';
   // Sans les espaces, « lesdemons » et « les demons » sont la même saisie ; et l'on compare aussi les petits mots du début gardés.
   const colle = (x: string): string => x.replace(/ /g, '');
-  const n = Math.min(fautes(s, t), fautes(colle(s), colle(t)), fautes(colle(normaliser(saisie, false)), colle(normaliser(attendu, false))));
   const lettres = t.replace(/ /g, '').length;
+  // Au-delà de ce nombre de fautes, ce n'est ni « Juste » ni « Presque » : inutile de les compter toutes.
+  const auPlus = Math.max(Math.floor(lettres / JUGEMENT.lettresParFaute), lettres * JUGEMENT.presque);
+  const n = Math.min(
+    fautesAuPlus(s, t, auPlus),
+    fautesAuPlus(colle(s), colle(t), auPlus),
+    fautesAuPlus(colle(normaliser(saisie, false)), colle(normaliser(attendu, false)), auPlus),
+  );
   if (n <= Math.floor(lettres / JUGEMENT.lettresParFaute)) return 'juste';
   // À l'oreille : une faute d'orthographe qui se dit pareil passe, avec un peu moins de fautes de frappe en plus.
   const [os, ot] = [colle(aLOreille(s)), colle(aLOreille(t))];
-  if (fautes(os, ot) <= Math.floor(ot.length / JUGEMENT.lettresParFauteALOreille)) return 'juste';
+  const aLOreilleAuPlus = Math.floor(ot.length / JUGEMENT.lettresParFauteALOreille);
+  if (fautesAuPlus(os, ot, aLOreilleAuPlus) <= aLOreilleAuPlus) return 'juste';
   if (n <= lettres * JUGEMENT.presque) return 'presque';
   // Un morceau de la bonne réponse, assez long (« les démons de » pour « Les Démons de minuit »), ou la bonne réponse et autre chose.
   const morceau = colle(s).length >= lettres * JUGEMENT.morceau && t.includes(s);
