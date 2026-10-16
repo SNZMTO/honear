@@ -20,6 +20,7 @@
     "prototype": "tsx src/planche/prototype.ts",
     "vitrine": "tsx src/planche/vitrine.ts",
     "construire": "tsx outils/construire.ts",
+    "exporter-pour-le-mcp": "tsx outils/exporter-pour-le-mcp.ts",
     "site": "node dist/serveur.mjs"
   },
   "dependencies": {
