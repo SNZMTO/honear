@@ -76,10 +76,14 @@ test('le lien d’une liste, collé dans le bac : celui que le MCP donne, et rie
   assert.equal(idListe('liste:../../etc'), undefined);
 });
 
-test('ce qu’on lit d’une liste : son nom, ses pistes par leur identifiant Deezer, leurs surnoms, revérifiés et bornés', () => {
-  assert.deepEqual(lireLaListe(LISTE)?.pistes[2], { deezer: 72717420, surnoms: { artiste: ['Maître Gims'], titre: [] } });
+test('ce qu’on lit d’une liste : son nom, ses pistes par leur identifiant Deezer, leurs surnoms et anecdotes, revérifiés et bornés', () => {
+  assert.deepEqual(lireLaListe(LISTE)?.pistes[2], { deezer: 72717420, surnoms: { artiste: ['Maître Gims'], titre: [] }, anecdote: 'Vrai.' });
+  assert.deepEqual(lireLaListe(LISTE)?.pistes[0], { deezer: 3128096, surnoms: { artiste: [], titre: [] } });
   assert.equal(lireLaListe(LISTE)?.dansLOrdre, true);
-  const abimee = { nom: 'x', pistes: [{ deezer: -1 }, { deezer: '12' }, { deezer: 12, surnoms: { artiste: ['a', 'b', 'c', 'd', 'e'.repeat(41)] } }] };
+  const abimee = {
+    nom: 'x',
+    pistes: [{ deezer: -1 }, { deezer: '12' }, { deezer: 12, surnoms: { artiste: ['a', 'b', 'c', 'd', 'e'.repeat(41)] }, anecdote: 'f'.repeat(161) }],
+  };
   assert.deepEqual(lireLaListe(abimee)?.pistes, [{ deezer: 12, surnoms: { artiste: ['a', 'b', 'c'], titre: [] } }]);
   assert.equal(lireLaListe({ pistes: [] }), undefined);
   assert.equal(lireLaListe({ nom: 'x'.repeat(61), pistes: [] }), undefined);
@@ -95,10 +99,10 @@ test('une liste importée : lue chez le MCP, chaque piste relue chez Deezer, cel
   });
   const pistes = musique.pistes(lienListe(ID)) ?? [];
   assert.deepEqual(
-    pistes.map((p) => [p.deezer, p.reponse.titre, p.surnoms]),
+    pistes.map((p) => [p.deezer, p.reponse.titre, p.surnoms, p.anecdote]),
     [
-      [3128096, 'Yellow', { artiste: [], titre: [] }],
-      [72717420, 'Bella', { artiste: ['Maître Gims'], titre: [] }],
+      [3128096, 'Yellow', { artiste: [], titre: [] }, undefined],
+      [72717420, 'Bella', { artiste: ['Maître Gims'], titre: [] }, 'Vrai.'],
     ],
   );
   assert.equal(musique.gardeSonOrdre(lienListe(ID)), true);

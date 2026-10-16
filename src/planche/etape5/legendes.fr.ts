@@ -39,6 +39,9 @@ export const LEGENDES_DES_ECRANS = {
     lienSpotify: 'spotify.link/kQ2xZbT9vXb',
     /** Ce que toi a tapé quand « Presque. » se colle. */
     presque: 'les demons du minou',
+    /** L'anecdote qu'une liste sur mesure donne à la piste, presque aussi longue que le MCP la permet. */
+    anecdote:
+      'Le tube d’Images, sorti en 1986 : un synthé, un refrain d’une nuit blanche, et une chanson qu’on danse encore à chaque mariage, quarante ans plus tard.',
     codeFaux: 'MXPW',
   },
   /** Les instants arrêtés, sur l'horloge de la séance de l'atelier (en secondes) : le disque qui vole, juste après la rayure, la réponse. */
@@ -70,8 +73,10 @@ export const LEGENDES_DES_ECRANS = {
     feat: 'Tout trouvé, feat compris',
     clavier: 'Clavier ouvert, à six',
     reponse: 'La révélation',
+    anecdote: 'La révélation, et l’anecdote d’une liste sur mesure',
     choixExtrait: '4 choix : toucher une étiquette',
     choixReponse: '4 choix : la bonne reste',
+    choixAnecdote: '4 choix : l’anecdote prend la place de la bonne',
     hitParade: 'Le hit-parade',
     finale: 'La finale',
   },
@@ -85,6 +90,7 @@ export const LEGENDES_DES_ECRANS = {
     patronSorti: 'L’hôte est parti',
     spectateur: 'Arrivé en cours de partie',
     personne: 'Personne n’a trouvé',
+    personneEtAnecdote: 'Personne n’a trouvé, et l’anecdote dessous',
     egalite: 'Égalité en tête : un diamant chacun',
   },
 

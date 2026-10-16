@@ -24,6 +24,11 @@ export interface PisteDuMode {
    * « GIMS ») : la saisie libre les accepte aussi. Ils restent au serveur, comme la réponse jusqu'à la révélation.
    */
   readonly surnoms?: { readonly artiste: readonly string[]; readonly titre: readonly string[] };
+  /**
+   * Une anecdote courte sur la piste, quand sa source en donne une (une liste sur mesure) : elle reste au serveur, et ne part qu'avec
+   * la réponse révélée (voir `publier`).
+   */
+  readonly anecdote?: string;
 }
 
 /** La dernière proposition d'un joueur à une piste, et l'instant où il l'a faite : ce qu'un mode peut départager à la révélation. */
