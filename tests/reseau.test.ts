@@ -22,10 +22,10 @@ import { PLAYLIST_D_ESSAI } from '../src/serveur/sources/essai';
 import { unFauxServeurDEnvoi } from './faux-courrier';
 
 const POCHETTE = pochetteDExemple(TEXTES);
-const PAGE = '<title>Miel</title><div data-telephone></div><script>console.log("le jeu")</script>';
+const PAGE = '<title>Honear</title><div data-telephone></div><script>console.log("le jeu")</script>';
 
 function unSite(origines: readonly string[] = [], deezer?: string, comptes?: ConfigurationDuSite['comptes']) {
-  const dossier = mkdtempSync(join(tmpdir(), 'miel-'));
+  const dossier = mkdtempSync(join(tmpdir(), 'honear-'));
   const page = join(dossier, 'index.html');
   writeFileSync(page, PAGE);
   // Le faux Deezer sert aussi les pages de Spotify.
@@ -151,7 +151,7 @@ test('la porte sert la page à l’adresse du site et à celle d’une room, sou
 });
 
 test('les pages légales se servent à leur adresse, avec l’adresse du site et celle où écrire ; sans leur fichier, rien', async () => {
-  const dossier = mkdtempSync(join(tmpdir(), 'miel-'));
+  const dossier = mkdtempSync(join(tmpdir(), 'honear-'));
   const page = join(dossier, 'index.html');
   writeFileSync(page, PAGE);
   writeFileSync(join(dossier, 'confidentialite.html'), '<p>Le site {site}, le contact {contact}.</p>');
@@ -319,7 +319,7 @@ test('un compte par la ligne : le lien part par le serveur d’envoi, on entre, 
       port: courrier.port,
       utilisateur: 'u',
       motDePasse: 'p',
-      de: 'Miel <bonjour@honear.fr>',
+      de: 'Honear <bonjour@honear.fr>',
       chiffre: false,
       patience: 2000,
     },
@@ -409,7 +409,7 @@ test('un site sans courrier dit que ses comptes sont fermés', async () => {
 });
 
 test('une page d’une autre version que celle du site est priée de se recharger ; celle du site, ou sans version, se branche', async () => {
-  const dossier = mkdtempSync(join(tmpdir(), 'miel-'));
+  const dossier = mkdtempSync(join(tmpdir(), 'honear-'));
   const page = join(dossier, 'index.html');
   writeFileSync(page, `<meta name="${META_DE_LA_VERSION}" content="v2">${PAGE}`);
   const site = lancerLeSite({ port: 0, hote: '127.0.0.1', origines: [], page, deezer: undefined });

@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "description": "Honear, le blind test entre potes : un écran pour la tablée, un téléphone chacun.",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SNZMTO/honear.git"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "scripts": {
     "planche": "tsx src/planche/etape1.ts",
