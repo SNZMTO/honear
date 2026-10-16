@@ -39,8 +39,8 @@ export const RESEAU = {
   /** Quand le serveur s'arrête, ce qu'il laisse à un téléphone pour lui dire au revoir, avant de couper sa ligne. */
   adieu: 1,
   /**
-   * Deezer. Son API admet 50 appels par 5 secondes : on en fait moins, et quand il dit qu'on va trop vite, on attend une fenêtre
-   * et on réessaie, quelques fois. Une réponse qui tarde est abandonnée ; au-delà de tant d'appels qui attendent leur tour, on
+   * Deezer. Son API admet 50 appels par 5 secondes et par adresse : le jeu en fait 30, et le MCP de Honear (mcp.honear.fr), qui
+   * sort par la même machine, 10 ; quand Deezer dit qu'on va trop vite, on attend une fenêtre et on réessaie, quelques fois. Une réponse qui tarde est abandonnée ; au-delà de tant d'appels qui attendent leur tour, on
    * n'en prend plus. Les liens des extraits expirent : les pistes d'une playlist se gardent dix minutes au plus, et jamais
    * jusqu'à moins de deux minutes de l'expiration de leurs liens (de quoi jouer une piste) ; une recherche, une heure. On garde
    * tant de playlists et de recherches au plus. Une recherche demande deux fois plus de playlists que le bac n'en montre (quatre) :
@@ -48,7 +48,7 @@ export const RESEAU = {
    */
   deezer: {
     fenetre: 5,
-    parFenetre: 40,
+    parFenetre: 30,
     essais: 3,
     attente: 8,
     fileAuPlus: 60,

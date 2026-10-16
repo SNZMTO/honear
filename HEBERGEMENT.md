@@ -6,8 +6,13 @@ les domaines), vit dans son propre dépôt, **`vps`** (`~/vps` sur le VPS). Ce d
 
 ```
 téléphone ──HTTPS / WebSocket (wss)──▶ frontal (Caddy, dépôt vps) ──réseau « honear »──▶ honear:8080 (ce dépôt)
-                                                                                           └──▶ /var/lib/honear (les comptes)
+                                                                                           ├──▶ /var/lib/honear (les comptes)
+                                                          réseau interne « honear-listes » ◀──┘
+                                                          honear-mcp:8791 (le MCP, dépôt honear-mcp) : les listes sur mesure
 ```
+
+Le réseau `honear-listes` naît avec le jeu (`internal: true` : on n'en sort pas) ; le MCP de Honear le rejoint, et le jeu y lit
+les listes à l'adresse que donne `LISTES`. Tant que le MCP n'y est pas, une liste collée est introuvable, et rien d'autre ne change.
 
 | Fichier | Rôle |
 | --- | --- |

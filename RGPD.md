@@ -29,6 +29,10 @@ texte d'une recherche du bac ne se garde que si elle a trouvé de la musique ; d
 Deezer est un responsable à part : le téléphone y lit les extraits et les pochettes (il reçoit son adresse IP). Spotify ne voit que
 le serveur, qui lit la page publique d'une playlist.
 
+Une liste sur mesure vient du MCP de Honear (mcp.honear.fr), du même éditeur, sur la même machine, qui a son propre registre
+(`RGPD.md` du dépôt `honear-mcp`). Le jeu la lit sur un réseau interne, sans rien envoyer de qui joue ; comme d'une playlist
+collée, il n'en garde pas le nom.
+
 ## Les sous-traitants, et où sont les données
 
 - **OVH SAS (OVHcloud)**, 2 rue Kellermann, 59100 Roubaix : le serveur (un VPS, à Strasbourg) et l'envoi des e-mails. Ses

@@ -4,7 +4,8 @@
  * redemander ce qu'on vient de savoir. Une playlist Spotify se lit sur sa page publique, et chacun de ses titres se retrouve chez
  * Deezer : c'est son extrait qui s'entend. Les liens des extraits expirent : les pistes d'une playlist ne se gardent que quelques
  * minutes, jamais jusqu'à l'expiration de leurs liens ; elles se relisent en coulisses avant, et au plus tard avant qu'on lance une
- * piste. Le serveur du jeu ne voit que le résultat, déjà là quand il en a besoin (`pistes`).
+ * piste. Une liste sur mesure se lit chez le MCP de Honear, et chacune de ses pistes se relit chez Deezer par son identifiant. Le
+ * serveur du jeu ne voit que le résultat, déjà là quand il en a besoin (`pistes`).
  */
 
 import type { PlaylistTrouvee, RaisonDeRefus } from '../regles/messages';
@@ -33,6 +34,7 @@ import {
   type TitreACherche,
 } from '../serveur/sources/deezer';
 import { lireUnLien } from '../serveur/sources/liens';
+import { adresseDeLaListe, idListe, lienListe, lireLaListe } from '../serveur/sources/liste';
 import { adresseDeLaPage, idSpotify, lienSpotify, lireLaPage } from '../serveur/sources/spotify';
 
 export interface OptionsDeLaMusique {
@@ -48,6 +50,8 @@ export interface OptionsDeLaMusique {
   readonly monde: () => number;
   /** Attendre tant de secondes. */
   readonly attendre: (secondes: number) => Promise<void>;
+  /** L'adresse du MCP qui sert les listes sur mesure, sur le réseau du jeu (« http://honear-mcp:8791 ») ; rien : pas de listes. */
+  readonly listes?: string;
 }
 
 export interface Musique {
@@ -57,8 +61,8 @@ export interface Musique {
    */
   chercher(recherche: string, theme?: CleDeTheme): Promise<PlaylistTrouvee[]>;
   /**
-   * Un lien collé, de Deezer ou de Spotify : la playlist qu'il désigne, lue, avec ce qu'on peut en jouer ; ou pourquoi on ne peut
-   * pas (une playlist Spotify qui ne se laisse pas lire, un lien qui ne mène à rien).
+   * Un lien collé, de Deezer, de Spotify ou d'une liste sur mesure : la playlist qu'il désigne, lue, avec ce qu'on peut en jouer ;
+   * ou pourquoi on ne peut pas (une playlist Spotify qui ne se laisse pas lire, un lien qui ne mène à rien).
    */
   importer(colle: string): Promise<PlaylistTrouvee | Extract<RaisonDeRefus, 'spotify' | 'introuvable'>>;
   /** Lit les pistes d'une playlist si on ne les a pas, ou plus assez fraîches : le serveur du jeu les trouvera dans `pistes`. */
@@ -68,6 +72,8 @@ export interface Musique {
    * connaît les invités ont leur feat.
    */
   pistes(lien: string): readonly PisteDuMode[] | undefined;
+  /** Vrai si une playlist lue se joue dans son ordre à elle : une liste sur mesure dont la difficulté monte. */
+  gardeSonOrdre(lien: string): boolean;
   /**
    * Les pistes qu'une room va jouer, dans l'ordre : on lit en coulisses les invités des prochaines (la liste d'une playlist ne les
    * donne pas), pour qu'elles aient leur feat quand on les lancera.
@@ -81,11 +87,12 @@ interface Gardee<T> {
   readonly jusqua: number;
 }
 
-/** Une playlist lue : son titre, combien on en a regardé de titres, et ce qu'on peut en jouer. */
+/** Une playlist lue : son titre, combien on en a regardé de titres, ce qu'on peut en jouer, et s'il faut garder son ordre. */
 interface PlaylistLue {
   readonly titre: string;
   readonly total: number;
   readonly pistes: readonly PisteDuMode[];
+  readonly dansLOrdre?: boolean;
 }
 
 /** Une piste que Deezer a pour un titre d'ailleurs : son identifiant (de quoi relire son extrait), et la piste. */
@@ -244,14 +251,43 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
     garder(playlists, lien, { valeur: { titre: page.titre, total: essayes, pistes }, jusqua: jusquaQuand(pistes) }, o.maintenant(), D.gardeesAuPlus);
   }
 
+  /**
+   * Une liste sur mesure : ce que le MCP en dit (son nom, ses pistes par leur identifiant Deezer, leurs surnoms), puis chaque piste
+   * relue chez Deezer, toutes à la fois (la limite de débit les étale), pour des extraits frais. Une piste que Deezer ne donne plus
+   * est passée ; une liste que le MCP ne connaît pas, ou plus, n'a rien à jouer. La lire, pour le MCP, c'est la jouer : elle vit
+   * de nouveau un mois.
+   */
+  async function lireListe(lien: string, id: string): Promise<void> {
+    const mcp = o.listes;
+    const decrite = mcp !== undefined ? lireLaListe(await o.lire(adresseDeLaListe(mcp, id)).catch(() => undefined)) : undefined;
+    if (decrite === undefined) {
+      playlists.delete(lien);
+      return;
+    }
+    const lues = await Promise.all(
+      decrite.pistes.map(async ({ deezer, surnoms }) => {
+        const piste = lireUnePiste(await appeler(adresseDeLaPiste(deezer)).catch(() => undefined));
+        return piste !== undefined ? [{ ...piste, surnoms }] : [];
+      }),
+    );
+    const pistes = lues.flat();
+    const lue: PlaylistLue = { titre: decrite.titre, total: decrite.pistes.length, pistes, dansLOrdre: decrite.dansLOrdre };
+    garder(playlists, lien, { valeur: lue, jusqua: jusquaQuand(pistes) }, o.maintenant(), D.gardeesAuPlus);
+  }
+
   /** Lit une playlist si on ne l'a pas, ou si elle n'est plus fraîche (dans `avance` secondes, pour une lecture en coulisses). */
   function preparer(lien: string, avance = 0): Promise<void> {
     const deDeezer = idDeezer(lien);
     const deSpotify = idSpotify(lien);
-    if ((deDeezer === undefined && deSpotify === undefined) || frais(playlists.get(lien), avance)) return Promise.resolve();
+    const deListe = idListe(lien);
+    if ((deDeezer === undefined && deSpotify === undefined && deListe === undefined) || frais(playlists.get(lien), avance)) {
+      return Promise.resolve();
+    }
     const deja = enCours.get(lien);
     if (deja !== undefined) return deja;
-    const lecture = (deDeezer !== undefined ? lireDeezer(lien, deDeezer) : lireSpotify(lien, deSpotify ?? '')).finally(() => enCours.delete(lien));
+    const lire = (): Promise<void> =>
+      deDeezer !== undefined ? lireDeezer(lien, deDeezer) : deListe !== undefined ? lireListe(lien, deListe) : lireSpotify(lien, deSpotify ?? '');
+    const lecture = lire().finally(() => enCours.delete(lien));
     enCours.set(lien, lecture);
     return lecture;
   }
@@ -287,8 +323,8 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
           return 'introuvable';
         }
       }
-      if (lu.genre !== 'deezer' && lu.genre !== 'spotify') return 'introuvable';
-      const lien = lu.genre === 'deezer' ? lienDeezer(lu.id) : lienSpotify(lu.id);
+      if (lu.genre !== 'deezer' && lu.genre !== 'spotify' && lu.genre !== 'liste') return 'introuvable';
+      const lien = lu.genre === 'deezer' ? lienDeezer(lu.id) : lu.genre === 'liste' ? lienListe(lu.id) : lienSpotify(lu.id);
       // Une page de Spotify qu'on n'a pas pu lire, ou qui ne dit rien : la playlist ne se laisse pas lire.
       const illisible = lu.genre === 'spotify' ? 'spotify' : 'introuvable';
       try {
@@ -307,6 +343,7 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
       if (gardee !== undefined && !frais(gardee, D.avance)) void preparer(lien, D.avance).catch(() => undefined);
       return gardee?.valeur.pistes.map(avecLeFeat);
     },
+    gardeSonOrdre: (lien) => playlists.get(lien)?.valeur.dansLOrdre === true,
     preciser(pistes) {
       // Les premières qu'on ne connaît pas encore (la room joue dans l'ordre, celles d'avant sont déjà lues), sauf celles qu'on lit déjà.
       const aLire = pistes

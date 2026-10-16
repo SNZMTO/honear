@@ -354,7 +354,7 @@ export const TEXTES: Textes = {
     sansContact: 'l’adresse que l’éditeur a donnée à l’hébergeur',
     confidentialite: {
       titre: 'Confidentialité',
-      date: 'Mise à jour le 12 octobre 2026',
+      date: 'Mise à jour le 16 octobre 2026',
       parties: [
         {
           titre: 'En deux mots',
@@ -406,6 +406,7 @@ export const TEXTES: Textes = {
           paragraphes: [
             'Les extraits de 30 secondes et les pochettes, ton téléphone les lit directement chez Deezer (sur dzcdn.net). Deezer reçoit donc l’adresse IP de ton téléphone, comme pour n’importe quelle page web, et la traite selon sa propre politique de confidentialité. Le site ne lui transmet rien d’autre te concernant.',
             'Une playlist Spotify que tu colles est lue par le serveur, sur sa page publique : Spotify n’apprend rien de toi.',
+            'Une liste sur mesure, faite avec un assistant (Claude, ChatGPT…) par le MCP de Honear (mcp.honear.fr), est lue par le serveur du jeu chez ce MCP, sur la même machine : rien de toi ne lui est envoyé, et le jeu n’en garde pas le nom.',
           ],
         },
         {

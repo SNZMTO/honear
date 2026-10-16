@@ -1,4 +1,4 @@
-# Les tests de Honear, à chaque envoi sur GitHub : les types, les 533 tests, puis les contrôles du rendu.
+# Les tests de Honear, à chaque envoi sur GitHub : les types, les 539 tests, puis les contrôles du rendu.
 # Les actions sont épinglées à un commit, pas à une étiquette qui pourrait bouger.
 name: tests
 
