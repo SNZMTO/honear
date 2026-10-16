@@ -261,7 +261,6 @@ export const TEXTES: Textes = {
   },
 
   playlists: {
-    pretes: 'Prêtes à jouer',
     chercher: 'Chercher',
     laMienne: 'Mes playlists',
     recherche: 'années 90',

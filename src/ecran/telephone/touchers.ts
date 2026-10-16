@@ -11,7 +11,7 @@ import { PLATINE } from '../../ressources/platine';
 import { TABLEE } from '../../ressources/tablee';
 import { DIRECTIONS } from '../../scene/platine/interrupteur';
 import type { Textes } from '../../ressources/textes';
-import { CRANS_DU_BAC } from '../../scene/telephone/ecrans';
+import { TOUCHES_DU_BAC } from '../../scene/telephone/ecrans';
 import { interprete } from '../../scene/telephone/pieces';
 import { CLES_DES_CHOIX } from '../../scene/telephone/pochette';
 import type { Toucher } from './memoire';
@@ -69,7 +69,7 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
               : `pochette-suivant-${rang - premiers + 1}`;
     if (nom === sienne) return de({ genre: 'maPochette' }, P.maPochette);
   }
-  for (const cran of CRANS_DU_BAC) if (nom === `touche-bac-${cran}`) return de({ genre: 'cranDuBac', cran }, textes.playlists[cran]);
+  for (const cran of TOUCHES_DU_BAC) if (nom === `touche-bac-${cran}`) return de({ genre: 'cranDuBac', cran }, textes.playlists[cran]);
   // Dans le bac, quand le serveur a où chercher : un thème se touche, la recherche et le lien se tapent, un résultat se prend.
   if (ecran.genre === 'bac' && ecran.chercher) {
     const { cran } = ecran.bac;
@@ -78,7 +78,8 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     const theme = cle !== undefined ? textes.bac.themes[cle] : undefined;
     // La pochette personnalisée ouvre « Mes playlists » : celles qu'on a importées, et le lien à coller.
     if (cle === 'mesPlaylists' && theme !== undefined) return de({ genre: 'cranDuBac', cran: 'laMienne' }, theme);
-    if (cran === 'pretes' && cle !== undefined && theme !== undefined) return de({ genre: 'theme', cle, recherche: theme }, theme);
+    // Un thème se touche d'où qu'on soit : depuis « Mes playlists » ou la recherche, il y ramène.
+    if (cle !== undefined && theme !== undefined) return de({ genre: 'theme', cle, recherche: theme }, theme);
     // Les playlists du genre : un disque, ou son papier ; et « Au hasard ».
     const playlist = rangDans(nom, 'disque-playlist-') ?? rangDans(nom, 'etiquette-playlist-');
     const proposee = playlist !== undefined ? ecran.bac.proposees?.[playlist] : undefined;

@@ -1064,6 +1064,10 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 
   La pire saisie coûte quelques millisecondes. Deux cas de `tests/cas-du-jugement.ts` le tiennent, et le MCP, qui porte ce
   jugement, reçoit les réglages par l'export.
+- **Le bac, sans crans** (le 16) : « Prêtes à jouer » et « Mes playlists » n'ont plus de touche. Le bac est en haut, on y touche
+  un thème ou « Mes playlists » (sa pochette personnalisée) ; dessous, une seule touche, « Chercher » (`TOUCHES_DU_BAC`). Un thème
+  touché ramène aux thèmes d'où qu'on vienne : depuis « Mes playlists », on restait coincé, les intercalaires ne répondaient plus
+  avant qu'on retouche « Prêtes à jouer ».
 
 ## Ce qui attend les étapes suivantes
 

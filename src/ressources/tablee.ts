@@ -168,9 +168,9 @@ export const TABLEE = {
     },
     /** Le QR code imprimé sur la pochette kraft, dans le tiers qu'on en voit : son centre depuis celui de la pochette, et son côté. */
     qr: { en: [-100, 12], cote: 66 },
-    /** Le bac, chez l'hôte : les trois façons de choisir, en crans au-dessus du bac, et ce qui se pose dessous. */
+    /** Le bac, chez l'hôte : le bac en haut, « Chercher » sous la caisse, et ce qui se pose dessous. */
     bac: {
-      /** Les crans, taillés à leur libellé, côte à côte depuis la colonne, à cet écart l'un de l'autre. */
+      /** Les crans qui ont une touche (« Chercher »), taillés à leur libellé, centrés, à cet écart l'un de l'autre. */
       crans: { y: 470, ecart: 10 },
       saisie: { en: [195, 562], largeur: 300 },
       resultats: { y: 662, x: [66, 152, 238, 324], rayon: 36 },

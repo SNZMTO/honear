@@ -68,6 +68,15 @@ test('chaque état du bac se dessine, avec les signes que les polices du site on
   }
 });
 
+test('sous le bac, une seule touche : « Chercher » ; les thèmes et « Mes playlists » se touchent dans le bac lui-même', () => {
+  for (const bac of ETATS) {
+    const crans = vueDuBac(A, bac)
+      .objets.map((o) => o.nom)
+      .filter((nom) => nom.startsWith('touche-bac-'));
+    assert.deepEqual(crans, ['touche-bac-chercher'], JSON.stringify(bac));
+  }
+});
+
 test('un titre venu d’ailleurs, avec des signes que les polices n’ont pas, se dessine quand même dans la page du jeu', () => {
   const indulgent = encrier(CARACTERES, lireUnePolice, TEXTES.langue, true);
   const etrange = { titre: 'Été ☀️ 2026 · 夏の歌 · Ωmega', total: 30 };
