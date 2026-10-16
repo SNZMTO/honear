@@ -47,7 +47,7 @@ export const LEGENDES_DE_LA_VITRINE = {
       fichier: 'pochette-code',
       pochette: {
         artiste: 'Tests au vert',
-        album: '541 tests, TypeScript strict',
+        album: 'Plus de 500 tests, TypeScript strict',
         fond: 'olive',
         motif: 'damier',
         avatar: { tete: 'carree', dessus: 'casquette', peau: 'kraft', cheveux: 'expresso', tenue: 'rougeTomate' },
@@ -67,7 +67,7 @@ export const LEGENDES_DE_LA_VITRINE = {
   pastilles: {
     fichier: 'pastilles',
     titre: 'Les chiffres du projet',
-    mots: ['541 tests', 'TS strict', 'Zéro any', '199 images', 'RGPD'],
+    mots: ['500+ tests', 'TS strict', 'Zéro any', 'Rendu contrôlé', 'RGPD'],
     largeur: 980,
     hauteur: 170,
   },

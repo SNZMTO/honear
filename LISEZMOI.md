@@ -47,8 +47,8 @@ npm run prototype   # étape 7 : écrit sortie/prototype.html (la page à publie
 npm run construire  # le jeu en ligne : écrit dist/index.html (la page) et dist/serveur.mjs (le serveur, à lancer avec Node 22 ou plus récent)
 npm run site        # lance dist/serveur.mjs sur http://127.0.0.1:8080 ; HOTE=0.0.0.0 pour y brancher les téléphones du réseau local
 docker build -t honear .   # l'image du jeu, celle que deploiement/mettre-en-ligne.sh met en ligne
-npm run controle    # passe les contrôles du rendu sur les 199 images, et dit ce qu'ils ont mesuré
-npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance les 541 tests
+npm run controle    # passe les contrôles du rendu sur toutes les images, et dit ce qu'ils ont mesuré
+npm test            # vérifie les types (ceux du projet, puis ceux des scripts des pages), puis lance tous les tests
 npm run format      # Prettier
 ```
 
@@ -580,7 +580,7 @@ Ces règles valent pour les 25 images : celles de la planche, et la piste à ses
 | Recharger la page redonne le même meuble | `lowpoly/aleatoire.ts` | `tests/aleatoire.test.ts`, `tests/planche.test.ts`, `tests/atelier.test.ts` |
 | L'avatar tient en 25 à 60 polygones ; quatre expressions ; rien de ce qu'on porte sur la tête ne descend sur les sourcils | `ressources/avatar.ts` | `tests/planche.test.ts`, `tests/fais-ta-pochette.test.ts` |
 | Les têtes changent d'elles-mêmes, selon ce qui arrive dans la partie ; le journal se rejoue pareil sur tous les écrans | `regles/partie.ts` | `tests/partie.test.ts`, `tests/ecrans.test.ts` |
-| Des sons courts et bas, sans fichier ; la vibration ne double que ce qui compte ; rien n'est tiré au sort | `ressources/sons.ts`, `ecran/son.ts` | `tests/sons.test.ts`, `tests/sources.test.ts` |
+| Des sons courts et bas, sans fichier ; la vibration ne double que ce qui compte ; rien n'est tiré au sort | `ressources/ecran.ts` (`BRUITS`), `ecran/telephone/son.ts` | `tests/son.test.ts`, `tests/sources.test.ts` |
 
 Ce que les contrôles ne voient pas : deux formes de calques différents qui se touchent, l'allure générale, et le mouvement lui-même.
 Pour cela, il faut regarder : `outils/voir.py` pour une image, `outils/pellicule.py` pour un geste image par image,
@@ -623,7 +623,7 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Un objet qui bouge** : un module dans `scene/` qui sait se dessiner dans une pose et dire ce qui se règle chez lui ; ses mesures dans `ressources/`.
   Le meuble ne sait rien de ses objets, sinon leur ordre ; le montage ne sait rien d'eux, sinon leurs rôles.
 - **Une forme de tête, un dessus de tête** : une entrée dans `ressources/avatar.ts` (un dessus est fait de morceaux : calotte, bord, boule, casque), son nom dans les textes.
-- **Un son** : une entrée dans `ressources/sons.ts`, son nom dans les légendes de l'étape 5.
+- **Un son** : une entrée dans `BRUITS` (`ressources/ecran.ts`), son nom dans les légendes de l'étape 5.
 - **Un motif de pochette** : une entrée dans `scene/pochette/motifs.ts`, son nom dans `ressources/pochettes.ts`.
 - **Un cran sur un bouton, une commande de plus** : une ligne dans `ressources/platine.ts` ; son inscription dans les textes.
 - **Une langue** : un fichier `ressources/textes.<langue>.ts` de la même forme que `textes.fr.ts`, avec ses règles de typographie.
@@ -991,8 +991,8 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   - *Les touches* : aucune n'en chevauche une autre, sur aucun écran (un test les passe toutes, avec celles du coin) ; sa pochette
     refaite, « Au hasard » et « Retour » se chevauchaient : elles se posent l'une sous l'autre.
 - **Les bugs, essayés dans de vrais navigateurs** (le 15) : un banc Playwright (Chromium et WebKit, dans un conteneur, hors du dépôt)
-  joue des parties entières contre `dist/`, un PC, un iPhone et un Android à la fois. Ce qui était en ligne (7fba143) y lève, sur
-  iPhone, l'erreur de chaque image (le volume) que af1922c corrige : touches du coin sans zone, boutons figés, pas de pied.
+  joue des parties entières contre `dist/`, un PC, un iPhone et un Android à la fois. La version alors en ligne y lève, sur
+  iPhone, l'erreur de chaque image (le volume), que la correction suivante règle : touches du coin sans zone, boutons figés, pas de pied.
   - *Les feats* : ni la liste d'une playlist Deezer ni, souvent, le titre ne les donnent (« Tout oublier » n'a pas Roméo Elvis) :
     la musique lit la fiche (`/track/{id}`) des trois prochaines pistes d'une room (`bientot`, `preciser`, `lireLesInvites`).
     Un invité suffit pour le point du feat ; ce qu'on tape se lit aussi mot à mot (« kofs jul ») ; en First one, un invité vaut
