@@ -29,7 +29,8 @@
 1. **On pose un disque.** L'hôte ouvre [honear.fr](https://honear.fr) sur un ordinateur ou une télé.
 2. **On rejoint le salon.** Chacun entre le code, ou scanne le QR code, avec son téléphone.
 3. **On se fait une pochette.** Un avatar, un motif, un nom d'artiste : c'est elle qui vous représente sur le meuble.
-4. **On choisit un bac.** Des thèmes prêts, ou n'importe quelle playlist Deezer ou Spotify publique.
+4. **On choisit un bac.** Des thèmes prêts, n'importe quelle playlist Deezer publique, ou une liste faite sur mesure par un
+   assistant, avec [le MCP de Honear](https://github.com/SNZMTO/honear-mcp).
 5. **On devine.** Trente secondes par extrait, en saisie libre ou en quatre choix. Le hit-parade suit chaque piste, la finale
    clôt la partie.
 

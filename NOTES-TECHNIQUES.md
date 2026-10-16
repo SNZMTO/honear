@@ -29,7 +29,7 @@ avec la table `LECTURES`.
 | `ecran/` | La page d'un navigateur : le montage d'une scène (toiles et SVG), la boucle d'images, l'horloge, le vibreur. Seule à toucher au document. | `ecran`, `scene`, `lowpoly`, `regles`, `ressources`, `lexique` |
 | `planche/` | Les documents de travail, étape par étape : pages, images arrêtées, planche d'animations. | tout |
 | `serveur/` | Les rooms en mémoire, leur horloge, les connexions ; ce qu'on lit des sources de musique (`sources/`). Ni écran, ni réseau : on lui donne l'heure, et les pistes déjà lues. | `serveur`, `regles`, `ressources` |
-| `reseau/` | Le site en ligne : la page, les WebSockets, la minuterie, les appels à Deezer et à Spotify. Seule, avec les planches, à toucher au réseau. | `reseau`, `serveur`, `regles`, `ressources` ; Node, `ws` |
+| `reseau/` | Le site en ligne : la page, les WebSockets, la minuterie, les appels à Deezer. Seule, avec les planches, à toucher au réseau. | `reseau`, `serveur`, `regles`, `ressources` ; Node, `ws` |
 
 Les autres règles vérifiées par les tests : un module dit son rôle avant son premier export ; pas de module fourre-tout ; pas de
 `Math.random` (le hasard est semé) ; un nom de calque commence par un mot du lexique (`lexique.ts`) ; dans `mouvement/`, `scene/piste/`,
@@ -69,11 +69,11 @@ src/
     telephone/               le client : memoire.ts (ce que le serveur a dit, ce qu'on fait), route.ts (l'écran), touchers.ts, client.ts,
                              heure.ts, websocket.ts, son.ts (le haut-parleur)
   reseau/                    le site en ligne : index.ts (entrée, minuterie), porte.ts (HTTP), ligne.ts (WebSocket), horloge.ts,
-                             musique.ts (Deezer et Spotify : appels, limites de débit, ce qu'on garde)
+                             musique.ts (Deezer : appels, limite de débit, ce qu'on garde)
   serveur/
     room.ts                  une room : son journal, le déroulé de sa piste, sa playlist, ceux qui y sont branchés ; elle décide de tout
     serveur.ts               les rooms par leur code, les connexions des téléphones, une seule horloge
-    sources/                 essai.ts, deezer.ts, spotify.ts, liens.ts : ce qu'on demande aux sources, et ce qu'on lit de leurs réponses
+    sources/                 essai.ts, deezer.ts, liste.ts, liens.ts : ce qu'on demande aux sources, et ce qu'on lit de leurs réponses
   planche/                   etape1.ts … etape7.ts et leurs dossiers ; animations/ : les animations jouées en direct ;
                              prototype/ : la partie scénarisée (scenario.ts), les cinq potes simulés (potes.ts), la page (demarrage.ts)
 tests/                       un fichier par sujet ; modes-d-exemple.ts : les trois modes de la fin de ces notes
@@ -123,7 +123,7 @@ et publie un événement à la fois. Tout est dans `regles/messages.ts`, typé, 
 | `rejoindre` | `code`, `pochette`, et `jeton` s'il revient | un invité arrive par le code ou le QR code ; un joueur revient (page rechargée, réseau retrouvé) et retrouve sa place |
 | `quelleHeure` | `depart` (l'heure du téléphone) | en se branchant, puis toutes les 10 s : l'horloge du téléphone se règle sur celle du serveur |
 | `chercher` | `recherche` | dans le bac, avant la room : un thème touché, une recherche tapée |
-| `importer` | `lien` | dans le bac : le lien d'une playlist Deezer ou Spotify, collé |
+| `importer` | `lien` | dans le bac : le lien d'une playlist Deezer ou d'une liste sur mesure, collé (un lien Spotify est refusé) |
 | `demanderUnLien` | `email` | l'écran du compte : un lien de connexion, à cette adresse |
 | `ouvrirLeCompte` | `lien` (le secret du lien) | « Entrer », sur la page que le lien a ouverte |
 | `reprendreLeCompte` | `session` | en se branchant, si le téléphone est entré dans un compte |
@@ -148,7 +148,7 @@ et publie un événement à la fois. Tout est dans `regles/messages.ts`, typé, 
 | `lienEnvoye` | `email` | le lien de connexion est parti |
 | `compte` | `compte` (`email`, `pochette`, `parties`, `victoires`), et `session` à l'entrée seulement | dans son compte |
 | `horsCompte` | — | sorti, effacé, ou sa session a expiré |
-| `refus` | `codeInconnu`, `complet`, `tropCourt`, `spotify` (une playlist Spotify privée), `introuvable` ; pour les comptes, `adresse`, `tropDeLiens`, `lienPerime`, `comptesFermes` | une action refusée, dite dans la voix du site |
+| `refus` | `codeInconnu`, `complet`, `tropCourt`, `spotify` (un lien Spotify, que le jeu ne lit pas), `introuvable` ; pour les comptes, `adresse`, `tropDeLiens`, `lienPerime`, `comptesFermes` | une action refusée, dite dans la voix du site |
 
 **Les événements du journal (`EvenementDePartie`)** : `ouverture` (mode, nombre de pistes, qui joue le son), `arrivee` (avec la pochette), `deconnexion`,
 `retour`, `depart`, `extrait` (la piste), `reponse` (la proposition), `jugee` (ce qu'elle trouve, son verdict, ses points, et si le joueur
@@ -231,14 +231,15 @@ durée de l'extrait.
 ## Les sources de musique
 
 Deezer donne les playlists et les extraits : son API publique (sans clé) rend des extraits MP3 de 30 secondes, dont les liens sont
-signés et expirent. Spotify ne donne plus ni extraits, ni le contenu des playlists des autres (depuis février 2026) : une playlist
-Spotify se lit sur sa page publique, et chacun de ses titres se retrouve chez Deezer, par artiste et par nom. Une liste sur mesure,
-celle qu'un assistant (Claude, ChatGPT…) a faite avec le MCP de Honear (mcp.honear.fr, dépôt `honear-mcp`), se lit chez le MCP, et
-chacune de ses pistes se relit chez Deezer par son identifiant. Le jeu garde une playlist sous un lien à lui : `deezer:1306931615`,
-`spotify:37i9dQZF1DXcBWIGoYBM5M`, `liste:iTRYNDDqk3g0zBoA` ; la playlist d'essai est `essai:…`.
+signés et expirent. Spotify, le jeu n'en lit rien : son API ne donne plus le contenu des playlists des autres (depuis février 2026),
+ses règles pour les développeurs interdisent d'en faire un jeu, et ses conditions, qu'un programme lise ses pages. Un lien Spotify
+collé est refusé d'office (`spotify`), sans requête. Une liste sur mesure, celle qu'un assistant (Claude, par exemple) a faite avec
+le MCP de Honear (mcp.honear.fr, dépôt `honear-mcp`), se lit chez le MCP, et chacune de ses pistes se relit chez Deezer par son
+identifiant. Le jeu garde une playlist sous un lien à lui : `deezer:1306931615`, `liste:iTRYNDDqk3g0zBoA` ; la playlist d'essai est
+`essai:…`.
 
-- `serveur/sources/deezer.ts`, `spotify.ts`, `liste.ts` : purs. Les adresses à demander, et la lecture de ce qui revient
-  (`lireDesPistes`, `laBonnePiste`, `lireLaPage`, `lireLaListe`) ; jamais d'appel. `liens.ts` dit ce que désigne un lien collé.
+- `serveur/sources/deezer.ts`, `liste.ts` : purs. Les adresses à demander, et la lecture de ce qui revient (`lireDesPistes`,
+  `lireLaListe`) ; jamais d'appel. `liens.ts` dit ce que désigne un lien collé, et reconnaît un lien Spotify pour le refuser.
 - Une liste sur mesure se colle dans le bac par son lien (`https://honear.fr/?liste=<id>`, que le MCP donne), ou s'ouvre par
   lui : le bac de l'hôte s'ouvre alors dessus, comme collé (`listeOuverte`, dans la mémoire du téléphone). Le MCP la sert sur
   un réseau interne que seul le jeu rejoint (`honear-listes`, l'adresse est dans `LISTES` : `http://honear-mcp:8791/listes/<id>`) ;

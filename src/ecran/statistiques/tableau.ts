@@ -474,7 +474,7 @@ function parties(l: Lecture): HTMLElement[] {
   // La musique.
   const Mu = T.musique;
   const MC = Mu.colonnes;
-  const imports: [string, number][] = (['deezer', 'spotify', 'autre', 'ok', 'prive', 'introuvable'] as const).map((cle) => [
+  const imports: [string, number][] = (['deezer', 'spotify', 'autre', 'ok', 'introuvable'] as const).map((cle) => [
     Mu.imports[cle] ?? cle,
     s(`bac.import.${cle}`),
   ]);

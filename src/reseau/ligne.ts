@@ -58,7 +58,7 @@ export interface OptionsDeLaLigne {
 
 /** D'où vient un lien de playlist collé dans le bac. */
 const sourceDuLien = (lien: string): 'deezer' | 'spotify' | 'autre' =>
-  /deezer/i.test(lien) ? 'deezer' : /spotify/i.test(lien) ? 'spotify' : 'autre';
+  /deezer/i.test(lien) ? 'deezer' : /spotify|spoti\.fi/i.test(lien) ? 'spotify' : 'autre';
 
 /** Ce que l'hôte demande dans le bac. */
 type Demande = Extract<Action, { readonly genre: 'chercher' | 'importer' }>;
@@ -229,8 +229,9 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
         // Deezer ne répond pas : la playlist est introuvable, pour cette fois.
       }
       // D'une playlist collée, on ne compte que ce qu'elle a donné, pas son nom : c'est souvent celle de quelqu'un.
-      if (typeof lue === 'string') o.statistiques?.compter(lue === 'spotify' ? 'bac.import.prive' : 'bac.import.introuvable');
-      else o.statistiques?.compter('bac.import.ok');
+      // Un lien Spotify, refusé d'office, est déjà compté parmi les liens Spotify.
+      if (lue === 'introuvable') o.statistiques?.compter('bac.import.introuvable');
+      else if (typeof lue !== 'string') o.statistiques?.compter('bac.import.ok');
       // L'hôte a collé un autre lien entre-temps : c'est à celui-là qu'on répondra, le téléphone n'attend plus que lui.
       if (ensuite?.genre === 'importer') return;
       ecrire(

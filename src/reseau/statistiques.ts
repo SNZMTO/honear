@@ -53,7 +53,6 @@ export type CleDuReseau =
   | 'bac.import.autre'
   | 'bac.import.ok'
   | 'bac.import.tropCourt'
-  | 'bac.import.prive'
   | 'bac.import.introuvable';
 
 export interface OptionsDesStatistiques {

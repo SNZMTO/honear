@@ -29,8 +29,7 @@ Pour qui découvre le projet sur GitHub : `README.md`, la vitrine, ses captures 
 contrôles du rendu tournent aussi sur GitHub à chaque envoi sur `main` (`.github/workflows/tests.yml`).
 
 Et le jeu en ligne : le serveur sur un VPS (`HEBERGEMENT.md`), les téléphones branchés par WebSocket, le son, les extraits de
-30 secondes de Deezer, pour une playlist Deezer comme pour une playlist Spotify publique, et les comptes, facultatifs, ouverts par un
-lien envoyé par e-mail.
+30 secondes de Deezer, et les comptes, facultatifs, ouverts par un lien envoyé par e-mail.
 
 ## Lancer
 
@@ -499,7 +498,7 @@ src/
                                 pochettes posées par-dessus la scène (`images.ts`), et le diagnostic envoyé au journal (`diagnostic.ts`).
 
   reseau/                       Le site en ligne : `index.ts` (l'entrée, la minuterie), `porte.ts` (HTTP), `ligne.ts` (WebSocket), `horloge.ts` ;
-                                `musique.ts` (les appels à Deezer et les pages de Spotify, sous leur limite de débit, et ce qu'on en garde) ;
+                                `musique.ts` (les appels à Deezer, sous sa limite de débit, et ce qu'on en garde) ;
                                 `comptes.ts` (les comptes, leurs liens de connexion, leurs sessions, leur fichier), `mots-de-passe.ts` (leur
                                 empreinte scrypt) et `courrier.ts` (l'envoi des liens, par le serveur SMTP d'une boîte e-mail) ;
                                 `statistiques.ts` (ce qui se passe, compté, jamais qui).
@@ -507,8 +506,8 @@ src/
     room.ts                     Une room : son journal, le déroulé de sa piste, sa playlist, ceux qui y sont branchés ; elle décide de tout.
     serveur.ts                  Les rooms par leur code, les connexions des téléphones et leurs jetons, une seule horloge, l'expiration.
     choix.ts sources/essai.ts   Les leurres du 4 choix, pris dans la playlist ; la source d'essai (quarante tubes, sans le son).
-    sources/deezer.ts spotify.ts liens.ts   Ce qu'on demande à Deezer et ce qu'on lit de ses réponses ; ce que dit la page publique d'une
-                                playlist Spotify ; ce que désigne un lien collé. Sans réseau : c'est `reseau/musique.ts` qui appelle.
+    sources/deezer.ts liens.ts  Ce qu'on demande à Deezer et ce qu'on lit de ses réponses ; ce que désigne un lien collé (un lien Spotify
+                                y est reconnu, pour être refusé). Sans réseau : c'est `reseau/musique.ts` qui appelle.
 
   planche/
     scenes.ts eclate.ts legendes.fr.ts image.ts etape1.ts     La planche de rendu.
@@ -791,9 +790,9 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 - **Une room s'en va** trente minutes après le départ du dernier, ou au bout de six heures.
 - **Le son vient de Deezer** (son API publique, sans clé) : le serveur cherche les playlists, lit leurs pistes et leurs extraits de 30 s,
   sous la limite de débit de Deezer, et relit les pistes avant que leurs liens n'expirent. Les leurres du 4 choix se tirent dans la playlist.
-- **Une playlist Spotify publique se joue aussi** : son lien collé dans « La mienne », le serveur lit sa page publique (l'API de Spotify ne
-  donne plus le contenu des playlists des autres), retrouve chez Deezer ses premiers titres, par artiste et par nom, et joue leurs
-  extraits. Un titre que Deezer n'a pas est sauté ; une playlist privée est refusée, avec ce qu'il faut faire.
+- **Spotify ne se lit plus** (16/10/2026) : le serveur lisait la page publique d'une playlist Spotify et retrouvait ses titres chez
+  Deezer, mais les conditions de Spotify interdisent qu'un programme lise ses pages, et ses règles pour les développeurs, qu'on en
+  fasse un jeu. Un lien Spotify collé est refusé d'office, sans requête : le bac propose un lien Deezer, ou une liste sur mesure.
 - **Chaque téléphone joue l'extrait lui-même**, à l'heure du serveur (`ecran/telephone/son.ts`) : il le précharge pendant le décompte,
   ne se dit prêt qu'une fois chargé, le démarre à l'heure dite, le recale s'il dérive de plus de 0,15 s, et le laisse se taire quand la
   réponse s'en va. Le premier toucher débloque le son (un instant de silence) ; rechargé, le téléphone garde son ampli allumé et le son
@@ -1097,7 +1096,7 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   un processeur ; la mémoire des toiles figées, que Chromium ne rend qu'au ramasse-miettes et que Safari plafonne ; et l'enfoncement
   d'une touche sous le doigt, que le navigateur tient lui-même (`:active`) le temps du toucher : s'il le montre trop tard ou trop peu,
   c'est le script qui devra poser l'enfoncement au toucher ; et le flanc du contrepoids, dont les tranches font des dents de 0,75 px
-  (les resserrer porterait le bras au-delà de ses 150 polygones). Et surtout le son : Deezer et Spotify n'ont été joués que par de faux
+  (les resserrer porterait le bras au-delà de ses 150 polygones). Et surtout le son : Deezer n'a été joué que par de faux
   serveurs, et Chromium seul a joué les extraits ; l'iPhone ne charge un extrait qu'une fois qu'on l'a fait jouer (il l'est, muet, un instant).
 - **Un navigateur qui cesse de donner des toiles en route** : la scène garde ce qu'elle montrait et le dit une fois à la console,
   mais la façade garde enfoncé le cran ou le poussoir qu'on vient de presser (« Verso B », « Léger »), et il faut en presser un autre

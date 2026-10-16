@@ -26,8 +26,8 @@ consentement à demander (article 82 de la loi Informatique et Libertés). Ni co
 dans la page. Les statistiques respectent Global Privacy Control et Do Not Track : une page comptée, ni empreinte ni appareil. Le
 texte d'une recherche du bac ne se garde que si elle a trouvé de la musique ; d'une playlist collée, on ne garde pas le nom.
 
-Deezer est un responsable à part : le téléphone y lit les extraits et les pochettes (il reçoit son adresse IP). Spotify ne voit que
-le serveur, qui lit la page publique d'une playlist.
+Deezer est un responsable à part : le téléphone y lit les extraits et les pochettes (il reçoit son adresse IP). Spotify ne reçoit
+rien : le jeu ne lit pas ses playlists.
 
 Une liste sur mesure vient du MCP de Honear (mcp.honear.fr), du même éditeur, sur la même machine, qui a son propre registre
 (`RGPD.md` du dépôt `honear-mcp`). Le jeu la lit sur un réseau interne, sans rien envoyer de qui joue ; comme d'une playlist

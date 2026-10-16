@@ -7,7 +7,7 @@ le frontal Caddy vivent dans le dépôt `vps` (`~/vps`), qui a ses propres règl
 ## Où lire
 
 - `LISEZMOI.md` : tout le projet, étape par étape, l'arborescence, ce qui a été tranché, ce qui attend.
-- `NOTES-TECHNIQUES.md` : le serveur, la ligne (WebSocket), Deezer et Spotify, les comptes et le courrier.
+- `NOTES-TECHNIQUES.md` : le serveur, la ligne (WebSocket), Deezer, les comptes et le courrier.
 - `HEBERGEMENT.md` : la mise en ligne du jeu, son conteneur, le courrier. La machine et le frontal : `~/vps/LISEZMOI.md`.
 - `RGPD.md` : le registre des traitements, ce qui protège les données, les droits des joueurs, que faire si quelque chose fuit.
 
