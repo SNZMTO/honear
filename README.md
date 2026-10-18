@@ -161,9 +161,10 @@ recommandations) et j'essaie sur de vrais téléphones.
   journal du serveur, et deux passes d'« audit mobile » ont suivi.
 - **Relire.** Les commits gardent la trace de ce que la relecture a corrigé.
 - **L'historique.** Ce dépôt commence le 12 octobre 2026. Son premier commit importe d'un bloc le projet, développé jusque-là
-  ailleurs sous son ancien nom, Miel d'oreilles ; il est signé Claude parce qu'il est parti d'une session Claude Code (`git blame`
-  lui attribue donc l'essentiel des lignes). Le chemin d'avant se lit dans les planches et dans les « Ce qui a été tranché » du
-  LISEZMOI.
+  ailleurs sous son ancien nom, Miel d'oreilles, dans une session Claude Code. Chaque commit est à mon nom et co-signé par
+  Claude (l'historique a été réécrit le 18 octobre pour cela, sans rien changer à leur contenu) : `git blame` m'attribue donc
+  l'essentiel des lignes, mais c'est Claude qui les a écrites. Le chemin d'avant se lit dans les planches et dans les « Ce qui
+  a été tranché » du LISEZMOI.
 
 <br>
 
