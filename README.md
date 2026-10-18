@@ -145,10 +145,9 @@ une partie jouable de bout en bout contre un serveur simulé (`sortie/prototype.
 
 <img src=".github/vitrine/bandeau-piste-cachee.svg" alt="Piste cachée : comment je l'ai construit" width="100%">
 
-Honear est mon projet de bout en bout : l'idée, le meuble et son style, le découpage en couches, les règles du code, la
-sécurité et l'hébergement. Claude Code écrit l'essentiel du code et des tests, et les commits co-signés le montrent ; moi, je
-conçois, je fixe les règles que les tests vérifient, je tranche (souvent sur ses recommandations) et j'essaie sur de vrais
-téléphones.
+Honear est mon projet, de l'idée à la mise en ligne. Claude Code écrit l'essentiel du code et des tests, et les commits
+co-signés le montrent ; moi, je conçois, je fixe les règles que les tests vérifient, je tranche (souvent sur ses
+recommandations) et j'essaie sur de vrais téléphones.
 
 - **Concevoir avant de coder.** Le jeu est passé par sept étapes, chacune validée sur des planches avant la suivante : le
   dessin, l'animation, le système visuel, les écrans du téléphone, l'écran de l'hôte, puis un prototype jouable contre un
