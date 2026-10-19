@@ -547,6 +547,7 @@ function parties(l: Lecture): HTMLElement[] {
       compte(l, 'telephone.codeTape', Pa['code'] ?? ''),
       compte(l, 'refus.codeInconnu', Pa['codeInconnu'] ?? ''),
       compte(l, 'refus.complet', Pa['complet'] ?? ''),
+      compte(l, 'refus.tropDeRooms', Pa['tropDeRooms'] ?? ''),
       compte(l, 'refus.tropCourt', Pa['tropCourt'] ?? ''),
       compte(l, 'pages.room', Pa['pagesRoom'] ?? ''),
     ),

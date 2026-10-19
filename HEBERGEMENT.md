@@ -75,7 +75,8 @@ répond par le frontal.
 - HTTPS partout ; le certificat se renouvelle seul.
 - La page n'exécute que son propre script, reconnu à son empreinte (politique de sécurité stricte), et ne parle qu'à son serveur.
 - Le serveur ne croit rien sur parole : chaque message est vérifié (forme, taille, valeurs), un téléphone ne peut pas inonder le
-  serveur, ni essayer des codes au hasard sans être coupé ; une page venue d'un autre site ne peut pas s'y brancher.
+  serveur, ni essayer des codes au hasard sans être coupé ; une page venue d'un autre site ne peut pas s'y brancher. Il tient 2 000
+  rooms au plus, une même adresse en a trois ouvertes à la fois, et une room jamais lancée, laissée vide, s'en va en cinq minutes.
 - Chaque joueur a un jeton secret pour revenir à sa place : connaître l'identifiant d'un autre ne permet pas de la lui prendre.
 - Le jeu tourne dans un conteneur sans droits : aucune capacité, rien à gagner en route, un système de fichiers en lecture seule,
   le dossier des comptes pour seul endroit où écrire, et aucun port ouvert ; seul le frontal le joint, par son réseau. La machine

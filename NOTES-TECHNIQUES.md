@@ -165,8 +165,9 @@ son anecdote s'il y en a une, et le départage. Rejoué par un téléphone, il d
 du serveur : l'extrait part quand tous les appareils attendus sont prêts, ou trois secondes après la fin du décompte sans les
 retardataires, qui le rejoignent au bon endroit (`DEROULE.attente`).
 
-**Le serveur** (`serveur/`). `demarrerLeServeur({ maintenant, tirage, playlist })` tient les rooms ; `connecter(recevoir)` rend une
-connexion qui n'envoie que des actions. La room fait arriver ce qui doit arriver quand on lui donne l'heure (`avancer`) : l'extrait qui
+**Le serveur** (`serveur/`). `demarrerLeServeur({ maintenant, tirage, playlist })` tient les rooms ; `connecter(recevoir, depuis)` rend une
+connexion qui n'envoie que des actions (`depuis`, l'adresse du téléphone, compte les rooms qu'elle ouvre : il en tient 2 000 au plus,
+une adresse en a trois ouvertes à la fois, `SERVEUR.rooms` ; au-delà, `tropDeRooms`). La room fait arriver ce qui doit arriver quand on lui donne l'heure (`avancer`) : l'extrait qui
 part, la révélation à la fin de l'extrait. Le vrai serveur le branchera sur `ws` et sur un minuteur ; le prototype le fait tourner dans la
 page, avec les cinq potes simulés, qui lui parlent par les mêmes messages. `tests/serveur.test.ts` et `tests/prototype.test.ts` le jouent
 de bout en bout, en libre et en 4 choix.

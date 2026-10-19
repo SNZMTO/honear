@@ -466,7 +466,8 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
                 : p,
         };
       }
-      // Un code inconnu, une room pleine : on revient à la saisie du code, avec ce qu'on avait tapé.
+      // Un code inconnu, une room pleine : on revient à la saisie du code, avec ce qu'on avait tapé. Une room de plus que le serveur
+      // n'ouvre pas : l'hôte y arrive aussi, d'où il peut encore rejoindre celle d'un autre.
       const code = p.ecran === 'pochette' && p.venue.genre === 'rejoindre' ? p.venue.code : '';
       return { ...m, room: undefined, reprise: undefined, refus: n.raison, preparation: { ecran: 'saisie', tape: m.reprise?.code ?? code } };
     }

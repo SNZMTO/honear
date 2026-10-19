@@ -2,10 +2,11 @@
  * Le serveur : les rooms en mémoire, par leur code, et les connexions des téléphones. Une connexion n'envoie que des actions ;
  * la première crée une room ou en rejoint une, et le serveur donne au téléphone son identifiant et son jeton (dans l'état complet).
  * Le transport (un WebSocket, ou le serveur simulé du prototype) lui passe ce qui arrive et porte ce qui part. Il n'a qu'une horloge,
- * la sienne, et la donne à qui la demande. Pas de base : une room vit en mémoire, et s'en va quand plus personne n'y joue.
+ * la sienne, et la donne à qui la demande. Pas de base : une room vit en mémoire, et s'en va quand plus personne n'y joue. Il n'en
+ * tient qu'un nombre borné, et une même adresse n'en ouvre pas sans fin (`SERVEUR.rooms`).
  */
 
-import type { Action, Brancher, Connexion } from '../regles/messages';
+import type { Action, Connexion, Nouvelle } from '../regles/messages';
 import type { CleDeMode, PisteDuMode } from '../regles/modes';
 import { assezLongue, codeDePartie, type EtatDeLaPartie } from '../regles/partie';
 import type { Tirage } from '../regles/pochette';
@@ -17,8 +18,11 @@ import type { Raconter } from './faits';
 import { ouvrirUneRoom, type Room } from './room';
 
 export interface Serveur {
-  /** Un téléphone se connecte : ce qu'il recevra passe par `recevoir`. C'est ce que fera un WebSocket, d'un bout à l'autre. */
-  readonly connecter: Brancher;
+  /**
+   * Un téléphone se connecte : ce qu'il recevra passe par `recevoir`. C'est ce que fera un WebSocket, d'un bout à l'autre.
+   * @param depuis son adresse sur le réseau, quand on la connaît : de quoi compter les rooms qu'elle ouvre (rien : on ne les compte pas).
+   */
+  readonly connecter: (recevoir: (nouvelle: Nouvelle) => void, depuis?: string) => Connexion;
   /** L'heure passe : chaque room fait ce qu'elle a à faire, et celles où plus personne ne joue s'en vont. Rend l'heure du prochain rendez-vous, s'il y en a un. */
   avancer(): number | undefined;
   room(code: string): Room | undefined;
@@ -64,28 +68,54 @@ const AFFAIRES_DU_RESEAU: ReadonlySet<Action['genre']> = new Set([
 
 export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
   const rooms = new Map<string, Room>();
-  /** À chaque jeton, la room et la place qu'il rouvre. */
+  /** À chaque jeton, la room et la place qu'il rouvre ; et les jetons de chaque room, qui s'en vont avec elle. */
   const jetons = new Map<string, { readonly code: string; readonly id: string }>();
+  const jetonsDe = new Map<string, string[]>();
+  /** L'adresse d'où chaque room a été ouverte, par son code ; et les heures où chaque adresse en a ouvert une, dans la dernière fenêtre. */
+  const ouvertesDepuis = new Map<string, string>();
+  const ouvertures = new Map<string, number[]>();
   let compteur = 0;
   const nouvelId = (): string => `j${++compteur}`;
 
-  /** Un code que personne n'a : quatre lettres sans ambiguïté, tirées jusqu'à ce qu'il soit libre. */
-  function codeLibre(): string {
-    for (;;) {
+  /** Un code que personne n'a : quatre lettres sans ambiguïté, tirées jusqu'à ce qu'il soit libre, en tant d'essais au plus ; rien sinon. */
+  function codeLibre(): string | undefined {
+    for (let essai = 0; essai < SERVEUR.essaisDuCode; essai++) {
       const code = codeDePartie(o.tirage);
       if (!rooms.has(code)) return code;
     }
+    return undefined;
   }
 
-  /** Une room s'en va quand plus personne n'y est branché depuis un moment, ou quand elle a trop duré. */
+  /** Les heures où cette adresse a ouvert une room, dans la dernière fenêtre. */
+  const recentes = (depuis: string, heure: number): number[] =>
+    (ouvertures.get(depuis) ?? []).filter((h) => heure - h < SERVEUR.rooms.ouvertures.fenetre);
+
+  /** Vrai si l'on peut ouvrir une room de plus : le serveur n'en tient pas déjà assez, et cette adresse n'en a pas trop ouvert. */
+  function peutOuvrir(depuis: string | undefined, heure: number): boolean {
+    const R = SERVEUR.rooms;
+    if (rooms.size >= R.auPlus) return false;
+    if (depuis === undefined) return true;
+    let siennes = 0;
+    for (const adresse of ouvertesDepuis.values()) if (adresse === depuis) siennes++;
+    return siennes < R.parAdresse && recentes(depuis, heure).length < R.ouvertures.parFenetre;
+  }
+
+  /**
+   * Une room s'en va quand plus personne n'y est branché depuis un moment (bien moins longtemps si l'on n'y a jamais lancé de piste),
+   * ou quand elle a trop duré ; ses jetons avec elle. Les ouvertures d'une adresse qui ne comptent plus s'oublient.
+   */
   function expirer(heure: number): void {
+    const E = SERVEUR.expiration;
     for (const [code, room] of rooms) {
-      const vide = room.branches === 0 && heure - room.activite >= SERVEUR.expiration.sansPersonne;
-      if (!vide && heure - room.ouverteA < SERVEUR.expiration.auPlus) continue;
+      const vide = room.branches === 0 && heure - room.activite >= (room.lancee ? E.sansPersonne : E.jamaisLancee);
+      if (!vide && heure - room.ouverteA < E.auPlus) continue;
       room.fermer(heure);
       rooms.delete(code);
-      for (const [jeton, place] of jetons) if (place.code === code) jetons.delete(jeton);
+      for (const jeton of jetonsDe.get(code) ?? []) jetons.delete(jeton);
+      jetonsDe.delete(code);
+      ouvertesDepuis.delete(code);
     }
+    for (const depuis of ouvertures.keys()) if (recentes(depuis, heure).length === 0) ouvertures.delete(depuis);
   }
 
   function avancer(): number | undefined {
@@ -132,7 +162,7 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
         };
       }),
     avancer,
-    connecter(recevoir): Connexion {
+    connecter(recevoir, depuis): Connexion {
       let lien: { readonly room: Room; readonly id: string } | undefined;
       /** L'hôte prend une autre playlist : s'il y a de quoi jouer une face, la room repart dessus ; sinon, elle est trop courte. */
       const changerDePlaylist = (room: Room, id: string, playlist: string, heure: number): void => {
@@ -153,6 +183,7 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
         room.arriver(id, pochette, recevoir, heure, jeton);
         if (room.etat.joueurs.length === avant) return;
         jetons.set(jeton, { code: room.code, id });
+        jetonsDe.set(room.code, [...(jetonsDe.get(room.code) ?? []), jeton]);
         lien = { room, id };
       };
       return {
@@ -180,12 +211,22 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
               o.raconter?.({ genre: 'refus', raison: 'tropCourt' });
               return;
             }
+            // Une room de plus que le serveur n'ouvre pas : il en tient assez, cette adresse en a assez ouvert, ou plus un code n'est libre.
+            const code = peutOuvrir(depuis, heure) ? codeLibre() : undefined;
+            if (code === undefined) {
+              recevoir({ genre: 'refus', heure, raison: 'tropDeRooms' });
+              o.raconter?.({ genre: 'refus', raison: 'tropDeRooms' });
+              return;
+            }
             const { mode, extrait, son } = action;
-            const code = codeLibre();
             const finie = (etat: EtatDeLaPartie): void => o.quandUneFaceFinit?.(code, etat);
             const lues = lire(action.playlist, pistes, mode);
             const room = ouvrirUneRoom(code, { mode, pistes: action.pistes, extrait, son }, action.playlist, lues, heure, finie, o.raconter);
             rooms.set(room.code, room);
+            if (depuis !== undefined) {
+              ouvertesDepuis.set(room.code, depuis);
+              ouvertures.set(depuis, [...recentes(depuis, heure), heure]);
+            }
             arriver(room, action.pochette, heure);
             return;
           }
