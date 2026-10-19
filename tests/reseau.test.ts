@@ -6,16 +6,16 @@
 
 import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:http';
+import { createServer, type IncomingMessage } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { WebSocket } from 'ws';
 import { pochetteDExemple } from '../src/planche/exemples';
 import type { Action, Nouvelle } from '../src/regles/messages';
-import { configuration, lancerLeSite, type ConfigurationDuSite } from '../src/reseau/index';
+import { adresseDe, configuration, lancerLeSite, type ConfigurationDuSite } from '../src/reseau/index';
 import { CHEMIN_DE_LA_LIGNE } from '../src/reseau/ligne';
-import { META_DE_LA_VERSION } from '../src/ressources/reglages';
+import { META_DE_LA_VERSION, SERVEUR } from '../src/ressources/reglages';
 import { RESEAU } from '../src/ressources/reseau';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { PLAYLIST_D_ESSAI } from '../src/serveur/sources/essai';
@@ -72,9 +72,15 @@ async function unFauxDeezer() {
   return { adresse: `http://127.0.0.1:${port}`, demandes, fermer: () => new Promise<void>((fini) => serveur.close(() => fini())) };
 }
 
-/** Un téléphone branché à la ligne : ce qu'il a reçu, et de quoi prendre la prochaine nouvelle d'un genre, arrivée ou à venir. */
-async function unTelephone(port: number, origine?: string) {
-  const socket = new WebSocket(`ws://127.0.0.1:${port}${CHEMIN_DE_LA_LIGNE}`, origine !== undefined ? { origin: origine } : {});
+/**
+ * Un téléphone branché à la ligne : ce qu'il a reçu, et de quoi prendre la prochaine nouvelle d'un genre, arrivée ou à venir.
+ * @param enTetes ce que sa requête porte de plus (un « X-Forwarded-For »).
+ */
+async function unTelephone(port: number, origine?: string, enTetes?: Record<string, string>) {
+  const socket = new WebSocket(`ws://127.0.0.1:${port}${CHEMIN_DE_LA_LIGNE}`, {
+    ...(origine !== undefined ? { origin: origine } : {}),
+    ...(enTetes !== undefined ? { headers: enTetes } : {}),
+  });
   const boites = new Map<string, Nouvelle[]>();
   const attentes = new Map<string, ((n: Nouvelle) => void)[]>();
   socket.on('message', (donnees) => {
@@ -475,6 +481,58 @@ test('le diagnostic d’une page ne s’écrit au journal que si le serveur l’
   } finally {
     if (avant === undefined) delete process.env['DIAGNOSTIC'];
     else process.env['DIAGNOSTIC'] = avant;
+  }
+});
+
+test('l’adresse d’un navigateur : derrière le relais (RELAIS=1), la dernière de X-Forwarded-For, qu’il ajoute ; sans relais, celle de la prise', async () => {
+  const requete = (relayee: string | string[] | undefined): IncomingMessage =>
+    ({ headers: relayee !== undefined ? { 'x-forwarded-for': relayee } : {}, socket: { remoteAddress: '172.18.0.2' } }) as unknown as IncomingMessage;
+  // Le navigateur écrit ce qu'il veut devant ; le relais ajoute, au bout, l'adresse qu'il a vue.
+  assert.equal(adresseDe(requete('6.6.6.6, 203.0.113.7'), true), '203.0.113.7');
+  assert.equal(adresseDe(requete(['6.6.6.6', '198.51.100.4, 203.0.113.7']), true), '203.0.113.7');
+  assert.equal(adresseDe(requete(undefined), true), '172.18.0.2');
+  assert.equal(adresseDe(requete(' , '), true), '172.18.0.2');
+  // Sans relais, l'en-tête n'est pas cru : n'importe qui peut l'écrire.
+  assert.equal(adresseDe(requete('6.6.6.6, 203.0.113.7'), false), '172.18.0.2');
+
+  // Par la ligne : sans relais, des en-têtes inventés ne font pas d'une prise plusieurs adresses, ni plus de rooms.
+  const dossier = mkdtempSync(join(tmpdir(), 'honear-'));
+  const page = join(dossier, 'index.html');
+  writeFileSync(page, PAGE);
+  const ouvrirDesRooms = async (relais: boolean): Promise<string[]> => {
+    const site = lancerLeSite({ port: 0, hote: '127.0.0.1', origines: [], page, deezer: undefined, ...(relais ? { relais } : {}) });
+    try {
+      const port = await site.pret;
+      const issues: string[] = [];
+      for (let n = 0; n <= SERVEUR.rooms.parAdresse; n++) {
+        const t = await unTelephone(port, undefined, { 'x-forwarded-for': `6.6.6.6, 203.0.113.${n + 1}` });
+        t.envoyer({ genre: 'creer', mode: 'libre', pistes: 10, extrait: 20, son: 'tous', playlist: PLAYLIST_D_ESSAI, pochette: POCHETTE });
+        issues.push(await Promise.race([t.attendre('etat').then(() => 'etat'), t.attendre('refus').then((r) => r.raison)]));
+        t.socket.close();
+      }
+      return issues;
+    } finally {
+      await site.fermer();
+    }
+  };
+  const sansRelais = await ouvrirDesRooms(false);
+  assert.deepEqual(sansRelais.slice(SERVEUR.rooms.parAdresse), ['tropDeRooms']);
+  assert.ok(sansRelais.slice(0, SERVEUR.rooms.parAdresse).every((issue) => issue === 'etat'));
+  assert.ok(
+    (await ouvrirDesRooms(true)).every((issue) => issue === 'etat'),
+    'derrière le relais, chacun son adresse',
+  );
+
+  // C'est l'environnement qui le dit : le site en ligne est derrière Caddy.
+  const avant = process.env['RELAIS'];
+  try {
+    delete process.env['RELAIS'];
+    assert.equal(configuration().relais, undefined);
+    process.env['RELAIS'] = '1';
+    assert.equal(configuration().relais, true);
+  } finally {
+    if (avant === undefined) delete process.env['RELAIS'];
+    else process.env['RELAIS'] = avant;
   }
 });
 

@@ -17,7 +17,7 @@ les listes à l'adresse que donne `LISTES`. Tant que le MCP n'y est pas, une lis
 | Fichier | Rôle |
 | --- | --- |
 | `Dockerfile` | L'image du jeu : `npm run construire`, puis Node seul (ni npm ni sources), sans droits. Images figées à leur empreinte. |
-| `deploiement/compose.yaml` | Le conteneur : aucun port ouvert, aucune capacité, lecture seule, mémoire et processus comptés. |
+| `deploiement/compose.yaml` | Le conteneur : aucun port ouvert, aucune capacité, lecture seule, mémoire et processus comptés ; derrière le frontal (`RELAIS=1`). |
 | `deploiement/mettre-en-ligne.sh` | À chaque version : construit l'image au commit courant, relance le jeu, vérifie qu'il répond. |
 | `deploiement/courrier.sh` | Le courrier des comptes : l'adresse d'envoi et son mot de passe, que tu tapes toi-même. |
 
@@ -80,6 +80,11 @@ répond par le frontal.
 - Le serveur ne croit rien sur parole : chaque message est vérifié (forme, taille, valeurs), un téléphone ne peut pas inonder le
   serveur, ni essayer des codes au hasard sans être coupé ; une page venue d'un autre site ne peut pas s'y brancher. Il tient 2 000
   rooms au plus, une même adresse en a trois ouvertes à la fois, et une room jamais lancée, laissée vide, s'en va en cinq minutes.
+- Les limites par adresse (téléphones branchés, rooms, liens de connexion, essais de mot de passe, diagnostic) comptent l'adresse
+  que le frontal a vue : la dernière de `X-Forwarded-For`, qu'il ajoute lui-même. Le jeu ne lit cet en-tête que parce que
+  `compose.yaml` lui dit qu'il est derrière un relais de confiance (`RELAIS=1`) ; sans lui (`npm run site`, en local), il prend
+  l'adresse de la prise, et un en-tête écrit par un navigateur ne compte pas. Sans `RELAIS=1` derrière le frontal, tous les
+  téléphones auraient son adresse : trente branchés et trois rooms pour tout le site.
 - Chaque joueur a un jeton secret pour revenir à sa place : connaître l'identifiant d'un autre ne permet pas de la lui prendre.
 - Le jeu tourne dans un conteneur sans droits : aucune capacité, rien à gagner en route, un système de fichiers en lecture seule,
   le dossier des comptes pour seul endroit où écrire, et aucun port ouvert ; seul le frontal le joint, par son réseau. La machine
