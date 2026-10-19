@@ -1076,6 +1076,9 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
     (`SERVEUR.rooms`) ; une room jamais lancée, laissée vide, s'en va en cinq minutes. Au-delà, l'hôte revient à la saisie du code :
     « Toutes les platines tournent. Réessaie dans un moment. » (`tropDeRooms`). Le code se tire en cinquante essais au plus, et
     les jetons d'une room s'en vont avec elle, sans parcourir ceux des autres.
+  - *Des erreurs avalées* : un courrier qui ne partait pas (le téléphone lisait « comptes fermés »), Deezer ou le MCP qui ne
+    répondaient pas ne laissaient aucune trace. Le journal le dit désormais, en une ligne (`reseau/journal.ts`) : la classe et le
+    motif de l'erreur, sans adresse e-mail, ni lien, ni rien de ce qu'elle cite (une réponse SMTP cite le destinataire).
 
 ## Ce qui attend les étapes suivantes
 

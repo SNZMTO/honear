@@ -14,6 +14,8 @@ export const RESEAU = {
   tolerance: { malFormes: 5, codesInconnus: 10 },
   /** Combien de paquets de diagnostic une connexion peut écrire au journal du serveur, au plus. */
   diagnostic: { auPlus: 600 },
+  /** Ce que le journal du serveur écrit d'une erreur, en signes au plus : sa classe et son motif, pas davantage. */
+  journal: { motifAuPlus: 240 },
   /**
    * Les statistiques, pour l'éditeur seul. On range ce qui se passe à l'heure de ce fuseau ; on garde les compteurs jour par jour
    * tant de jours (treize mois, comme la CNIL le veut d'une mesure d'audience), et on en montre tant à la page ; on les écrit sur

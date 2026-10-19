@@ -30,6 +30,7 @@ import {
 } from '../serveur/sources/deezer';
 import { lireUnLien } from '../serveur/sources/liens';
 import { adresseDeLaListe, idListe, lienListe, lireLaListe } from '../serveur/sources/liste';
+import { motifDe } from './journal';
 
 export interface OptionsDeLaMusique {
   /** Demande une adresse et rend sa réponse lue en JSON ; échoue si le réseau ne répond pas. */
@@ -196,17 +197,30 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
    */
   async function lireListe(lien: string, id: string): Promise<void> {
     const mcp = o.listes;
-    const decrite = mcp !== undefined ? lireLaListe(await o.lire(adresseDeLaListe(mcp, id)).catch(() => undefined)) : undefined;
+    const decrite =
+      mcp !== undefined
+        ? lireLaListe(
+            await o
+              .lire(adresseDeLaListe(mcp, id))
+              .catch((erreur: unknown) => void console.error(`Une liste sur mesure ne s’est pas lue chez le MCP : ${motifDe(erreur)}`)),
+          )
+        : undefined;
     if (decrite === undefined) {
       playlists.delete(lien);
       return;
     }
+    // Les pistes que Deezer ne donne pas : le journal le dit une fois pour la liste, avec ce qu'il a dit de la première.
+    const ratees: unknown[] = [];
     const lues = await Promise.all(
       decrite.pistes.map(async ({ deezer, surnoms, anecdote }) => {
-        const piste = lireUnePiste(await appeler(adresseDeLaPiste(deezer)).catch(() => undefined));
+        const piste = lireUnePiste(await appeler(adresseDeLaPiste(deezer)).catch((erreur: unknown) => void ratees.push(erreur)));
         return piste !== undefined ? [{ ...piste, surnoms, ...(anecdote !== undefined ? { anecdote } : {}) }] : [];
       }),
     );
+    if (ratees.length > 0)
+      console.error(
+        `Une liste sur mesure : ${ratees.length} piste(s) sur ${decrite.pistes.length} ne se sont pas lues chez Deezer : ${motifDe(ratees[0])}`,
+      );
     const pistes = lues.flat();
     const lue: PlaylistLue = { titre: decrite.titre, total: decrite.pistes.length, pistes, dansLOrdre: decrite.dansLOrdre };
     garder(playlists, lien, { valeur: lue, jusqua: jusquaQuand(pistes) }, o.maintenant(), D.gardeesAuPlus);
@@ -238,7 +252,11 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
       // Les épinglées d'abord ; une qui ne se lit plus chez Deezer est passée.
       const epinglees: PlaylistTrouvee[] = [];
       for (const id of theme !== undefined ? (PLAYLISTS_EPINGLEES[theme] ?? []) : []) {
-        const decrite = lireLaPlaylist(await appeler(adresseDeLaPlaylist(id)).catch(() => undefined));
+        const decrite = lireLaPlaylist(
+          await appeler(adresseDeLaPlaylist(id)).catch(
+            (erreur: unknown) => void console.error(`Une playlist épinglée du bac ne s’est pas lue chez Deezer : ${motifDe(erreur)}`),
+          ),
+        );
         if (decrite !== undefined) epinglees.push({ lien: lienDeezer(id), ...decrite });
       }
       const cherchees = lireDesPlaylists(await appeler(adresseDeRecherche(recherche.trim().toLowerCase(), D.resultats * 2)));
@@ -266,7 +284,8 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
     pistes(lien) {
       const gardee = playlists.get(lien);
       // Bientôt plus fraîche : on la relit en coulisses, et la piste d'après aura des liens neufs sans qu'on l'attende.
-      if (gardee !== undefined && !frais(gardee, D.avance)) void preparer(lien, D.avance).catch(() => undefined);
+      if (gardee !== undefined && !frais(gardee, D.avance))
+        void preparer(lien, D.avance).catch((erreur: unknown) => console.error(`Une playlist ne s’est pas relue en coulisses : ${motifDe(erreur)}`));
       return gardee?.valeur.pistes.map(avecLeFeat);
     },
     gardeSonOrdre: (lien) => playlists.get(lien)?.valeur.dansLOrdre === true,
