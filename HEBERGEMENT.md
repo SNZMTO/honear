@@ -50,10 +50,13 @@ répond par le frontal.
   pas : le jeu ne le réécrit jamais, le journal dit pourquoi ; répare-le, ou mets-le de côté, puis relance le jeu).
 - `sudo docker compose --project-directory /srv/honear ps` : l'état du jeu (il dit s'il est en bonne santé).
 - `sudo docker compose --project-directory /srv/honear logs --tail 100` : ce qu'il dit (aussi dans `journalctl -t honear-jeu-1`).
-- Un navigateur qu'on n'a pas sous la main (l'iPhone) : l'ouvrir sur `https://honear.fr/?diagnostic`, jouer, puis lire
-  `sudo docker compose --project-directory /srv/honear logs | grep Diagnostic`. Chaque connexion a son numéro : le navigateur, la
-  fenêtre et ses changements, le champ où l'on tape, chaque essai de jouer le son et ce que le navigateur en a dit. Rien d'autre :
-  ni adresse IP, ni ce qu'on tape.
+- Un navigateur qu'on n'a pas sous la main (l'iPhone) : le diagnostic est fermé d'ordinaire (une page n'écrit rien au journal).
+  Ouvre-le le temps d'un essai, quand personne ne joue (le jeu redémarre) :
+  `sudo env DIAGNOSTIC=1 docker compose --project-directory /srv/honear up -d`. Ouvre le navigateur sur
+  `https://honear.fr/?diagnostic`, joue, puis lis `sudo docker compose --project-directory /srv/honear logs | grep Diagnostic`.
+  Chaque connexion a son numéro : le navigateur, la fenêtre et ses changements, le champ où l'on tape, chaque essai de jouer le son
+  et ce que le navigateur en a dit. Rien d'autre : ni adresse IP, ni ce qu'on tape ; 600 paquets par connexion, et par adresse et
+  par heure, au plus. Referme-le après : la même commande, sans `env DIAGNOSTIC=1` (une mise en ligne le referme aussi).
 - Il repart seul s'il tombe, et au démarrage de la machine.
 
 ## Pourquoi ça ne traîne pas

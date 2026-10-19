@@ -26,6 +26,9 @@ services:
       SITE: https://${DOMAINE:?}
       # Le MCP de Honear (mcp.honear.fr) sert les listes sur ce réseau ; tant qu'il n'y est pas, elles sont introuvables.
       LISTES: http://honear-mcp:8791
+      # Le diagnostic des pages (?diagnostic) n'écrit au journal que si on l'ouvre, le temps d'un essai (voir HEBERGEMENT.md) :
+      # sudo env DIAGNOSTIC=1 docker compose --project-directory /srv/honear up -d. Une mise en ligne le referme.
+      DIAGNOSTIC: ${DIAGNOSTIC:-}
     # Les comptes et les statistiques : le seul dossier où le jeu écrit.
     volumes:
       - /var/lib/honear:/donnees

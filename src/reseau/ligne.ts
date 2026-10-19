@@ -55,6 +55,8 @@ export interface OptionsDeLaLigne {
   readonly version?: string;
   /** Les statistiques du site : ce qui se passe sur la ligne, compté (voir statistiques.ts). */
   readonly statistiques?: Statistiques;
+  /** Vrai si le journal accepte le diagnostic des pages (DIAGNOSTIC=1, le temps d'un essai) ; sinon, une page qui en envoie n'y écrit rien. */
+  readonly diagnostic?: boolean;
 }
 
 /** D'où vient un lien de playlist collé dans le bac. */
@@ -109,6 +111,16 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
   const vivants = new Set<WebSocket>();
   const repondu = new WeakSet<WebSocket>();
   let connexions = 0;
+  /** Les paquets de diagnostic que chaque adresse a écrits au journal, depuis le début de sa fenêtre : toutes ses connexions comptées. */
+  const diagnosticsParAdresse = new Map<string, { readonly depuis: number; paquets: number }>();
+  /** Vrai si cette adresse peut écrire un paquet de diagnostic de plus dans sa fenêtre ; il compte. */
+  function unDiagnosticDePlus(adresse: string): boolean {
+    const t = o.maintenant();
+    const deja = diagnosticsParAdresse.get(adresse);
+    if (deja !== undefined && t - deja.depuis < RESEAU.diagnostic.fenetre) return ++deja.paquets <= RESEAU.diagnostic.parAdresse;
+    diagnosticsParAdresse.set(adresse, { depuis: t, paquets: 1 });
+    return true;
+  }
   /**
    * Les téléphones branchés, avec le compte où ils sont : un compte effacé, ou dont le mot de passe change, fait sortir ceux qui y
    * étaient ailleurs (sauf, pour le mot de passe, la session d'où il a changé).
@@ -348,9 +360,10 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
         dits.add(action.quoi);
         return;
       }
-      // Le diagnostic d'une page qui l'a demandé : dans le journal du serveur, une ligne par ligne, sous le numéro de cette connexion.
+      // Le diagnostic d'une page qui l'a demandé, si le serveur l'accepte : dans le journal du serveur, une ligne par ligne, sous le
+      // numéro de cette connexion ; tant de paquets par connexion, et par adresse, au plus. Fermé, il n'écrit rien.
       if (action.genre === 'diagnostic') {
-        if (++diagnostics > RESEAU.diagnostic.auPlus) return;
+        if (o.diagnostic !== true || ++diagnostics > RESEAU.diagnostic.auPlus || !unDiagnosticDePlus(adresse)) return;
         for (const ligne of action.texte.split('\n'))
           if (ligne !== '') console.log(`Diagnostic ${numero} : ${ligne.replace(/[\u0000-\u001f\u007f]/g, ' ')}`);
         return;
@@ -382,7 +395,8 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
     socket.on('error', () => socket.terminate());
   }
 
-  // À chaque battement, chaque téléphone doit avoir répondu au précédent ; sinon sa ligne est tombée sans le dire.
+  // À chaque battement, chaque téléphone doit avoir répondu au précédent ; sinon sa ligne est tombée sans le dire. Les adresses dont
+  // la fenêtre du diagnostic est passée s'oublient.
   const battre = (): void => {
     for (const socket of vivants) {
       if (!repondu.has(socket)) {
@@ -392,6 +406,8 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       repondu.delete(socket);
       socket.ping();
     }
+    const t = o.maintenant();
+    for (const [adresse, deja] of diagnosticsParAdresse) if (t - deja.depuis >= RESEAU.diagnostic.fenetre) diagnosticsParAdresse.delete(adresse);
   };
   const battement = RESEAU.battement * 1000;
   const adieu = RESEAU.adieu * 1000;
