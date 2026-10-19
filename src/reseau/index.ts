@@ -8,6 +8,7 @@
  * Il garde les comptes dans un fichier (COMPTES, sinon à côté de lui), et envoie leurs liens de connexion par
  * le serveur d'envoi d'une boîte e-mail (COURRIER_HOTE, COURRIER_PORT, COURRIER_UTILISATEUR, COURRIER_MOT_DE_PASSE, COURRIER_DE ;
  * COURRIER=journal les écrit dans le journal au lieu de les envoyer, pour essayer).
+ * Le diagnostic des pages (« ?diagnostic ») ne s'écrit dans son journal que si on l'ouvre, le temps d'un essai (DIAGNOSTIC=1).
  *
  *   PORT=8080 ORIGINES=https://honear.fr node serveur.mjs
  */
@@ -67,6 +68,8 @@ export interface ConfigurationDuSite {
   };
   /** Les statistiques : le fichier où elles se gardent, et la clé qui ouvre leur page (rien : la page est fermée). */
   readonly statistiques?: { readonly fichier: string; readonly cle: string | undefined };
+  /** Vrai si le journal accepte le diagnostic des pages (DIAGNOSTIC=1) ; d'ordinaire, il est fermé : une page n'y écrit rien. */
+  readonly diagnostic?: boolean;
 }
 
 function configuration(): ConfigurationDuSite {
@@ -84,6 +87,7 @@ function configuration(): ConfigurationDuSite {
   const cle = process.env['STATISTIQUES_CLE'];
   return {
     ...(contact !== undefined ? { contact } : {}),
+    ...(process.env['DIAGNOSTIC'] === '1' ? { diagnostic: true } : {}),
     statistiques: {
       fichier: process.env['STATISTIQUES'] ?? join(dirname(comptes), 'statistiques.json'),
       cle: cle !== undefined && /^[A-Za-z0-9_-]{16,128}$/.test(cle) ? cle : undefined,
@@ -383,6 +387,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
     ...(musique !== undefined ? { musique } : {}),
     ...(comptes !== undefined ? { comptes } : {}),
     ...(statistiques !== undefined ? { statistiques } : {}),
+    ...(c.diagnostic === true ? { diagnostic: true } : {}),
   });
   const demarreA = maintenant();
   const pageDesStatistiques = lirePageDesStatistiques(c);

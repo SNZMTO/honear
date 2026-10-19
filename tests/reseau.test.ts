@@ -430,6 +430,54 @@ test('un fichier des comptes ou des statistiques coupé en route : le jeu marche
   assert.ok(!erreurs.some((e) => e.includes('mateo@example.com') || e.includes('1200')), 'le journal ne cite rien des fichiers');
 });
 
+test('le diagnostic d’une page ne s’écrit au journal que si le serveur l’accepte (DIAGNOSTIC=1) ; une même adresse n’en écrit que tant', async () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'honear-'));
+  const page = join(dossier, 'index.html');
+  writeFileSync(page, PAGE);
+  /** Des pages branchées, qui envoient chacune ce qu'elles peuvent d'un coup en paquets de diagnostic, puis l'heure : revenue, tout est passé. */
+  const envoyerDesDiagnostics = async (port: number, pages: number): Promise<string[]> => {
+    const telephones = await Promise.all(Array.from({ length: pages }, () => unTelephone(port)));
+    const journal = await ceQueDitLeJournal(async () => {
+      for (const [rang, t] of telephones.entries()) {
+        for (let k = 1; k < RESEAU.debit.rafale; k++) t.envoyer({ genre: 'diagnostic', texte: `page ${rang}, paquet ${k}` });
+        t.envoyer({ genre: 'quelleHeure', depart: 0 });
+      }
+      await Promise.all(telephones.map((t) => t.attendre('heure')));
+    }, 'log');
+    for (const t of telephones) t.socket.close();
+    return journal;
+  };
+  // D'ordinaire, il est fermé : une page n'y écrit rien.
+  const ferme = lancerLeSite({ port: 0, hote: '127.0.0.1', origines: [], page, deezer: undefined });
+  try {
+    assert.deepEqual(await envoyerDesDiagnostics(await ferme.pret, 1), []);
+  } finally {
+    await ferme.fermer();
+  }
+  // Ouvert : chaque ligne, sous le numéro de sa connexion ; une même adresse, toutes ses connexions comptées, en écrit tant au plus.
+  const ouvert = lancerLeSite({ port: 0, hote: '127.0.0.1', origines: [], page, deezer: undefined, diagnostic: true });
+  try {
+    const pages = Math.ceil(RESEAU.diagnostic.parAdresse / (RESEAU.debit.rafale - 1)) + 1;
+    assert.ok(pages <= RESEAU.parAdresse, `${pages} pages, d'une adresse qui en branche ${RESEAU.parAdresse}`);
+    const journal = await envoyerDesDiagnostics(await ouvert.pret, pages);
+    assert.equal(journal.length, RESEAU.diagnostic.parAdresse);
+    assert.ok(journal.every((ligne) => /^Diagnostic \d+ : page \d+, paquet \d+$/.test(ligne)));
+  } finally {
+    await ouvert.fermer();
+  }
+  // C'est l'environnement qui l'ouvre.
+  const avant = process.env['DIAGNOSTIC'];
+  try {
+    delete process.env['DIAGNOSTIC'];
+    assert.equal(configuration().diagnostic, undefined);
+    process.env['DIAGNOSTIC'] = '1';
+    assert.equal(configuration().diagnostic, true);
+  } finally {
+    if (avant === undefined) delete process.env['DIAGNOSTIC'];
+    else process.env['DIAGNOSTIC'] = avant;
+  }
+});
+
 test('une page d’une autre version que celle du site est priée de se recharger ; celle du site, ou sans version, se branche', async () => {
   const dossier = mkdtempSync(join(tmpdir(), 'honear-'));
   const page = join(dossier, 'index.html');

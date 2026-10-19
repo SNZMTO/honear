@@ -418,7 +418,7 @@ export const TEXTES: Textes = {
         {
           titre: 'Les journaux du serveur',
           paragraphes: [
-            'Le serveur note ses erreurs et ses redémarrages, sans adresse IP ni e-mail. Si tu ouvres le site avec « ?diagnostic » au bout de son adresse (une aide au dépannage, que l’éditeur peut te demander), il note aussi, pendant cette visite, ce que font le son et la fenêtre de ton navigateur : son nom et sa version, la taille de l’écran, ce qu’il dit quand il joue un extrait ; jamais ton adresse IP, ni ce que tu tapes.',
+            'Le serveur note ses erreurs et ses redémarrages, sans adresse IP ni e-mail. Si tu ouvres le site avec « ?diagnostic » au bout de son adresse (une aide au dépannage, que l’éditeur peut te demander, le temps qu’il l’ouvre sur le serveur), il note aussi, pendant cette visite, ce que font le son et la fenêtre de ton navigateur : son nom et sa version, la taille de l’écran, ce qu’il dit quand il joue un extrait ; jamais ton adresse IP, ni ce que tu tapes.',
           ],
         },
         {

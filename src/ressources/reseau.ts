@@ -12,8 +12,11 @@ export const RESEAU = {
   debit: { rafale: 40, parSeconde: 20 },
   /** Ce qu'on passe à un téléphone avant de le couper : tant de messages qui ne sont pas des actions, tant de codes inconnus. */
   tolerance: { malFormes: 5, codesInconnus: 10 },
-  /** Combien de paquets de diagnostic une connexion peut écrire au journal du serveur, au plus. */
-  diagnostic: { auPlus: 600 },
+  /**
+   * Le diagnostic des pages (« ?diagnostic »), quand le serveur l'accepte (DIAGNOSTIC=1) : combien de paquets une connexion peut
+   * écrire au journal, au plus ; et une même adresse, toutes ses connexions comptées, par fenêtre de tant de secondes.
+   */
+  diagnostic: { auPlus: 600, parAdresse: 600, fenetre: 3600 },
   /** Ce que le journal du serveur écrit d'une erreur, en signes au plus : sa classe et son motif, pas davantage. */
   journal: { motifAuPlus: 240 },
   /**

@@ -1079,6 +1079,9 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   - *Des erreurs avalées* : un courrier qui ne partait pas (le téléphone lisait « comptes fermés »), Deezer ou le MCP qui ne
     répondaient pas ne laissaient aucune trace. Le journal le dit désormais, en une ligne (`reseau/journal.ts`) : la classe et le
     motif de l'erreur, sans adresse e-mail, ni lien, ni rien de ce qu'elle cite (une réponse SMTP cite le destinataire).
+  - *Le diagnostic, ouvert à tous* : n'importe quelle page écrivait au journal du serveur (600 paquets par connexion). Il est fermé
+    d'ordinaire ; on l'ouvre le temps d'un essai (`DIAGNOSTIC=1`, voir HEBERGEMENT.md), et une même adresse n'y écrit alors que
+    600 paquets par heure.
 
 ## Ce qui attend les étapes suivantes
 
