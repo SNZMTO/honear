@@ -370,6 +370,55 @@ test('un site sans courrier dit que ses comptes sont fermés', async () => {
   }
 });
 
+test('un fichier des comptes ou des statistiques coupé en route : le jeu marche, eux restent fermés, le journal le dit sans rien en citer, et rien ne les réécrit', async () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'honear-'));
+  const page = join(dossier, 'index.html');
+  writeFileSync(page, PAGE);
+  writeFileSync(join(dossier, 'statistiques.html'), PAGE);
+  const fichiers = { comptes: join(dossier, 'comptes.json'), statistiques: join(dossier, 'statistiques.json') };
+  const coupes = {
+    comptes: '{"version":1,"comptes":[{"id":"c1","email":"mateo@example.com","creeLe":1760000000,"parties":3',
+    statistiques: '{"depuis":"2026-10-12","totaux":{"pages":1200',
+  };
+  writeFileSync(fichiers.comptes, coupes.comptes);
+  writeFileSync(fichiers.statistiques, coupes.statistiques);
+  const erreurs: string[] = [];
+  const console_ = console.error;
+  console.error = (...dit: unknown[]) => void erreurs.push(dit.map(String).join(' '));
+  try {
+    const site = lancerLeSite({
+      port: 0,
+      hote: '127.0.0.1',
+      origines: [],
+      page,
+      deezer: undefined,
+      comptes: { fichier: fichiers.comptes, site: 'https://honear.fr', courrier: 'journal', textes: TEXTES.compte },
+      statistiques: { fichier: fichiers.statistiques, cle: 'essaiessaiessaiessai' },
+    });
+    try {
+      const port = await site.pret;
+      const telephone = await unTelephone(port);
+      telephone.envoyer({ genre: 'demanderUnLien', email: 'mateo@example.com' });
+      assert.equal((await telephone.attendre('refus')).raison, 'comptesFermes');
+      telephone.envoyer({ genre: 'creer', mode: 'libre', pistes: 10, extrait: 20, son: 'tous', playlist: PLAYLIST_D_ESSAI, pochette: POCHETTE });
+      await telephone.attendre('etat');
+      const base = `http://127.0.0.1:${port}`;
+      assert.deepEqual(await (await fetch(`${base}/sante`)).json(), { rooms: 1, telephones: 1, musique: false, comptes: 'illisibles' });
+      assert.equal((await fetch(`${base}/statistiques.json`, { headers: { authorization: 'Bearer essaiessaiessaiessai' } })).status, 404);
+      telephone.socket.close();
+    } finally {
+      await site.fermer();
+    }
+  } finally {
+    console.error = console_;
+  }
+  assert.equal(readFileSync(fichiers.comptes, 'utf8'), coupes.comptes);
+  assert.equal(readFileSync(fichiers.statistiques, 'utf8'), coupes.statistiques);
+  for (const fichier of Object.values(fichiers))
+    assert.equal(erreurs.filter((e) => e.includes(fichier) && /illisible/.test(e) && /pas réécrit/.test(e)).length, 1, fichier);
+  assert.ok(!erreurs.some((e) => e.includes('mateo@example.com') || e.includes('1200')), 'le journal ne cite rien des fichiers');
+});
+
 test('une page d’une autre version que celle du site est priée de se recharger ; celle du site, ou sans version, se branche', async () => {
   const dossier = mkdtempSync(join(tmpdir(), 'honear-'));
   const page = join(dossier, 'index.html');

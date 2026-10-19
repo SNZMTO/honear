@@ -46,7 +46,8 @@ répond par le frontal.
 ## Vérifier, surveiller
 
 - `https://honear.fr/sante` : combien de rooms vivent, combien de téléphones sont branchés, si la musique est là, et si les
-  comptes sont ouverts (`"comptes":"ouverts"`) ou fermés (le courrier n'est pas réglé).
+  comptes sont ouverts (`"comptes":"ouverts"`), fermés (le courrier n'est pas réglé) ou illisibles (`comptes.json` ne se relit
+  pas : le jeu ne le réécrit jamais, le journal dit pourquoi ; répare-le, ou mets-le de côté, puis relance le jeu).
 - `sudo docker compose --project-directory /srv/honear ps` : l'état du jeu (il dit s'il est en bonne santé).
 - `sudo docker compose --project-directory /srv/honear logs --tail 100` : ce qu'il dit (aussi dans `journalctl -t honear-jeu-1`).
 - Un navigateur qu'on n'a pas sous la main (l'iPhone) : l'ouvrir sur `https://honear.fr/?diagnostic`, jouer, puis lire

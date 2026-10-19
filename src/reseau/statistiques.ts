@@ -56,7 +56,7 @@ export type CleDuReseau =
   | 'bac.import.introuvable';
 
 export interface OptionsDesStatistiques {
-  /** Ce qu'on avait gardé (le contenu du fichier), et de quoi le garder quand ça change. */
+  /** Ce qu'on avait gardé (le contenu du fichier : s'il ne se relit pas, rien ne s'ouvre), et de quoi le garder quand ça change. */
   readonly lu: string | undefined;
   readonly garder: (texte: string) => void;
   /** L'heure du monde, en secondes depuis 1970, et ce qu'elle est à l'heure de ceux qui jouent. */
@@ -123,16 +123,20 @@ const estUnNombre = (x: unknown): x is number => typeof x === 'number' && Number
 const compteursLus = (x: unknown): Compteurs =>
   estUnObjet(x) ? Object.fromEntries(Object.entries(x).filter((e): e is [string, number] => estUnNombre(e[1]))) : {};
 
-/** Ce qu'on a lu du fichier, s'il en est un : ce qu'on y reconnaît, le reste à zéro. */
-function relire(texte: string | undefined): Donnees {
+/**
+ * Ce qu'on a lu du fichier, s'il en est un : ce qu'on y reconnaît, le reste à zéro. S'il ne se lit pas (pas du JSON, un fichier coupé
+ * en route ; pas un objet), pourquoi, sans rien de ce qu'il contient : le réécrire, ce serait perdre ce qu'on n'a pas su y lire.
+ */
+function relire(texte: string | undefined): Donnees | string {
   const vide = DONNEES_VIDES();
+  if (texte === undefined) return vide;
   let lu: unknown;
   try {
-    lu = texte !== undefined ? JSON.parse(texte) : undefined;
+    lu = JSON.parse(texte);
   } catch {
-    lu = undefined;
+    return 'ce n’est pas du JSON';
   }
-  if (!estUnObjet(lu)) return vide;
+  if (!estUnObjet(lu)) return 'ce n’est pas un fichier de statistiques';
   const tableau = (x: unknown, longueur: number): number[] =>
     Array.from({ length: longueur }, (_, rang) => (Array.isArray(x) && estUnNombre(x[rang]) ? (x[rang] as number) : 0));
   const parCle = <T>(x: unknown, lire: (v: Record<string, unknown>) => T | undefined): Record<string, T> =>
@@ -215,8 +219,11 @@ function elaguer<T>(classement: Record<string, T>, auPlus: number, poids: (t: T)
   return Object.fromEntries(entrees.sort((a, b) => poids(b[1]) - poids(a[1])).slice(0, auPlus));
 }
 
+/** Ouvre les statistiques, d'après ce qu'on avait gardé. Un fichier qui ne se lit pas ne s'ouvre pas : l'erreur dit pourquoi, et rien ne le réécrit. */
 export function ouvrirLesStatistiques(o: OptionsDesStatistiques): Statistiques {
-  const d = relire(o.lu);
+  const lue = relire(o.lu);
+  if (typeof lue === 'string') throw new Error(`Le fichier des statistiques est illisible : ${lue}`);
+  const d = lue;
   let change = false;
   /** Le sel du jour, et les empreintes des visiteurs de ce jour : en mémoire seulement. */
   let jourDuSel = '';

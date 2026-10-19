@@ -137,11 +137,28 @@ function courrierDeLEnvironnement(): ConfigurationDuCourrier | 'journal' | undef
 }
 
 /**
+ * Ce qu'on avait gardé dans un fichier : son contenu ; rien s'il n'y en a pas encore. Un fichier qui est là mais ne se lit pas (ses
+ * droits) fait échouer, comme un fichier qu'on ne sait pas relire : on ne le remplacera pas.
+ */
+const lireLeFichier = (fichier: string): string | undefined => (existsSync(fichier) ? readFileSync(fichier, 'utf8') : undefined);
+
+/**
+ * Ce qu'on garde d'un fichier qu'on n'a pas su lire, ou relire : rien. Le journal le dit, sans rien de ce qu'il contient (l'erreur
+ * de lecture, ou ce que le module en a dit), et le fichier reste tel quel, pour qu'on le répare ou qu'on le mette de côté.
+ */
+function illisible(quoi: string, fichier: string, erreur: unknown): undefined {
+  const pourquoi = erreur instanceof Error ? erreur.message : String(erreur);
+  console.error(`${pourquoi} (${fichier}) : ${quoi}, et le fichier n’est pas réécrit. Répare-le, ou mets-le de côté, puis relance le jeu.`);
+  return undefined;
+}
+
+/**
  * Les comptes, gardés dans leur fichier : relu au démarrage, réécrit en entier à chaque changement (dans un fichier à côté, puis mis
  * à sa place d'un coup : un arrêt en pleine écriture ne l'abîme pas). Si on ne peut pas l'écrire, les comptes vivent en mémoire, et
- * on le dit une fois.
+ * on le dit une fois. S'il est là mais qu'on ne sait pas le lire en entier (coupé en route, abîmé, d'une autre version), rien :
+ * les comptes restent fermés, et personne ne le réécrit.
  */
-function comptesDansUnFichier(c: NonNullable<ConfigurationDuSite['comptes']>): Comptes {
+function comptesDansUnFichier(c: NonNullable<ConfigurationDuSite['comptes']>): Comptes | undefined {
   let dit = false;
   const poster: Poster | undefined =
     c.courrier === 'journal'
@@ -151,54 +168,63 @@ function comptesDansUnFichier(c: NonNullable<ConfigurationDuSite['comptes']>): C
       : c.courrier !== undefined
         ? posterParSmtp(c.courrier, dateDuCourrier)
         : undefined;
-  return ouvrirLesComptes({
-    monde: heureDuMonde,
-    secret: () => randomBytes(32).toString('base64url'),
-    identifiant: () => randomBytes(9).toString('base64url'),
-    empreinte: (secret) => createHash('sha256').update(secret).digest('hex'),
-    hacher: hacherUnMotDePasse,
-    verifier: verifierUnMotDePasse,
-    lu: existsSync(c.fichier) ? readFileSync(c.fichier, 'utf8') : undefined,
-    garder(texte) {
-      try {
-        mkdirSync(dirname(c.fichier), { recursive: true });
-        writeFileSync(`${c.fichier}.neuf`, texte, { mode: 0o600 });
-        renameSync(`${c.fichier}.neuf`, c.fichier);
-      } catch (erreur) {
-        if (!dit) console.error(`Les comptes ne s'écrivent pas dans ${c.fichier} : ${String(erreur)}`);
-        dit = true;
-      }
-    },
-    poster,
-    lettre: lettreDuLien(c.textes.courrier, c.site),
-    avertissement: lettreDAvertissement(c.textes.courrier, c.site),
-    avisDuMotDePasse: lettreDuMotDePasse(c.textes.courrier, c.site),
-  });
+  try {
+    return ouvrirLesComptes({
+      monde: heureDuMonde,
+      secret: () => randomBytes(32).toString('base64url'),
+      identifiant: () => randomBytes(9).toString('base64url'),
+      empreinte: (secret) => createHash('sha256').update(secret).digest('hex'),
+      hacher: hacherUnMotDePasse,
+      verifier: verifierUnMotDePasse,
+      lu: lireLeFichier(c.fichier),
+      garder(texte) {
+        try {
+          mkdirSync(dirname(c.fichier), { recursive: true });
+          writeFileSync(`${c.fichier}.neuf`, texte, { mode: 0o600 });
+          renameSync(`${c.fichier}.neuf`, c.fichier);
+        } catch (erreur) {
+          if (!dit) console.error(`Les comptes ne s'écrivent pas dans ${c.fichier} : ${String(erreur)}`);
+          dit = true;
+        }
+      },
+      poster,
+      lettre: lettreDuLien(c.textes.courrier, c.site),
+      avertissement: lettreDAvertissement(c.textes.courrier, c.site),
+      avisDuMotDePasse: lettreDuMotDePasse(c.textes.courrier, c.site),
+    });
+  } catch (erreur) {
+    return illisible('les comptes restent fermés', c.fichier, erreur);
+  }
 }
 
 /**
  * Les statistiques, gardées dans leur fichier : relu au démarrage, réécrit en entier de temps en temps (dans un fichier à côté, puis
- * mis à sa place d'un coup). Si on ne peut pas l'écrire, elles vivent en mémoire, et on le dit une fois.
+ * mis à sa place d'un coup). Si on ne peut pas l'écrire, elles vivent en mémoire, et on le dit une fois. S'il est là mais qu'on ne
+ * sait pas le lire, rien : la page des statistiques reste fermée, rien n'est compté, et personne ne le réécrit.
  */
-function statistiquesDansUnFichier(fichier: string): Statistiques {
+function statistiquesDansUnFichier(fichier: string): Statistiques | undefined {
   let dit = false;
-  return ouvrirLesStatistiques({
-    lu: existsSync(fichier) ? readFileSync(fichier, 'utf8') : undefined,
-    garder(texte) {
-      try {
-        mkdirSync(dirname(fichier), { recursive: true });
-        writeFileSync(`${fichier}.neuf`, texte, { mode: 0o600 });
-        renameSync(`${fichier}.neuf`, fichier);
-      } catch (erreur) {
-        if (!dit) console.error(`Les statistiques ne s'écrivent pas dans ${fichier} : ${String(erreur)}`);
-        dit = true;
-      }
-    },
-    monde: heureDuMonde,
-    local: aLHeureDe(RESEAU.statistiques.fuseau),
-    joursDu,
-    sel: () => randomBytes(32).toString('base64url'),
-  });
+  try {
+    return ouvrirLesStatistiques({
+      lu: lireLeFichier(fichier),
+      garder(texte) {
+        try {
+          mkdirSync(dirname(fichier), { recursive: true });
+          writeFileSync(`${fichier}.neuf`, texte, { mode: 0o600 });
+          renameSync(`${fichier}.neuf`, fichier);
+        } catch (erreur) {
+          if (!dit) console.error(`Les statistiques ne s'écrivent pas dans ${fichier} : ${String(erreur)}`);
+          dit = true;
+        }
+      },
+      monde: heureDuMonde,
+      local: aLHeureDe(RESEAU.statistiques.fuseau),
+      joursDu,
+      sel: () => randomBytes(32).toString('base64url'),
+    });
+  } catch (erreur) {
+    return illisible('les statistiques restent fermées', fichier, erreur);
+  }
 }
 
 /** Vrai si la clé donnée est celle des statistiques : comparées par leur empreinte, en un temps qui ne dit rien de l'une ni de l'autre. */
@@ -365,12 +391,12 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
       page,
       legales: pagesLegales(c),
       fichiers: fichiersDeLApplication(c),
-      // Ce que le site dit de lui-même : de quoi vérifier une mise en place d'un coup d'œil.
+      // Ce que le site dit de lui-même : de quoi vérifier une mise en place d'un coup d'œil (et voir un fichier des comptes illisible).
       sante: () => ({
         rooms: serveur.rooms,
         telephones: ligne.branches,
         musique: musique !== undefined,
-        comptes: c.comptes === undefined ? 'absents' : c.comptes.courrier === undefined ? 'fermes' : 'ouverts',
+        comptes: c.comptes === undefined ? 'absents' : comptes === undefined ? 'illisibles' : c.comptes.courrier === undefined ? 'fermes' : 'ouverts',
       }),
       ...(statistiques !== undefined && pageDesStatistiques !== undefined
         ? {

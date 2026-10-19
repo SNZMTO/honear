@@ -30,7 +30,7 @@ export interface OptionsDesComptes {
   /** L'empreinte d'un mot de passe (lente, salée), et la vérification d'un mot de passe contre l'une d'elles. */
   readonly hacher: (motDePasse: string) => Promise<string>;
   readonly verifier: (motDePasse: string, empreinte: string) => Promise<boolean>;
-  /** Ce qu'on avait gardé (le contenu du fichier), et de quoi le garder quand ça change. */
+  /** Ce qu'on avait gardé (le contenu du fichier : s'il ne se relit pas en entier, rien ne s'ouvre), et de quoi le garder quand ça change. */
   readonly lu: string | undefined;
   readonly garder: (texte: string) => void;
   /** De quoi envoyer une lettre ; rien : le site n'envoie pas d'e-mails, ses comptes sont fermés. */
@@ -125,16 +125,27 @@ export function adresseEmail(tape: string): string | undefined {
   return email.length <= 254 && forme.test(email) && !email.includes('..') ? email : undefined;
 }
 
-/** Ce qu'on a lu du fichier, si c'en est un : les comptes et les sessions qu'on y reconnaît. */
-function relire(texte: string | undefined): { comptes: CompteGarde[]; sessions: SessionGardee[] } {
+/** La version du fichier qu'on écrit : la seule qu'on sache relire. */
+const VERSION_DU_FICHIER = 1;
+
+/**
+ * Ce qu'on a lu du fichier : les comptes et les sessions ; ou, s'il ne se lit pas en entier, pourquoi, sans rien de ce qu'il contient.
+ * Pas du JSON (un fichier coupé en route), pas la forme qu'on écrit, une autre version, une entrée qu'on ne reconnaît pas : le
+ * réécrire, ce serait perdre ce qu'on n'a pas su y lire.
+ */
+function relire(texte: string | undefined): { comptes: CompteGarde[]; sessions: SessionGardee[] } | string {
+  if (texte === undefined) return { comptes: [], sessions: [] };
   let lu: unknown;
   try {
-    lu = texte !== undefined ? JSON.parse(texte) : undefined;
+    lu = JSON.parse(texte);
   } catch {
-    lu = undefined;
+    return 'ce n’est pas du JSON';
   }
-  const objet = typeof lu === 'object' && lu !== null ? (lu as Record<string, unknown>) : {};
-  const comptes = (Array.isArray(objet['comptes']) ? (objet['comptes'] as unknown[]) : []).flatMap((x): CompteGarde[] => {
+  const objet = typeof lu === 'object' && lu !== null && !Array.isArray(lu) ? (lu as Record<string, unknown>) : undefined;
+  const entrees = { comptes: objet?.['comptes'] ?? [], sessions: objet?.['sessions'] ?? [] };
+  if (objet === undefined || !Array.isArray(entrees.comptes) || !Array.isArray(entrees.sessions)) return 'ce n’est pas un fichier de comptes';
+  if (objet['version'] !== undefined && objet['version'] !== VERSION_DU_FICHIER) return 'il est d’une autre version';
+  const comptes = (entrees.comptes as unknown[]).flatMap((x): CompteGarde[] => {
     const c = typeof x === 'object' && x !== null ? (x as Record<string, unknown>) : {};
     const { id, email, creeLe, pochette, parties, victoires, vuLe, prevenuLe, motDePasse } = c;
     if (typeof id !== 'string' || typeof email !== 'string' || typeof creeLe !== 'number') return [];
@@ -152,12 +163,13 @@ function relire(texte: string | undefined): { comptes: CompteGarde[]; sessions: 
       },
     ];
   });
-  const sessions = (Array.isArray(objet['sessions']) ? (objet['sessions'] as unknown[]) : []).flatMap((x): SessionGardee[] => {
+  const sessions = (entrees.sessions as unknown[]).flatMap((x): SessionGardee[] => {
     const s = typeof x === 'object' && x !== null ? (x as Record<string, unknown>) : {};
     const { empreinte, compte, jusqua } = s;
     return typeof empreinte === 'string' && typeof compte === 'string' && typeof jusqua === 'number' ? [{ empreinte, compte, jusqua }] : [];
   });
-  return { comptes, sessions };
+  const ecartees = entrees.comptes.length - comptes.length + (entrees.sessions.length - sessions.length);
+  return ecartees > 0 ? `${ecartees} entrée${ecartees > 1 ? 's' : ''} qu’on ne reconnaît pas` : { comptes, sessions };
 }
 
 /** Une heure, un jour, en secondes. */
@@ -166,9 +178,14 @@ const UN_JOUR = 86400;
 /** Combien de places de room on se souvient au plus : de quoi compter les scores des parties en cours. */
 const PLACES_AU_PLUS = 20000;
 
+/**
+ * Ouvre les comptes, d'après ce qu'on avait gardé. Un fichier qu'on ne sait pas lire en entier ne s'ouvre pas : l'erreur dit pourquoi,
+ * sans rien de ce qu'il contient, et rien ne le réécrit.
+ */
 export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
   const C = RESEAU.comptes;
   const lus = relire(o.lu);
+  if (typeof lus === 'string') throw new Error(`Le fichier des comptes est illisible : ${lus}`);
   const comptes = new Map(lus.comptes.map((c) => [c.id, c]));
   const sessions = new Map(lus.sessions.map((s) => [s.empreinte, s]));
   /** Les liens envoyés, par leur empreinte : l'adresse où ils sont partis, et jusqu'à quand ils marchent. */
@@ -188,7 +205,7 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
   function enregistrer(): void {
     const t = o.monde();
     for (const [e, s] of sessions) if (s.jusqua <= t || !comptes.has(s.compte)) sessions.delete(e);
-    o.garder(JSON.stringify({ version: 1, comptes: [...comptes.values()], sessions: [...sessions.values()] }));
+    o.garder(JSON.stringify({ version: VERSION_DU_FICHIER, comptes: [...comptes.values()], sessions: [...sessions.values()] }));
   }
 
   const vu = (c: CompteGarde): CompteVu => ({
