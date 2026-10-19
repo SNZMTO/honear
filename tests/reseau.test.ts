@@ -20,6 +20,7 @@ import { RESEAU } from '../src/ressources/reseau';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { PLAYLIST_D_ESSAI } from '../src/serveur/sources/essai';
 import { unFauxServeurDEnvoi } from './faux-courrier';
+import { ceQueDitLeJournal } from './journal-du-serveur';
 
 const POCHETTE = pochetteDExemple(TEXTES);
 const PAGE = '<title>Honear</title><div data-telephone></div><script>console.log("le jeu")</script>';
@@ -251,15 +252,25 @@ test('dans le bac, la ligne cherche chez Deezer et importe un lien ; la room jou
   }
 });
 
-test('sans Deezer qui réponde, le bac ne trouve rien, un lien est introuvable, et la playlist d’essai se joue toujours', async () => {
+test('sans Deezer qui réponde, le bac ne trouve rien, un lien est introuvable, et la playlist d’essai se joue toujours ; le journal dit pourquoi, sans ce qu’on a cherché ni collé', async () => {
   const site = unSite([], 'http://127.0.0.1:9');
   try {
     const port = await site.pret;
     const hote = await unTelephone(port);
-    hote.envoyer({ genre: 'chercher', recherche: 'rien' });
-    assert.deepEqual((await hote.attendre('playlists')).playlists, []);
-    hote.envoyer({ genre: 'importer', lien: 'https://www.deezer.com/fr/playlist/4242' });
-    assert.equal((await hote.attendre('refus')).raison, 'introuvable');
+    const journal = await ceQueDitLeJournal(async () => {
+      hote.envoyer({ genre: 'chercher', recherche: 'mes années lycée' });
+      assert.deepEqual((await hote.attendre('playlists')).playlists, []);
+      hote.envoyer({ genre: 'importer', lien: 'https://www.deezer.com/fr/playlist/4242' });
+      assert.equal((await hote.attendre('refus')).raison, 'introuvable');
+    });
+    assert.deepEqual(
+      journal.map((ligne) => ligne.split(' : ')[0]),
+      ['Une recherche du bac n’a rien rapporté', 'Un lien collé dans le bac n’a pas été lu'],
+    );
+    assert.ok(
+      journal.every((ligne) => /TypeError/.test(ligne) && !/lycée|ann|4242|deezer/.test(ligne)),
+      journal.join('\n'),
+    );
     hote.envoyer({ genre: 'creer', mode: 'libre', pistes: 10, extrait: 20, son: 'tous', playlist: 'deezer:4242', pochette: POCHETTE });
     assert.equal((await hote.attendre('refus')).raison, 'tropCourt');
     hote.envoyer({ genre: 'creer', mode: 'libre', pistes: 10, extrait: 20, son: 'tous', playlist: PLAYLIST_D_ESSAI, pochette: POCHETTE });

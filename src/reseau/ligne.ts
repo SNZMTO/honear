@@ -15,6 +15,7 @@ import { lireUneAction, type Action, type CeQueLeTelephoneCompte, type Nouvelle,
 import { RESEAU } from '../ressources/reseau';
 import type { Serveur } from '../serveur/serveur';
 import type { Comptes } from './comptes';
+import { motifDe } from './journal';
 import type { Musique } from './musique';
 import type { Statistiques } from './statistiques';
 
@@ -183,7 +184,7 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       file = file
         .then(() => lue)
         .then(() => transmettre(action))
-        .catch((erreur: unknown) => console.error(`Une action « ${action.genre} » n’est pas passée : ${String(erreur)}`));
+        .catch((erreur: unknown) => console.error(`Une action « ${action.genre} » n’est pas passée : ${motifDe(erreur)}`));
     };
     /** La playlist à faire lire avant de passer cette action au serveur du jeu, s'il y en a une. */
     const aLire = (action: Action): string | undefined => {
@@ -214,8 +215,9 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
         let playlists: PlaylistTrouvee[] = [];
         try {
           if (musique !== undefined) playlists = await musique.chercher(d.recherche, d.theme);
-        } catch {
-          // Deezer ne répond pas, ou on lui demande trop : rien dans le bac, pour cette fois.
+        } catch (erreur) {
+          // Deezer ne répond pas, ou on lui demande trop : rien dans le bac, pour cette fois. Le journal le dit, sans ce qu'on cherchait.
+          console.error(`Une recherche du bac n’a rien rapporté : ${motifDe(erreur)}`);
         }
         ecrire({ genre: 'playlists', heure: o.maintenant(), recherche: d.recherche, playlists });
         o.statistiques?.recherche(d.recherche, d.theme, playlists.length);
@@ -226,8 +228,9 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
       o.statistiques?.compter(`bac.import.${sourceDuLien(d.lien)}`);
       try {
         if (musique !== undefined) lue = await musique.importer(d.lien);
-      } catch {
-        // Deezer ne répond pas : la playlist est introuvable, pour cette fois.
+      } catch (erreur) {
+        // Deezer ne répond pas : la playlist est introuvable, pour cette fois. Le journal le dit, sans le lien collé.
+        console.error(`Un lien collé dans le bac n’a pas été lu : ${motifDe(erreur)}`);
       }
       // D'une playlist collée, on ne compte que ce qu'elle a donné, pas son nom : c'est souvent celle de quelqu'un.
       // Un lien Spotify, refusé d'office, est déjà compté parmi les liens Spotify.
@@ -352,7 +355,10 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
           if (ligne !== '') console.log(`Diagnostic ${numero} : ${ligne.replace(/[\u0000-\u001f\u007f]/g, ' ')}`);
         return;
       }
-      if (estDuCompte(action)) return void compter(action).catch(() => undefined);
+      if (estDuCompte(action))
+        return void compter(action).catch((erreur: unknown) =>
+          console.error(`Une action « ${action.genre} » du compte n’a pas abouti : ${motifDe(erreur)}`),
+        );
       // Qui joue sous un compte y garde la pochette avec laquelle il arrive, et celle qu'il refait.
       if (compte !== undefined && (action.genre === 'creer' || action.genre === 'rejoindre' || action.genre === 'changerDePochette'))
         o.comptes?.garderLaPochette(compte.id, action.pochette);

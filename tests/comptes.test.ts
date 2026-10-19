@@ -27,6 +27,7 @@ import { TEXTES } from '../src/ressources/textes.fr';
 import { demarrerLeServeur } from '../src/serveur/serveur';
 import { PISTES_D_ESSAI } from '../src/serveur/sources/essai';
 import { unFauxServeurDEnvoi } from './faux-courrier';
+import { ceQueDitLeJournal } from './journal-du-serveur';
 
 const C = RESEAU.comptes;
 const POCHETTE = pochetteDExemple(TEXTES);
@@ -150,9 +151,13 @@ test('les envois sont comptés : un par minute et cinq par heure pour une adress
   assert.equal(parTelephone.filter((e) => e === 'envoye').length, C.parTelephone, 'le même téléphone, dix par heure en tout');
   assert.equal(await comptes.demanderUnLien('pas une adresse', 'ici'), 'adresse');
   assert.equal(await desComptes({ poster: undefined }).comptes.demanderUnLien('a@exemple.fr', 'ici'), 'comptesFermes');
-  // Le courrier ne part pas : on le dit, et le lien qu'il portait ne marche pas.
-  const rate = desComptes({ poster: () => Promise.reject(new Error('panne')) });
-  assert.equal(await rate.comptes.demanderUnLien('a@exemple.fr', 'ici'), 'comptesFermes');
+  // Le courrier ne part pas : on le dit, et le lien qu'il portait ne marche pas. Le journal dit pourquoi, sans l'adresse, que la
+  // réponse du serveur d'envoi citait.
+  const rate = desComptes({ poster: () => Promise.reject(new Error('Le serveur d’envoi refuse (550) : 550 <a@exemple.fr>: rejected')) });
+  const journal = await ceQueDitLeJournal(async () => assert.equal(await rate.comptes.demanderUnLien('a@exemple.fr', 'ici'), 'comptesFermes'));
+  assert.equal(journal.length, 1);
+  assert.match(journal[0] ?? '', /^Un lien de connexion n’est pas parti : Error : Le serveur d’envoi refuse \(550\)/);
+  assert.ok(!(journal[0] ?? '').includes('a@exemple.fr'));
 });
 
 test('le fichier garde les comptes et les sessions, jamais un secret ; relu, il ramène chacun dans son compte', async () => {

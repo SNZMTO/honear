@@ -18,6 +18,7 @@ import type { Pochette } from '../ressources/pochettes';
 import { RESEAU } from '../ressources/reseau';
 import type { Textes } from '../ressources/textes';
 import type { Lettre, Poster } from './courrier';
+import { motifDe } from './journal';
 
 export interface OptionsDesComptes {
   /** L'heure du monde, en secondes depuis 1970 : une session dure d'un démarrage du serveur à l'autre. */
@@ -268,8 +269,10 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
       liens.set(o.empreinte(lien), { email, jusqua: t + C.lien });
       try {
         await o.poster(o.lettre(email, lien));
-      } catch {
+      } catch (erreur) {
+        // Le téléphone l'apprend comme des comptes fermés ; le journal dit pourquoi, sans l'adresse.
         liens.delete(o.empreinte(lien));
+        console.error(`Un lien de connexion n’est pas parti : ${motifDe(erreur)}`);
         return 'comptesFermes';
       }
       return 'envoye';
@@ -323,7 +326,10 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
       for (const [e, s] of sessions) if (s.compte === id && e !== gardee) sessions.delete(e);
       enregistrer();
       // L'adresse du compte est prévenue : si ce n'était pas elle, elle entre par un lien, et le change à son tour.
-      if (o.poster !== undefined && o.avisDuMotDePasse !== undefined) o.poster(o.avisDuMotDePasse(encore.email)).catch(() => undefined);
+      if (o.poster !== undefined && o.avisDuMotDePasse !== undefined)
+        o.poster(o.avisDuMotDePasse(encore.email)).catch((erreur: unknown) =>
+          console.error(`L’avis d’un mot de passe changé n’est pas parti : ${motifDe(erreur)}`),
+        );
       return 'garde';
     },
     reprendre(session) {
@@ -409,8 +415,9 @@ export function ouvrirLesComptes(o: OptionsDesComptes): Comptes {
           const encore = comptes.get(c.id);
           if (encore !== undefined) comptes.set(c.id, { ...encore, prevenuLe: t });
           change = true;
-        } catch {
+        } catch (erreur) {
           // Le courrier ne part pas : on réessaiera au prochain ménage.
+          console.error(`L’avertissement d’un compte qui dort n’est pas parti : ${motifDe(erreur)}`);
         }
       }
       if (change) enregistrer();

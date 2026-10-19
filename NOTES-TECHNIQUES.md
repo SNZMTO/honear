@@ -184,6 +184,8 @@ navigateur, contre le serveur et les potes.
 **En ligne** (`reseau/`, voir `HEBERGEMENT.md`). `lancerLeSite(configuration())` sert la page (`porte.ts`, politique de sécurité à
 l'empreinte du script), branche chaque WebSocket au serveur du jeu (`ligne.ts` : `lireUneAction` avant tout, un débit plafonné, un
 battement toutes les 15 s, l'origine vérifiée), et réveille le serveur à son prochain rendez-vous, au plus tard chaque seconde.
+Ce qui échoue sans arrêter le jeu (un courrier qui ne part pas, Deezer ou le MCP qui ne répondent pas) se dit au journal en une
+ligne (`reseau/journal.ts` : la classe, le code et le motif de l'erreur, sans adresse e-mail, ni lien, ni rien de ce qu'elle cite).
 L'heure : le téléphone envoie `quelleHeure` (cinq fois en se branchant, puis toutes les 10 s) et garde l'écart de la réponse revenue
 le plus vite (`ecran/telephone/heure.ts`). `npm run construire` écrit `dist/index.html` et `dist/serveur.mjs` ; `tests/reseau.test.ts`
 ouvre le site sur un port de la machine et y branche de vrais WebSockets.

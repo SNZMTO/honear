@@ -15,6 +15,7 @@ import { TEXTES } from '../src/ressources/textes.fr';
 import { demarrerLeServeur } from '../src/serveur/serveur';
 import { lireUnLien } from '../src/serveur/sources/liens';
 import { idListe, lienListe, lireLaListe } from '../src/serveur/sources/liste';
+import { ceQueDitLeJournal } from './journal-du-serveur';
 
 const ID = 'iTRYNDDqk3g0zBoA';
 const MCP = 'http://honear-mcp:8791';
@@ -110,7 +111,11 @@ test('une liste importée : lue chez le MCP, chaque piste relue chez Deezer, cel
 
 test('une liste que le MCP ne connaît pas, ou un jeu sans MCP : rien à jouer, et rien de demandé pour rien', async () => {
   const avec = uneMusique(MCP);
-  assert.equal(await avec.musique.importer('https://honear.fr/?liste=AAAAAAAAAAAAAAAA'), 'introuvable');
+  // Le MCP ne la sert pas : le journal le dit.
+  const journal = await ceQueDitLeJournal(async () =>
+    assert.equal(await avec.musique.importer('https://honear.fr/?liste=AAAAAAAAAAAAAAAA'), 'introuvable'),
+  );
+  assert.deepEqual(journal, ['Une liste sur mesure ne s’est pas lue chez le MCP : Error : 404']);
   const sans = uneMusique(undefined);
   assert.equal(await sans.musique.importer(`https://honear.fr/?liste=${ID}`), 'introuvable');
   assert.deepEqual(sans.demandes, []);
