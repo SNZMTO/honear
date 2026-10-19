@@ -155,6 +155,7 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
     };
     const ici = { compte: () => compte, sortir: horsCompte };
     dansLesComptes.add(ici);
+    // Le serveur du jeu connaît son adresse : il compte les rooms qu'elle ouvre.
     const connexion = o.serveur.connecter((nouvelle: Nouvelle) => {
       if (nouvelle.genre === 'refus' && nouvelle.raison === 'codeInconnu' && ++fautes.codesInconnus > RESEAU.tolerance.codesInconnus) {
         socket.close(HORS_DES_REGLES);
@@ -166,7 +167,7 @@ export function ouvrirLaLigne(o: OptionsDeLaLigne): Ligne {
         attacher();
       }
       ecrire(nouvelle);
-    });
+    }, adresse);
     const transmettre = (action: Action): void => {
       if (coupee) return;
       connexion.envoyer(action);

@@ -83,6 +83,7 @@ export const LEGENDES_DES_ECRANS = {
   etats: {
     codeInconnu: 'Code inconnu',
     complet: 'Room pleine',
+    tropDeRooms: 'Une room de plus que le serveur n’ouvre pas',
     tropCourt: 'Playlist trop courte',
     spotify: 'Un lien Spotify',
     sonBloque: 'Son bloqué : l’ampli reste éteint',

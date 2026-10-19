@@ -29,10 +29,14 @@ export const DEROULE = {
 
 /**
  * Le serveur, en secondes : une room où plus personne n'est branché s'en va au bout de ce temps (de quoi recharger sa page, retrouver
- * le réseau, ou revenir après une pause) ; aucune ne vit plus longtemps que la plus longue des soirées.
+ * le réseau, ou revenir après une pause), bien plus tôt si l'on n'y a jamais lancé de piste (ouverte, puis laissée) ; aucune ne vit
+ * plus longtemps que la plus longue des soirées. Il tient tant de rooms au plus ; une même adresse en a tant d'ouvertes à la fois, et
+ * en ouvre tant par fenêtre de tant de secondes. Un code libre se tire en tant d'essais au plus : au-delà, le serveur est plein.
  */
 export const SERVEUR = {
-  expiration: { sansPersonne: 1800, auPlus: 21600 },
+  expiration: { sansPersonne: 1800, jamaisLancee: 300, auPlus: 21600 },
+  rooms: { auPlus: 2000, parAdresse: 3, ouvertures: { parFenetre: 10, fenetre: 60 } },
+  essaisDuCode: 50,
 } as const;
 
 /** L'adresse du site, telle que les planches l'écrivent sur le lien d'une room ; en ligne, c'est celle de la page. */

@@ -14,7 +14,7 @@ import { FONDS_DE_POCHETTE, MOTIFS_DE_POCHETTE, type Pochette } from '../../ress
 import type { Textes } from '../../ressources/textes';
 import type { Vignette } from '../../ressources/vignettes';
 import type { PisteEnScene } from '../../scene/piste/etat';
-import type { BacOuvert, QuiRegardeLeSalon } from '../../scene/telephone/ecrans';
+import type { BacOuvert, QuiRegardeLeSalon, RefusDeLaSaisie } from '../../scene/telephone/ecrans';
 import type { CompteOuvertAuTelephone } from '../../scene/telephone/compte';
 import type { AutourDeLaPiste } from '../../scene/telephone/piste';
 import { estUnRefusDuCompte, tapeA, type Memoire, type Preparatifs, type RoomConnue } from './memoire';
@@ -24,7 +24,7 @@ export type EcranDuTelephone =
   /** L'accueil ; sa touche « Mon compte » quand le serveur tient des comptes. */
   | { readonly genre: 'accueil'; readonly compte: boolean }
   | { readonly genre: 'compte'; readonly compte: CompteOuvertAuTelephone }
-  | { readonly genre: 'saisie'; readonly tape: string; readonly refus: 'codeInconnu' | 'complet' | 'solo' | undefined }
+  | { readonly genre: 'saisie'; readonly tape: string; readonly refus: RefusDeLaSaisie | undefined }
   /**
    * « Fais ta pochette » ; quand on la refait (à l'accueil, dans la room), on peut la laisser comme elle était. `sansNom` : on a touché
    * « C'est moi » sans avoir écrit son nom, l'écran le réclame.
@@ -123,7 +123,7 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
       return {
         genre: 'saisie',
         tape: prep.tape,
-        refus: m.refus === 'codeInconnu' || m.refus === 'complet' || m.refus === 'solo' ? m.refus : undefined,
+        refus: m.refus === 'codeInconnu' || m.refus === 'complet' || m.refus === 'solo' || m.refus === 'tropDeRooms' ? m.refus : undefined,
       };
     case 'pochette':
       return {

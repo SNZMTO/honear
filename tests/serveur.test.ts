@@ -12,7 +12,7 @@ import { lireUneAction, type Action, type Connexion, type Nouvelle } from '../sr
 import { MODES, type PisteDuMode } from '../src/regles/modes';
 import { partieA, type EvenementDePartie } from '../src/regles/partie';
 import { DUREE_DU_DECOMPTE, jouer, memeReponse, type ActionDePiste, type Piste } from '../src/regles/piste';
-import { DEROULE, REGLAGES, SERVEUR } from '../src/ressources/reglages';
+import { DEROULE, PARTIE, REGLAGES, SERVEUR } from '../src/ressources/reglages';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { avecDesChoix } from '../src/serveur/choix';
 import { dansLOrdre, lOrdreDeLaPlaylist, unOrdreAuHasard } from '../src/serveur/ordre';
@@ -52,7 +52,8 @@ function monde() {
     playlist: (lien) => (lien === 'bac' ? PLAYLIST : undefined),
     bientot: (pistes) => annoncees.push(pistes),
   });
-  const telephone = (): Telephone => {
+  /** Un téléphone, branché depuis cette adresse si on la donne. */
+  const telephone = (depuis?: string): Telephone => {
     const t: Telephone = { connexion: undefined as unknown as Connexion, recu: [], journal: [], seance: [], toi: '', jeton: '', code: '' };
     Object.assign(t, {
       connexion: serveur.connecter((n) => {
@@ -60,7 +61,7 @@ function monde() {
         if (n.genre === 'etat') Object.assign(t, { journal: [...n.journal], seance: [...n.seance], toi: n.toi, jeton: n.jeton, code: n.code });
         if (n.genre === 'evenement') t.journal.push(n.evenement);
         if (n.genre === 'piste') t.seance.push(n.action);
-      }),
+      }, depuis),
     });
     return t;
   };
@@ -370,6 +371,8 @@ test('une room où plus personne n’est branché s’en va, et ses jetons avec 
   const [hote, invite] = [m.telephone(), m.telephone()];
   hote.connexion.envoyer(creer);
   invite.connexion.envoyer({ genre: 'rejoindre', code: hote.code, pochette: POCHETTE });
+  // On y a joué : elle attend qu'on revienne.
+  hote.connexion.envoyer({ genre: 'lancer' });
   const autre = m.telephone();
   autre.connexion.envoyer(creer);
   hote.connexion.couper();
@@ -384,6 +387,69 @@ test('une room où plus personne n’est branché s’en va, et ses jetons avec 
   assert.deepEqual(revenu.recu[revenu.recu.length - 1], { genre: 'refus', heure: SERVEUR.expiration.sansPersonne + 1, raison: 'codeInconnu' });
   m.a(SERVEUR.expiration.auPlus + 1);
   assert.equal(m.serveur.rooms, 0, 'aucune ne vit plus d’une soirée');
+});
+
+test('une room ouverte puis laissée sans qu’on y joue s’en va bien plus tôt ; un hôte qui attend ses potes au salon la garde', () => {
+  const m = monde();
+  const [laissee, salon] = [m.telephone(), m.telephone()];
+  laissee.connexion.envoyer(creer);
+  laissee.connexion.envoyer({ genre: 'quitter' });
+  salon.connexion.envoyer(creer);
+  m.a(SERVEUR.expiration.jamaisLancee - 1);
+  assert.ok(m.serveur.room(laissee.code) !== undefined);
+  m.a(SERVEUR.expiration.jamaisLancee + 1);
+  assert.equal(m.serveur.room(laissee.code), undefined);
+  assert.ok(m.serveur.room(salon.code) !== undefined, 'on y est encore branché');
+});
+
+test('le serveur n’ouvre pas de room sans fin : tant en tout, tant à la fois pour une même adresse ; une autre adresse en ouvre', () => {
+  const m = monde();
+  // Ouvrir, quitter, rouvrir : chaque room reste, jusqu'à ce que le serveur en tienne assez.
+  const goulu = m.telephone();
+  for (let n = 0; n < SERVEUR.rooms.auPlus; n++) {
+    goulu.connexion.envoyer(creer);
+    goulu.connexion.envoyer({ genre: 'quitter' });
+  }
+  assert.equal(m.serveur.rooms, SERVEUR.rooms.auPlus);
+  goulu.connexion.envoyer(creer);
+  assert.deepEqual(goulu.recu.at(-1), { genre: 'refus', heure: 0, raison: 'tropDeRooms' });
+  assert.equal(m.serveur.rooms, SERVEUR.rooms.auPlus);
+
+  // D'une même adresse, tant à la fois ; elles s'en vont, elle en rouvre.
+  const p = monde();
+  const ici = p.telephone('203.0.113.7');
+  for (let n = 0; n < SERVEUR.rooms.parAdresse; n++) {
+    ici.connexion.envoyer(creer);
+    ici.connexion.envoyer({ genre: 'quitter' });
+  }
+  ici.connexion.envoyer(creer);
+  assert.deepEqual(ici.recu.at(-1), { genre: 'refus', heure: 0, raison: 'tropDeRooms' });
+  assert.equal(p.serveur.rooms, SERVEUR.rooms.parAdresse);
+  const ailleurs = p.telephone('198.51.100.4');
+  ailleurs.connexion.envoyer(creer);
+  assert.equal(ailleurs.recu.at(-1)?.genre, 'etat');
+  p.a(SERVEUR.expiration.jamaisLancee + 1);
+  ici.connexion.envoyer(creer);
+  assert.equal(ici.recu.at(-1)?.genre, 'etat');
+});
+
+test('un code libre se tire en tant d’essais au plus : un hasard qui redonne toujours le même code ne fige pas le serveur', () => {
+  let tirages = 0;
+  const serveur = demarrerLeServeur({
+    maintenant: () => 0,
+    tirage: () => (tirages++, 0),
+    ordre: lOrdreDeLaPlaylist,
+    jeton: () => `jeton-${tirages}`,
+    playlist: (lien) => (lien === 'bac' ? PLAYLIST : undefined),
+  });
+  const recus: Nouvelle[][] = [[], []];
+  const [premier, second] = recus.map((r) => serveur.connecter((n) => r.push(n)));
+  premier?.envoyer(creer);
+  assert.equal(recus[0]?.at(-1)?.genre, 'etat');
+  second?.envoyer(creer);
+  assert.deepEqual(recus[1]?.at(-1), { genre: 'refus', heure: 0, raison: 'tropDeRooms' });
+  assert.ok(tirages <= PARTIE.code.longueur * (1 + SERVEUR.essaisDuCode), `${tirages} tirages`);
+  assert.equal(serveur.rooms, 1);
 });
 
 test('ce qui arrive du réseau n’est pas cru sur parole : seule une action bien formée passe, et rien de plus qu’elle', () => {

@@ -387,10 +387,16 @@ export function vueDeLAmpli(a: Ecritoire, allume: boolean): VueDuTelephone {
 }
 
 /**
+ * Ce que la saisie du code dit que le serveur a refusé : un code que personne n'a, une room pleine, une room en solo ; et, pour l'hôte
+ * qui en ouvrait une, une room de plus que le serveur n'ouvre pas (il le dit là, d'où l'on peut encore rejoindre celle d'un autre).
+ */
+export type RefusDeLaSaisie = 'codeInconnu' | 'complet' | 'solo' | 'tropDeRooms';
+
+/**
  * La saisie du code d'une room : le papier où il s'écrit, lettre après lettre ; ce que le serveur a refusé ; la touche qui entre, et
  * « Retour », qui ramène à l'accueil.
  */
-export function vueDeLaSaisie(a: Ecritoire, tape: string, refus?: 'codeInconnu' | 'complet' | 'solo'): VueDuTelephone {
+export function vueDeLaSaisie(a: Ecritoire, tape: string, refus?: RefusDeLaSaisie): VueDuTelephone {
   const r = SUR_LA_PLATINE;
   const S = T.saisie;
   const lettres = [...tape].join('  ');

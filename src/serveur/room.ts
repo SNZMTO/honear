@@ -37,6 +37,8 @@ export interface Room {
   /** Combien de téléphones y sont branchés, et l'heure de la dernière chose qui s'y est passée : de quoi la laisser expirer. */
   readonly branches: number;
   readonly activite: number;
+  /** Vrai dès que l'hôte y a lancé une piste : une room qu'on a ouverte puis laissée, sans jamais jouer, s'en va plus tôt. */
+  readonly lancee: boolean;
   /**
    * Un joueur arrive, avec sa pochette : il reçoit l'état complet, avec son jeton, les autres apprennent son arrivée.
    * @param jeton le secret qu'il redonnera pour revenir à sa place.
@@ -273,6 +275,9 @@ export function ouvrirUneRoom(
     },
     get activite() {
       return activite;
+    },
+    get lancee() {
+      return lancee;
     },
     arriver(id, pochette, envoyer, heure, jeton) {
       activite = heure;

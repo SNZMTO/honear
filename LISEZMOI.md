@@ -1071,6 +1071,11 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   - *Un fichier qu'on ne sait pas relire* (coupé en route, abîmé, d'une autre version, une entrée qu'on ne reconnaît pas) passait
     pour un fichier vide : la première écriture effaçait tous les comptes. Il ne s'ouvre plus et n'est jamais réécrit ; les comptes
     restent fermés (`/sante` dit `illisibles`), les statistiques aussi, et le journal dit pourquoi, sans rien citer du fichier.
+  - *Des rooms sans fin* : la playlist d'essai ne coûte rien, et « Quitter » puis rouvrir en ouvrait une autre, qui vivait une
+    demi-heure. Le serveur en tient 2 000 au plus ; une même adresse en a trois ouvertes à la fois, dix ouvertes par minute au plus
+    (`SERVEUR.rooms`) ; une room jamais lancée, laissée vide, s'en va en cinq minutes. Au-delà, l'hôte revient à la saisie du code :
+    « Toutes les platines tournent. Réessaie dans un moment. » (`tropDeRooms`). Le code se tire en cinquante essais au plus, et
+    les jetons d'une room s'en vont avec elle, sans parcourir ceux des autres.
 
 ## Ce qui attend les étapes suivantes
 

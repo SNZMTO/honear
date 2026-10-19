@@ -191,7 +191,7 @@ function ecranDuSalon(a: Ecritoire, etat: EtatDeLaPartie, code: string, qui: Qui
 const ecranDeLAmpli = (a: Ecritoire, allume: boolean): ImageDePlanche =>
   ecran(allume ? 'ampli' : 'etat-sonBloque', allume ? L.ecrans.ampli : L.etats.sonBloque, vueDeLAmpli(a, allume));
 
-const ecranDeSaisie = (a: Ecritoire, tape: string, etat?: 'codeInconnu' | 'complet'): ImageDePlanche =>
+const ecranDeSaisie = (a: Ecritoire, tape: string, etat?: 'codeInconnu' | 'complet' | 'tropDeRooms'): ImageDePlanche =>
   ecran(etat === undefined ? 'saisie' : `etat-${etat}`, etat === undefined ? L.ecrans.saisie : L.etats[etat], vueDeLaSaisie(a, tape, etat));
 
 // ————— Une piste —————
@@ -413,6 +413,7 @@ export function imagesDesEcrans(textes: Textes, encrier: Encrier): ImagesDesEcra
       ecranDeSaisie(a, code.slice(0, 2)),
       ecranDeSaisie(a, L.partie.codeFaux, 'codeInconnu'),
       ecranDeSaisie(a, code, 'complet'),
+      ecranDeSaisie(a, '', 'tropDeRooms'),
       ecranDuBac(a, 'laMienne', 'tropCourt'),
       ecranDuBac(a, 'laMienne', 'spotify'),
       ecranDeLAmpli(a, false),

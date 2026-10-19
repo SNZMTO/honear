@@ -16,8 +16,8 @@ export interface DeLaRoom {
 }
 
 export type FaitDuJeu =
-  /** Un refus : un code que personne n'a, une room pleine, une playlist trop courte pour la face. */
-  | { readonly genre: 'refus'; readonly raison: 'codeInconnu' | 'complet' | 'tropCourt' }
+  /** Un refus : un code que personne n'a, une room pleine, une room de plus que le serveur n'ouvre pas, une playlist trop courte pour la face. */
+  | { readonly genre: 'refus'; readonly raison: 'codeInconnu' | 'complet' | 'tropDeRooms' | 'tropCourt' }
   | (DeLaRoom &
       (
         | { readonly genre: 'ouverte'; readonly pistes: number; readonly extrait: number; readonly son: SonDeLaRoom }

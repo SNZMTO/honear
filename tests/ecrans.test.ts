@@ -214,6 +214,7 @@ test('chaque état a son écran et sa phrase', () => {
   const phrases: Record<string, string> = {
     'etat-codeInconnu': E.codeInconnu,
     'etat-complet': E.complet,
+    'etat-tropDeRooms': E.tropDeRooms,
     'etat-tropCourt': E.tropCourt,
     'etat-connexionPerdue': E.connexionPerdue,
     'etat-patronSorti': E.patronSorti,

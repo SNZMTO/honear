@@ -194,6 +194,8 @@ export interface Textes {
     readonly complet: string;
     /** Une room en solo, où l'on tente d'entrer. */
     readonly solo: string;
+    /** Le serveur n'ouvre pas une room de plus : il en tient assez, ou ce téléphone en a assez ouvert. */
+    readonly tropDeRooms: string;
     readonly tropCourt: string;
     readonly connexionPerdue: string;
     readonly patronSorti: string;
