@@ -64,10 +64,12 @@ passe.
   capacités Linux retirées, `no-new-privileges`, limites de processus et de mémoire, aucun port publié : le jeu ne se joint que
   derrière le frontal HTTPS du VPS.
 - **La mise en ligne** ([`deploiement/mettre-en-ligne.sh`](deploiement/mettre-en-ligne.sh)) refuse un dépôt qui a des
-  changements, étiquette l'image au commit, garde les trois précédentes pour revenir en arrière, et attend que le jeu réponde.
+  changements, étiquette l'image au commit, garde les trois dernières (la nouvelle et les deux d'avant) pour revenir en arrière,
+  et attend que le jeu réponde.
 - **Les secrets** ne sont jamais dans le dépôt : ils vivent sur la machine, dans des fichiers lisibles par root seul.
 - **La page** est servie sous une politique de sécurité stricte (CSP, `nosniff`, `no-referrer`, pas d'iframe). Le WebSocket
-  vérifie l'origine, la taille des messages et le débit de chaque adresse.
+  vérifie l'origine et la taille des messages, et plafonne le débit de chaque connexion ; une même adresse (celle que le frontal
+  a vue) branche trente téléphones et ouvre trois rooms au plus.
 - **Les comptes** : liens à usage unique, mots de passe hachés par scrypt et comparés en temps constant, essais limités, fichier
   réécrit de façon atomique.
 - **Les données des joueurs** ont leur registre RGPD ([`RGPD.md`](RGPD.md)) : ce qui est gardé et pourquoi, les droits des joueurs,
