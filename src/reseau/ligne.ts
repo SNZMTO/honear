@@ -45,7 +45,7 @@ export interface OptionsDeLaLigne {
   readonly origines: readonly string[];
   /** Appelé après chaque action reçue : le serveur a peut-être un rendez-vous plus proche. */
   readonly aChaqueAction: () => void;
-  /** L'adresse d'un navigateur, telle que le relais devant le serveur la donne. */
+  /** L'adresse d'un navigateur, telle que le relais devant le serveur la donne (sans relais de confiance, celle de la prise). */
   readonly adresseDe: (requete: IncomingMessage) => string;
   /** Où chercher des playlists et lire leurs pistes. Sans elle, le bac ne trouve rien, et seule la playlist d'essai se joue. */
   readonly musique?: Musique;

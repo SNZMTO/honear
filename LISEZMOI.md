@@ -1082,6 +1082,9 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   - *Le diagnostic, ouvert à tous* : n'importe quelle page écrivait au journal du serveur (600 paquets par connexion). Il est fermé
     d'ordinaire ; on l'ouvre le temps d'un essai (`DIAGNOSTIC=1`, voir HEBERGEMENT.md), et une même adresse n'y écrit alors que
     600 paquets par heure.
+  - *Une adresse qu'on s'invente* : le serveur croyait la première valeur de `X-Forwarded-For`, que le navigateur écrit à sa
+    guise ; les limites par adresse s'en contournaient. Il ne lit cet en-tête que derrière un relais de confiance (`RELAIS=1`, dans
+    `compose.yaml`), et n'en prend que la dernière valeur, celle que Caddy ajoute ; sinon, l'adresse de la prise.
 
 ## Ce qui attend les étapes suivantes
 

@@ -1,7 +1,8 @@
 /**
  * Le site en ligne : le point d'entrée du serveur, sur le VPS. Il lit sa configuration dans l'environnement, sert la page du jeu,
  * branche les téléphones par WebSocket au serveur du jeu, et fait avancer celui-ci à ses rendez-vous (l'extrait qui part,
- * la révélation). Il écoute en local : c'est le relais devant lui (Caddy) qui parle HTTPS au monde. Il va chercher la musique chez
+ * la révélation). Il écoute en local : c'est le relais devant lui (Caddy) qui parle HTTPS au monde, et lui dit l'adresse de chaque
+ * navigateur (RELAIS=1 ; sans relais, il prend celle de la prise). Il va chercher la musique chez
  * Deezer (DEEZER : une autre adresse, celle d'un faux, pour essayer le site).
  * Il compte ce qui s'y passe pour la page des statistiques (STATISTIQUES, le fichier, sinon à côté des comptes ; STATISTIQUES_CLE,
  * la clé qui l'ouvre : sans elle, la page est fermée).
@@ -70,6 +71,8 @@ export interface ConfigurationDuSite {
   readonly statistiques?: { readonly fichier: string; readonly cle: string | undefined };
   /** Vrai si le journal accepte le diagnostic des pages (DIAGNOSTIC=1) ; d'ordinaire, il est fermé : une page n'y écrit rien. */
   readonly diagnostic?: boolean;
+  /** Vrai si le site est derrière un relais de confiance (RELAIS=1 : le frontal Caddy), qui lui dit l'adresse de chaque navigateur. */
+  readonly relais?: boolean;
 }
 
 function configuration(): ConfigurationDuSite {
@@ -88,6 +91,7 @@ function configuration(): ConfigurationDuSite {
   return {
     ...(contact !== undefined ? { contact } : {}),
     ...(process.env['DIAGNOSTIC'] === '1' ? { diagnostic: true } : {}),
+    ...(process.env['RELAIS'] === '1' ? { relais: true } : {}),
     statistiques: {
       fichier: process.env['STATISTIQUES'] ?? join(dirname(comptes), 'statistiques.json'),
       cle: cle !== undefined && /^[A-Za-z0-9_-]{16,128}$/.test(cle) ? cle : undefined,
@@ -310,11 +314,15 @@ function musiqueEnLigne(ailleurs: { readonly deezer: string; readonly listes?: s
   });
 }
 
-/** L'adresse d'un navigateur : celle que le relais a vue (le premier « X-Forwarded-For »), sinon celle de la prise. */
-function adresseDe(requete: IncomingMessage): string {
-  const relayee = requete.headers['x-forwarded-for'];
-  const premiere = (Array.isArray(relayee) ? relayee[0] : relayee)?.split(',')[0]?.trim();
-  return premiere !== undefined && premiere !== '' ? premiere : (requete.socket.remoteAddress ?? '');
+/**
+ * L'adresse d'un navigateur : celle d'où vient sa limite par adresse (connexions, rooms, liens, essais, diagnostic). Derrière un
+ * relais de confiance, celle qu'il a vue : la dernière de « X-Forwarded-For », qu'il y ajoute lui-même (celles d'avant, le navigateur
+ * a pu les écrire). Sans relais, celle de la prise : un en-tête que n'importe qui peut écrire n'est pas cru.
+ */
+export function adresseDe(requete: IncomingMessage, relais: boolean): string {
+  const relayee = relais ? requete.headers['x-forwarded-for'] : undefined;
+  const derniere = (Array.isArray(relayee) ? relayee.join(',') : relayee)?.split(',').pop()?.trim();
+  return derniere !== undefined && derniere !== '' ? derniere : (requete.socket.remoteAddress ?? '');
 }
 
 /** Le site lancé : le port où il écoute, une fois qu'il écoute, et de quoi l'arrêter. */
@@ -377,13 +385,14 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
   const page = readFileSync(c.page, 'utf8');
   // La version de la page, qu'elle porte dans son en-tête (voir la construction) : la ligne la compare à celle des pages qui se branchent.
   const version = new RegExp(`<meta name="${META_DE_LA_VERSION}" content="([^"]+)">`).exec(page)?.[1];
+  const adresseDuNavigateur = (requete: IncomingMessage): string => adresseDe(requete, c.relais === true);
   const ligne = ouvrirLaLigne({
     serveur,
     ...(version !== undefined ? { version } : {}),
     maintenant,
     origines: c.origines,
     aChaqueAction: avancer,
-    adresseDe,
+    adresseDe: adresseDuNavigateur,
     ...(musique !== undefined ? { musique } : {}),
     ...(comptes !== undefined ? { comptes } : {}),
     ...(statistiques !== undefined ? { statistiques } : {}),
@@ -421,7 +430,7 @@ export function lancerLeSite(c: ConfigurationDuSite): SiteLance {
                   : undefined,
             },
             quandUnePage: (requete: IncomingMessage, room: boolean) =>
-              statistiques.page(adresseDe(requete), requete.headers['user-agent'] ?? '', room, neVeutPasEtreSuivi(requete)),
+              statistiques.page(adresseDuNavigateur(requete), requete.headers['user-agent'] ?? '', room, neVeutPasEtreSuivi(requete)),
           }
         : {}),
     }),
