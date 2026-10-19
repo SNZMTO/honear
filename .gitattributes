@@ -1,0 +1,3 @@
+# Les fins de ligne : LF partout, dans le dépôt comme dans chaque clone, Windows compris ; sans quoi Prettier, qui les veut LF,
+# voit des centaines de fichiers à refaire là où rien n'a changé. Git reconnaît seul ce qui n'est pas du texte (polices, images).
+* text=auto eol=lf
