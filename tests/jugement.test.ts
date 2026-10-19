@@ -86,6 +86,8 @@ test('le registre range les modes par cran, un cran chacun ; chaque mode a son n
   assert.equal(new Set(tous.map((m) => m.cran)).size, tous.length);
   for (const mode of tous) {
     assert.ok(TEXTES.commandes.modes[mode.cle] !== undefined && TEXTES.partie.bareme[mode.cle] !== undefined, mode.cle);
+    // Un mode en duels (le tournoi) n'a rien à deviner : son déroulé est à part (voir tournoi.test.ts).
+    if (mode.deroule === 'duels') continue;
     assert.ok(mode.aTrouver({ reponse: DEMONS }).length > 0 && mode.phases.includes('extrait'), mode.cle);
   }
 });

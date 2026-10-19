@@ -61,7 +61,7 @@ export const TEXTES: Textes = {
     extrait: 'Secondes',
     mode: 'Mode',
     son: 'Son',
-    modes: { libre: 'Libre', solo: 'Solo', premierArrive: 'First one', premiereNote: '1re note', quatreChoix: '4 choix' },
+    modes: { libre: 'Libre', solo: 'Solo', premierArrive: 'First one', premiereNote: '1re note', quatreChoix: '4 choix', tournoi: 'Tournoi' },
     crans: ['1', '2', '3', '4', '5', '6', '7'],
     sons: { tous: 'Tous', hote: 'Hôte' },
   },
@@ -234,6 +234,7 @@ export const TEXTES: Textes = {
       quatreChoix: '4 choix : 1 point, 1 de plus au plus rapide.',
       premierArrive: 'First one : le premier qui trouve l’artiste et le titre gagne 3 points, la piste s’arrête.',
       premiereNote: '1re note : une seconde de son, puis on cherche. 1 point par partie.',
+      tournoi: 'Tournoi : deux titres par disque, chacun vote pour sa face, la majorité passe. Jusqu’au disque d’or.',
     },
     titresJoues: 'Face A, ce soir',
     titreJoue: '{numero}. {titre} – {artiste}',
@@ -366,7 +367,7 @@ export const TEXTES: Textes = {
         {
           titre: 'Si tu joues sans compte',
           paragraphes: [
-            'Ton nom d’artiste et ta pochette restent sur ton téléphone, dans son stockage local. Pendant une partie, le serveur les connaît, avec tes réponses et tes points, le temps que la room existe : ils ne vivent qu’en mémoire et disparaissent quand elle se ferme. Rien n’en est écrit sur disque.',
+            'Ton nom d’artiste et ta pochette restent sur ton téléphone, dans son stockage local. Pendant une partie, le serveur les connaît, avec tes réponses, tes votes (au tournoi, la room les voit à la fin de chaque duel) et tes points, le temps que la room existe : ils ne vivent qu’en mémoire et disparaissent quand elle se ferme. Rien n’en est écrit sur disque.',
           ],
         },
         {

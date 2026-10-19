@@ -2,22 +2,36 @@
  * Une room, vue du serveur : qui est autour du meuble, qui tient la platine, ce que chacun a trouvé et marqué, la tête qu'il fait,
  * et où en est la partie (le salon, les pistes, la fin). Des règles pures : le journal de la room, rejoué jusqu'à un instant,
  * donne son état à cet instant. Le serveur tient le journal ; chaque téléphone le rejoue, et tous voient la même chose.
- * Ce que vaut une réponse, c'est le mode qui le dit : ce module ne connaît aucun mode par son nom.
+ * Ce que vaut une réponse, c'est le mode qui le dit : ce module ne connaît aucun mode par son nom. Au tournoi, pas de pistes mais
+ * des duels : ce qu'ils deviennent, c'est `tournoi.ts` qui le dit.
  *
  * Les expressions changent toutes seules, d'un coup :
  * - content à l'arrivée, et à chaque bonne réponse ;
- * - concentré pendant l'extrait ;
+ * - concentré pendant l'extrait, et pendant un duel ;
  * - dépité à chaque mauvaise réponse, quand on se fait doubler, et quand personne n'a trouvé la piste ;
- * - endormi après une piste entière sans répondre.
+ * - endormi après une piste entière sans répondre, et après un duel sans voter ;
+ * - au tournoi, à la clôture d'un duel : content si sa face passe, dépité sinon.
  */
 
 import type { NomDExpression } from '../ressources/avatar';
 import type { Pochette } from '../ressources/pochettes';
 import { PARTIE } from '../ressources/reglages';
 import type { Verdict } from './jugement';
-import { MODES, type CleDeMode, type ModeDeJeu, type PisteDuMode, type Proposition, type PropositionDeLaPiste } from './modes';
+import { enDuels, MODES, modeADeviner, type CleDeMode, type ModeDeJeu, type PisteDuMode, type Proposition, type PropositionDeLaPiste } from './modes';
 import type { Reponse } from './piste';
 import type { Tirage } from './pochette';
+import {
+  clore,
+  oublierLeVote,
+  ouvrirLeDuel,
+  tournoiDe,
+  tournoiFini,
+  voter,
+  type Engage,
+  type EtatDuTournoi,
+  type FaceDuDuel,
+  type Issue,
+} from './tournoi';
 
 /** Ce qui arrive dans une room, à un instant de l'horloge du serveur (en secondes). */
 export type EvenementDePartie =
@@ -63,7 +77,16 @@ export type EvenementDePartie =
    * La réponse est révélée : la piste est finie. Le serveur la publie avec ce qu'il fallait trouver, et, si le mode départage
    * les réponses les unes par rapport aux autres, les points que cela rapporte à chacun.
    */
-  | { readonly genre: 'revelation'; readonly a: number; readonly reponse?: Reponse; readonly departage?: Readonly<Record<string, number>> };
+  | { readonly genre: 'revelation'; readonly a: number; readonly reponse?: Reponse; readonly departage?: Readonly<Record<string, number>> }
+  /** Au tournoi, un duel s'ouvre : ses deux faces, chacune un titre du tableau, à sa place. */
+  | { readonly genre: 'duel'; readonly a: number; readonly faces: Readonly<Record<FaceDuDuel, Engage>> }
+  /**
+   * Un joueur vote pour une face, et peut en changer tant que le duel n'est pas clos. Le serveur seul sait laquelle jusqu'à la
+   * clôture : publié, le vote dit seulement qu'il a voté (voir messages.ts).
+   */
+  | { readonly genre: 'vote'; readonly a: number; readonly id: string; readonly face?: FaceDuDuel }
+  /** Le duel se clôt : le vote de chacun, révélé à tous, la face qui passe, et comment (aux voix, à pile ou face, par forfait). */
+  | ({ readonly genre: 'cloture'; readonly a: number } & Issue);
 
 export interface Joueur {
   readonly id: string;
@@ -108,10 +131,12 @@ export interface EtatDeLaPartie {
   /** Ceux qui sont restés à la porte : la room était pleine. */
   readonly refuses: readonly string[];
   readonly piste?: PisteEnCours;
-  /** Combien de pistes ont été révélées. */
+  /** Combien de pistes ont été révélées ; au tournoi, combien de duels sont clos. */
   readonly pistesJouees: number;
   /** Ce qui a été trouvé à chaque piste révélée : vrai si quelqu'un a trouvé quelque chose. */
   readonly trouvees: readonly boolean[];
+  /** Le tournoi, quand la room en joue un (son mode se joue en duels) : son tableau, ses duels clos, le duel en cours. */
+  readonly tournoi?: EtatDuTournoi;
 }
 
 /** Une room qu'on vient de créer : personne, rien de réglé. */
@@ -156,8 +181,8 @@ function peutRepondre(etat: EtatDeLaPartie, id: string): boolean {
  */
 export function jugerUneReponse(etat: EtatDeLaPartie, id: string, proposition: Proposition): ReponseJugee | undefined {
   const piste = etat.piste;
-  if (piste === undefined || !peutRepondre(etat, id)) return undefined;
-  const mode = MODES[etat.mode];
+  const mode = modeADeviner(etat.mode);
+  if (piste === undefined || mode === undefined || !peutRepondre(etat, id)) return undefined;
   const deja = piste.trouve[id] ?? [];
   const { trouve, verdict } = mode.juger(proposition, piste.attendue, deja);
   const complet = trouve.length > 0 && mode.aTrouver(piste.attendue).every((p) => [...deja, ...trouve].includes(p));
@@ -199,8 +224,13 @@ function appliquer(etat: EtatDeLaPartie, id: string, jugee: ReponseJugee): EtatD
 /** Un événement de plus. Ce qui n'a pas de sens (répondre hors d'un extrait, arriver deux fois) ne change rien. */
 export function suivre(etat: EtatDeLaPartie, e: EvenementDePartie): EtatDeLaPartie {
   switch (e.genre) {
-    case 'ouverture':
-      return etat.phase === 'salon' ? { ...etat, mode: e.mode, pistes: e.pistes, son: e.son ?? etat.son, face: e.face ?? etat.face } : etat;
+    case 'ouverture': {
+      if (etat.phase !== 'salon') return etat;
+      const { tournoi: _ancien, ...reste } = etat;
+      const ouverte: EtatDeLaPartie = { ...reste, mode: e.mode, pistes: e.pistes, son: e.son ?? etat.son, face: e.face ?? etat.face };
+      // Un mode en duels : le tournoi commence, son tableau de la taille réglée.
+      return enDuels(e.mode) ? { ...ouverte, tournoi: tournoiDe(e.pistes) } : ouverte;
+    }
     case 'arrivee': {
       if (etat.joueurs.some((j) => j.id === e.id)) return etat;
       if (etat.joueurs.length >= (MODES[etat.mode].joueurs ?? PARTIE.joueurs).auPlus) return { ...etat, refuses: [...etat.refuses, e.id] };
@@ -210,7 +240,8 @@ export function suivre(etat: EtatDeLaPartie, e: EvenementDePartie): EtatDeLaPart
         points: 0,
         expression: 'content',
         connecte: true,
-        spectateur: etat.piste !== undefined,
+        // Qui arrive pendant une piste, ou pendant un duel, regarde jusqu'à la suivante.
+        spectateur: etat.piste !== undefined || etat.tournoi?.enCours !== undefined,
       };
       return { ...etat, hote: etat.hote ?? e.id, joueurs: [...etat.joueurs, joueur] };
     }
@@ -223,7 +254,8 @@ export function suivre(etat: EtatDeLaPartie, e: EvenementDePartie): EtatDeLaPart
       const joueurs = etat.joueurs.filter((j) => j.id !== e.id);
       // La platine passe au suivant, dans l'ordre d'arrivée, parmi ceux qui sont là.
       const hote = etat.hote === e.id ? (joueurs.find((j) => j.connecte) ?? joueurs[0])?.id : etat.hote;
-      return { ...etat, joueurs, hote };
+      // Au tournoi, qui s'en va ne compte plus : son vote s'efface du duel en cours.
+      return { ...etat, joueurs, hote, ...(etat.tournoi !== undefined ? { tournoi: oublierLeVote(etat.tournoi, e.id) } : {}) };
     }
     case 'extrait':
       if (etat.phase === 'fin') return etat;
@@ -249,7 +281,8 @@ export function suivre(etat: EtatDeLaPartie, e: EvenementDePartie): EtatDeLaPart
       const piste = etat.piste;
       if (piste === undefined) return etat;
       // Le départage : publié par le serveur avec la révélation ; le serveur, lui, le fait d'après les propositions.
-      const departage = e.departage ?? departageDeLaPiste(MODES[etat.mode], piste);
+      const mode = modeADeviner(etat.mode);
+      const departage = e.departage ?? (mode !== undefined ? departageDeLaPiste(mode, piste) : {});
       const marque = Object.values(departage).some((points) => points > 0);
       const personne = Object.keys(piste.trouve).length === 0 && !marque;
       const joueurs = etat.joueurs.map((j): Joueur => {
@@ -267,6 +300,36 @@ export function suivre(etat: EtatDeLaPartie, e: EvenementDePartie): EtatDeLaPart
         trouvees: [...etat.trouvees, !personne],
         phase: pistesJouees >= etat.pistes && etat.pistes > 0 ? 'fin' : 'pistes',
       };
+    }
+    case 'duel': {
+      const tournoi = etat.tournoi;
+      if (tournoi === undefined || tournoi.enCours !== undefined || tournoiFini(tournoi)) return etat;
+      return {
+        ...etat,
+        phase: 'pistes',
+        tournoi: ouvrirLeDuel(tournoi, { a: e.a, faces: e.faces }),
+        // Les spectateurs entrent au tournoi au duel suivant : celui-ci. Chacun écoute.
+        joueurs: etat.joueurs.map((j) => ({ ...j, spectateur: false, expression: 'concentre' })),
+      };
+    }
+    case 'vote': {
+      const tournoi = etat.tournoi;
+      const votant = etat.joueurs.find((j) => j.id === e.id);
+      if (tournoi?.enCours === undefined || votant === undefined || votant.spectateur) return etat;
+      return { ...etat, tournoi: voter(tournoi, e.id, e.face) };
+    }
+    case 'cloture': {
+      const tournoi = etat.tournoi;
+      if (tournoi?.enCours === undefined) return etat;
+      const apres = clore(tournoi, e.a, { votes: e.votes, gagnante: e.gagnante, par: e.par });
+      // Content si sa face passe, dépité sinon ; endormi sans avoir voté. Un forfait ne change la tête de personne.
+      const joueurs = etat.joueurs.map((j): Joueur => {
+        const sienne = e.votes[j.id];
+        if (e.par === 'forfait' || j.spectateur) return j;
+        if (sienne === undefined) return { ...j, expression: 'endormi' };
+        return { ...j, expression: sienne === e.gagnante ? 'content' : 'depite' };
+      });
+      return { ...etat, joueurs, tournoi: apres, pistesJouees: etat.pistesJouees + 1, phase: tournoiFini(apres) ? 'fin' : 'pistes' };
     }
   }
 }

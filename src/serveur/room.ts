@@ -3,15 +3,19 @@
  * Elle reçoit leurs actions, datées de l'horloge du serveur, décide de tout, et envoie à chacun ce qu'il peut savoir : l'état complet
  * quand il arrive ou revient, puis un événement publié à la fois, et le déroulé de la piste. Rien ici ne touche au réseau ni ne lit
  * l'heure : on la lui donne à chaque fois, et `avancer` fait arriver ce qui devait arriver (l'extrait qui part, la révélation).
+ * Une room en tournoi n'a pas de pistes mais des duels : elle les confie à son tournoi (`tournoi.ts`), et garde le reste.
  */
 
 import { publier, type Action, type Nouvelle } from '../regles/messages';
-import { MODES, type CleDeMode, type PisteDuMode } from '../regles/modes';
+import { enDuels, MODES, modeADeviner, type CleDeMode, type PisteDuMode } from '../regles/modes';
 import { dureeDeLExtrait, partieA, type EtatDeLaPartie, type EvenementDePartie, type Face, type SonDeLaRoom } from '../regles/partie';
 import { DUREE_DU_DECOMPTE, finDeLExtrait, jouer, type ActionDePiste, type Piste } from '../regles/piste';
+import type { Tirage } from '../regles/pochette';
+import { tailleDuTableau } from '../regles/tournoi';
 import type { Pochette } from '../ressources/pochettes';
 import { DEROULE, PARTIE } from '../ressources/reglages';
 import type { FaitDuJeu, FaitSansLaRoom, Raconter } from './faits';
+import { preparerLeTournoi } from './tournoi';
 
 /** De quoi écrire à un téléphone branché. */
 export type Envoyer = (nouvelle: Nouvelle) => void;
@@ -19,6 +23,7 @@ export type Envoyer = (nouvelle: Nouvelle) => void;
 /** Ce que l'hôte a réglé sur la platine en ouvrant la room. */
 export interface ReglagesDeLaRoom {
   readonly mode: CleDeMode;
+  /** Le nombre de pistes ; au tournoi, la taille du tableau qu'on veut (la playlist peut n'en remplir qu'une plus petite). */
   readonly pistes: number;
   /** La durée de l'extrait réglée sur le bouton « Extrait », en secondes ; le mode peut en imposer une autre. */
   readonly extrait: number;
@@ -55,7 +60,8 @@ export interface Room {
   recevoir(id: string, action: Action, heure: number): void;
   /**
    * L'hôte change de playlist, quand il veut, même en pleine piste : celle-ci s'arrête là, et la partie repart sur la face A de la
-   * nouvelle, avec les mêmes, aux mêmes places, leurs points remis à zéro. Ce qui n'est pas l'hôte ne change rien.
+   * nouvelle, avec les mêmes, aux mêmes places, leurs points remis à zéro (au tournoi, sur un nouveau tableau). Ce qui n'est pas
+   * l'hôte ne change rien.
    * @param pistes ses pistes, dans l'ordre où elles se joueront, comme à l'ouverture.
    */
   changerDePlaylist(id: string, playlist: string, pistes: () => readonly PisteDuMode[], heure: number): void;
@@ -81,7 +87,9 @@ interface PisteDeLaRoom {
  * @param playlist le lien de la playlist choisie dans le bac.
  * @param pistes ses pistes, dans l'ordre où elles se jouent (la face A, puis la face B), telles qu'elles sont à l'instant où on les
  * demande : les liens des extraits expirent, la source les relit avant qu'on lance une piste.
- * @param quandFinie appelé une fois par face, à la révélation de sa dernière piste, avec l'état de la partie finie.
+ * @param tirage le hasard du serveur : au tournoi, les places au tableau, et le disque qu'on lance comme une pièce.
+ * @param quandFinie appelé une fois par face, à la révélation de sa dernière piste (au tournoi, à la clôture de sa finale), avec
+ * l'état de la partie finie.
  * @param raconter ce qui se passe dans la room, pour qu'on le compte (voir faits.ts).
  */
 export function ouvrirUneRoom(
@@ -90,6 +98,7 @@ export function ouvrirUneRoom(
   playlistDeDepart: string,
   pistesDeDepart: () => readonly PisteDuMode[],
   heure: number,
+  tirage: Tirage,
   quandFinie?: (etat: EtatDeLaPartie) => void,
   raconter?: Raconter,
 ): Room {
@@ -103,11 +112,14 @@ export function ouvrirUneRoom(
   let pistesJouees = 0;
   let joueursAuPlus = 0;
   let lancee = false;
+  const enTournoi = enDuels(reglages.mode);
+  /** Le nombre de pistes de la partie ; au tournoi, la taille du tableau que la playlist remplit, au plus celle qu'on veut. */
+  const pistesDeLaPartie = (): number => (enTournoi ? (tailleDuTableau(pistes(), reglages.pistes) ?? reglages.pistes) : reglages.pistes);
   const ouverture = (a: number, face: Face = 'A'): EvenementDePartie => ({
     genre: 'ouverture',
     a,
     mode: reglages.mode,
-    pistes: reglages.pistes,
+    pistes: pistesDeLaPartie(),
     son: reglages.son,
     face,
   });
@@ -136,6 +148,18 @@ export function ouvrirUneRoom(
   }
   /** Les joueurs qui jouent, sans ceux qui regardent. */
   const quiJouent = (e: EtatDeLaPartie): number => e.joueurs.filter((j) => !j.spectateur).length;
+  /** Au tournoi : le tableau, les duels, les votes, la clôture (voir tournoi.ts). */
+  const tournoi = enTournoi
+    ? preparerLeTournoi({
+        etat: () => etat(),
+        ajouter: (e) => void ajouter(e),
+        diffuser: (nouvelle) => diffuser(nouvelle),
+        pistes: () => pistes(),
+        tirage,
+        raconter: (fait) => raconterDeLaRoom(fait),
+        quandFini: (a) => faceFinie(a),
+      })
+    : undefined;
   const etatComplet = (toi: string, heure: number): Nouvelle => ({
     genre: 'etat',
     heure,
@@ -145,6 +169,7 @@ export function ouvrirUneRoom(
     journal: publier(journal),
     seance: [...(enCours?.seance ?? [])],
     ...(enCours?.attendue.extrait !== undefined ? { extrait: enCours.attendue.extrait } : {}),
+    ...(tournoi?.extraits !== undefined ? { extraits: tournoi.extraits } : {}),
   });
   function jouerLaPiste(p: PisteDeLaRoom, action: ActionDePiste): void {
     p.piste = jouer(p.piste, action);
@@ -165,14 +190,27 @@ export function ouvrirUneRoom(
 
   function lancer(id: string, heure: number): void {
     const e = etat();
+    if (!estLHote(id) || e.phase === 'fin' || e.joueurs.length < joueursDuMode.auMoins) return;
+    if (tournoi !== undefined) {
+      if (e.pistesJouees === 0 && e.tournoi?.enCours === undefined) debutDeLaFace = heure;
+      // La playlist n'a plus de quoi remplir le tableau : l'hôte en choisira une autre, comme pour une face trop courte.
+      if (tournoi.lancer(heure) === 'tropCourt') {
+        branches.get(id)?.({ genre: 'refus', heure, raison: 'tropCourt' });
+        raconter?.({ genre: 'refus', raison: 'tropCourt' });
+        return;
+      }
+      lancee = true;
+      return;
+    }
+    const mode = modeADeviner(reglages.mode);
     const toutes = pistes();
     const attendue = toutes[prochaine % Math.max(1, toutes.length)];
     const libre = enCours === undefined || enCours.piste?.revelation !== undefined;
-    if (!estLHote(id) || !libre || attendue === undefined || e.phase === 'fin' || e.joueurs.length < joueursDuMode.auMoins) return;
+    if (mode === undefined || !libre || attendue === undefined) return;
     prochaine++;
     const p: PisteDeLaRoom = { attendue, piste: undefined, seance: [], prets: new Set(), extraitParti: false, trouvee: false };
     enCours = p;
-    jouerLaPiste(p, { genre: 'lancer', a: heure, duree: dureeDeLExtrait(MODES[reglages.mode], reglages.extrait) });
+    jouerLaPiste(p, { genre: 'lancer', a: heure, duree: dureeDeLExtrait(mode, reglages.extrait) });
     const numero = e.pistesJouees + 1;
     if (numero === 1) debutDeLaFace = heure;
     lancee = true;
@@ -201,11 +239,25 @@ export function ouvrirUneRoom(
     for (const [qui, envoyer] of branches) envoyer(etatComplet(qui, heure));
   }
 
-  /** « Rejouer la face B » : la playlist reprend où elle s'est arrêtée. */
+  /** « Rejouer la face B » : la playlist reprend où elle s'est arrêtée. Au tournoi, une revanche : un autre tableau, d'autres titres tant qu'il y en a. */
   function rejouer(id: string, heure: number): void {
     if (!estLHote(id) || etat().phase !== 'fin') return;
-    repartir('B', heure);
+    tournoi?.recommencer();
+    repartir(tournoi !== undefined ? 'A' : 'B', heure);
     raconterDeLaRoom({ genre: 'rejouer' });
+  }
+
+  /** La partie est finie, à cet instant : ses scores comptent, et la room raconte ce qu'elle a été. */
+  function faceFinie(a: number): void {
+    const apres = etat();
+    quandFinie?.(apres);
+    raconterDeLaRoom({
+      genre: 'faceFinie',
+      face: apres.face,
+      joueurs: quiJouent(apres),
+      duree: a - (debutDeLaFace ?? a),
+      meilleur: Math.max(0, ...apres.joueurs.map((j) => j.points)),
+    });
   }
 
   /** La réponse se révèle, à cet instant : à la fin de l'extrait, ou dès que le premier a tout trouvé. */
@@ -226,18 +278,11 @@ export function ouvrirUneRoom(
       trouveurs: Object.keys(avant.piste?.trouve ?? {}).length,
       joueurs: quiJouent(avant),
     });
-    if (apres.phase !== 'fin') return;
-    quandFinie?.(apres);
-    raconterDeLaRoom({
-      genre: 'faceFinie',
-      face: apres.face,
-      joueurs: quiJouent(apres),
-      duree: a - (debutDeLaFace ?? a),
-      meilleur: Math.max(0, ...apres.joueurs.map((j) => j.points)),
-    });
+    if (apres.phase === 'fin') faceFinie(a);
   }
 
   function avancer(heure: number): number | undefined {
+    if (tournoi !== undefined) return tournoi.avancer(heure);
     const p = enCours;
     if (p?.piste === undefined) return undefined;
     // Les retardataires ne retiennent pas la piste : l'extrait part sans eux, ils le rejoindront en route.
@@ -319,6 +364,8 @@ export function ouvrirUneRoom(
       if (!etat().joueurs.some((j) => j.id === id && j.connecte)) return;
       ajouter({ genre: 'deconnexion', a: heure, id });
       raconterDeLaRoom({ genre: 'deconnexion' });
+      // Au tournoi, on n'attend plus son vote : le duel se clôt peut-être.
+      tournoi?.recompter(heure);
     },
     recevoir(id, action, heure) {
       activite = heure;
@@ -343,8 +390,9 @@ export function ouvrirUneRoom(
             }
             // Un mode où le premier qui a tout trouvé arrête la piste : la réponse se révèle tout de suite.
             const trouve = etat().piste?.trouve[id] ?? [];
-            const aTrouver = MODES[reglages.mode].aTrouver(enCours.attendue);
-            if (MODES[reglages.mode].finitAuPremier === true && aTrouver.every((partie) => trouve.includes(partie))) reveler(enCours, heure);
+            const mode = modeADeviner(reglages.mode);
+            const aTrouver = mode?.aTrouver(enCours.attendue) ?? [];
+            if (mode?.finitAuPremier === true && aTrouver.every((partie) => trouve.includes(partie))) reveler(enCours, heure);
           }
           return;
         }
@@ -355,6 +403,12 @@ export function ouvrirUneRoom(
           ajouter({ genre: 'nouvellePochette', a: heure, id, pochette: action.pochette });
           return;
         }
+        case 'voter':
+          return tournoi?.voter(id, action.face, heure);
+        case 'clore':
+          // Seul l'hôte clôt un duel sans attendre tout le monde.
+          if (estLHote(id)) tournoi?.clore(heure);
+          return;
         case 'rejouer':
           return rejouer(id, heure);
         case 'changerDePlaylist':
@@ -364,6 +418,8 @@ export function ouvrirUneRoom(
           branches.delete(id);
           ajouter({ genre: 'depart', a: heure, id });
           raconterDeLaRoom({ genre: 'depart' });
+          // Au tournoi, qui s'en va ne compte plus : son vote s'efface, et le duel se clôt peut-être.
+          tournoi?.recompter(heure);
           return;
         case 'creer':
         case 'rejoindre':
@@ -389,12 +445,13 @@ export function ouvrirUneRoom(
       playlist = lien;
       pistes = nouvelles;
       prochaine = 0;
+      tournoi?.recommencer();
       repartir('A', heure);
       raconterDeLaRoom({ genre: 'autrePlaylist' });
     },
     avancer,
     fermer(heure) {
-      raconterDeLaRoom({ genre: 'fermee', duree: heure - ouverteA, pistes: pistesJouees, joueursAuPlus, lancee });
+      raconterDeLaRoom({ genre: 'fermee', duree: heure - ouverteA, pistes: pistesJouees + (tournoi?.duelsClos ?? 0), joueursAuPlus, lancee });
     },
   };
 }

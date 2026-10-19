@@ -110,6 +110,11 @@ le contrat :
 `dureeDeLExtrait(mode, réglée)` au lancement d'une piste, `equipesDeLaPartie(mode, état)` pour le classement et la tablée. Saisie libre
 et 4 choix sont écrits avec ce contrat, et rien d'autre.
 
+Le tournoi n'a rien à deviner : c'est un `ModeEnDuels` (`deroule: 'duels'`), qui ne déclare que ce que tout mode déclare (sa clé, son
+cran, ses réglages, ses joueurs). Le registre tient les deux (`ModeDuRegistre`) ; ce qui juge, compte ou règle l'extrait passe par
+`modeADeviner(cle)`, qui ne rend rien pour lui. Son déroulé est à part : `regles/tournoi.ts` (le tableau, l'issue d'un duel) et
+`serveur/tournoi.ts` (le tableau tiré, le duel lancé, ses extraits, la clôture), que la room appelle à la place de ses pistes.
+
 ## Les messages
 
 Une connexion WebSocket par joueur. Les téléphones n'envoient que des actions ; le serveur décide de tout, date tout de son horloge
@@ -129,8 +134,10 @@ et publie un événement à la fois. Tout est dans `regles/messages.ts`, typé, 
 | `reprendreLeCompte` | `session` | en se branchant, si le téléphone est entré dans un compte |
 | `sortirDuCompte`, `effacerLeCompte` | — | depuis l'écran du compte |
 | `pret` | — | son ampli est allumé et l'extrait de la piste est chargé |
-| `lancer` | — | l'hôte lance la face A, ou la piste suivante |
+| `lancer` | — | l'hôte lance la face A, ou la piste suivante ; au tournoi, le duel suivant |
 | `repondre` | `proposition` : `{ saisie, texte }` ou `{ choix, rang }` | pendant l'extrait |
+| `voter` | `face` (`A` ou `B`) | au tournoi, pendant un duel ; on peut changer d'avis tant qu'il n'est pas clos |
+| `clore` | — | au tournoi, l'hôte clôt le duel sans attendre ceux qui n'ont pas voté |
 | `rejouer` | — | « Rejouer la face B » |
 | `quitter` | — | il s'en va pour de bon |
 
@@ -141,7 +148,8 @@ et publie un événement à la fois. Tout est dans `regles/messages.ts`, typé, 
 | `etat` | `code`, `toi`, `journal` (le journal publié en entier), `seance` (le déroulé de la piste en cours) | à chaque connexion et reconnexion |
 | `evenement` | un événement du journal publié | à chaque fois qu'il se passe quelque chose |
 | `piste` | `lancer` (le décompte part, la durée de l'extrait, et son adresse à précharger), `prets` (tous chargés : l'extrait part à cette heure), `reveler` (avec la réponse) | le déroulé d'une piste |
-| `etat` (suite) | `jeton` (le secret de ce joueur), `extrait` (l'adresse de celui de la piste en cours) | |
+| `etat` (suite) | `jeton` (le secret de ce joueur), `extrait` (l'adresse de celui de la piste en cours), `extraits` (ceux du duel en cours) | |
+| `extraits` | `duel` (l'instant où il s'est ouvert), `faces` (l'adresse de l'extrait de A et de B) | au tournoi, à l'ouverture d'un duel, et quand le serveur en a relu les liens |
 | `heure` | `heure`, `depart` (celui de la question) | la réponse à `quelleHeure` |
 | `playlists` | `recherche`, `playlists` (`lien`, `titre`, `total`) | ce que Deezer a trouvé |
 | `importee` | `playlist` (`lien`, `titre`, `total`, `jouables`) | la playlist d'un lien collé, lue |
@@ -152,12 +160,15 @@ et publie un événement à la fois. Tout est dans `regles/messages.ts`, typé, 
 
 **Les événements du journal (`EvenementDePartie`)** : `ouverture` (mode, nombre de pistes, qui joue le son), `arrivee` (avec la pochette), `deconnexion`,
 `retour`, `depart`, `extrait` (la piste), `reponse` (la proposition), `jugee` (ce qu'elle trouve, son verdict, ses points, et si le joueur
-a tout trouvé), `revelation` (la réponse, et le départage s'il y en a un).
+a tout trouvé), `revelation` (la réponse, et le départage s'il y en a un) ; au tournoi, `duel` (ses deux faces, chacune un titre à sa
+place au tableau), `vote` (qui, et la face au serveur seulement), `cloture` (les votes, la face qui passe, et comment : `voix`,
+`pileOuFace`, `forfait`).
 
 **Ce que le serveur garde pour lui.** Il tient le vrai journal ; il n'envoie que `publier(journal)`. Ce journal-là a l'extrait sans la
 réponse (`REPONSE_MASQUEE`) ni rien qui y mène (il n'en garde que les étiquettes du 4 choix : ni l'identifiant Deezer, ni les surnoms,
 ni l'anecdote), chaque `reponse` remplacée par sa `jugee` (ce qu'elle vaut, jamais ce qui a été tapé), et la révélation avec la réponse,
-son anecdote s'il y en a une, et le départage. Rejoué par un téléphone, il donne exactement les mêmes points, les mêmes têtes, le même classement :
+son anecdote s'il y en a une, et le départage. Au tournoi, un vote y part sans sa face, une fois par joueur et par duel : la clôture
+les révèle tous. Rejoué par un téléphone, il donne exactement les mêmes points, les mêmes têtes, le même classement :
 `tests/messages.test.ts` le vérifie à chaque instant d'une partie, et vérifie que le titre n'apparaît nulle part avant sa révélation.
 
 **Recharger ne casse rien.** À la connexion, le téléphone reçoit `etat`, rejoue le journal (`partieA`) et le déroulé de la piste

@@ -325,6 +325,18 @@ export function ouvrirLesStatistiques(o: OptionsDesStatistiques): Statistiques {
         if (Object.keys(d.titres).length > S.gardes.titres * 2) d.titres = elaguer(d.titres, S.gardes.titres, (x) => x.joues);
         return;
       }
+      case 'duel':
+        // Au tournoi, chaque duel ; le premier lance la partie.
+        ajouter('duels');
+        if (f.numero !== 1) return;
+        ajouter('parties');
+        ajouter(`parties.${mode}`);
+        return;
+      case 'cloture':
+        ajouter(`duels.${f.par}`);
+        ajouter('duels.votants', f.votants);
+        ajouter('duels.joueurs', f.joueurs);
+        return;
       case 'faceFinie': {
         ajouter('faces');
         ajouter(`faces.${mode}`);

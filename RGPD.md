@@ -14,7 +14,7 @@ l'adresse `CONTACT` du serveur, écrite sur les pages légales. Pas de délégu�
 
 | Traitement | Données | Base légale | Combien de temps | Où, qui y accède | Module |
 | --- | --- | --- | --- | --- | --- |
-| Jouer (sans compte) | nom d'artiste, pochette, réponses, points | le service demandé (6.1.b) | tant que la room existe, en mémoire | le serveur ; les joueurs de la room voient noms et pochettes | `src/serveur/` |
+| Jouer (sans compte) | nom d'artiste, pochette, réponses, votes du tournoi, points | le service demandé (6.1.b) | tant que la room existe, en mémoire | le serveur ; les joueurs de la room voient noms et pochettes, et au tournoi les votes de chacun, à la fin de chaque duel | `src/serveur/` |
 | Les comptes | adresse e-mail, pochette, parties et victoires, dates de création, de dernière visite, d'avertissement ; empreinte scrypt du mot de passe (facultatif) ; empreintes des sessions | le service demandé (6.1.b) | jusqu'à l'effacement par le joueur, ou deux ans sans visite (prévenu un mois avant) ; une session, six mois ; un lien, un quart d'heure, en mémoire | `/var/lib/honear/comptes.json` (0600, utilisateur `honear`) | `src/reseau/comptes.ts`, `mots-de-passe.ts` |
 | Les e-mails | adresse e-mail ; lien de connexion, avis de mot de passe changé, avertissement avant effacement | le service demandé (6.1.b) | le temps de l'envoi | OVHcloud (SMTP) | `src/reseau/courrier.ts` |
 | Les abus | adresse IP : connexions par adresse, liens demandés, essais de mot de passe | intérêt légitime (6.1.f) | la connexion ; une heure au plus, en mémoire | le serveur | `src/reseau/ligne.ts`, `comptes.ts` |
