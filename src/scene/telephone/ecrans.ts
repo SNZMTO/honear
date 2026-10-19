@@ -5,7 +5,7 @@
  */
 
 import type { Vec2 } from '../../lowpoly/vecteurs';
-import { MODES, type ModeDeJeu } from '../../regles/modes';
+import { MODES, type ModeDuRegistre } from '../../regles/modes';
 import { disquesDeLaFinale, hitParade, mouvementsDuClassement, type EtatDeLaPartie, type SonDeLaRoom } from '../../regles/partie';
 import type { Reponse } from '../../regles/piste';
 import { PARTIE, SITE } from '../../ressources/reglages';
@@ -296,7 +296,7 @@ export function vueDuBac(a: Ecritoire, bac: BacOuvert): VueDuTelephone {
  */
 export function vueDesReglages(
   a: Ecritoire,
-  mode: ModeDeJeu,
+  mode: ModeDuRegistre,
   reglages?: { readonly pistes: number; readonly extrait: number; readonly son: SonDeLaRoom },
 ): VueDuTelephone {
   const r = SUR_LA_PLATINE;

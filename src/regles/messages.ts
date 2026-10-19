@@ -9,11 +9,12 @@
 
 import { COULEURS_DES_THEMES, type CleDeTheme } from '../ressources/bac';
 import type { Pochette } from '../ressources/pochettes';
-import { JUGEMENT, MOT_DE_PASSE, REGLAGES } from '../ressources/reglages';
-import { MODES, type CleDeMode, type PisteDuMode, type Proposition } from './modes';
+import { JUGEMENT, MOT_DE_PASSE, REGLAGES, TOURNOI } from '../ressources/reglages';
+import { enDuels, MODES, modeADeviner, type CleDeMode, type PisteDuMode, type Proposition } from './modes';
 import { departageDeLaPiste, jugerUneReponse, ROOM_VIDE, suivre, type EvenementDePartie } from './partie';
 import type { ActionDePiste, Reponse } from './piste';
 import { estUnePochette } from './pochette';
+import { FACES_DU_DUEL, type FaceDuDuel } from './tournoi';
 
 /** Un thème du bac, par sa clé. */
 export const estUnThemeDuBac = (x: unknown): x is CleDeTheme => typeof x === 'string' && Object.prototype.hasOwnProperty.call(COULEURS_DES_THEMES, x);
@@ -44,10 +45,14 @@ export type Action =
   | { readonly genre: 'changerDePochette'; readonly pochette: Pochette }
   /** Ce téléphone est prêt : son ampli est allumé, l'extrait de la piste est chargé. */
   | { readonly genre: 'pret' }
-  /** L'hôte lance la face A, ou la piste suivante. */
+  /** L'hôte lance la face A, ou la piste suivante ; au tournoi, le premier duel, puis le suivant. */
   | { readonly genre: 'lancer' }
   /** Une réponse : un texte tapé sur l'étiquette vierge, ou une étiquette touchée. */
   | { readonly genre: 'repondre'; readonly proposition: Proposition }
+  /** Au tournoi, un vote pour une face du duel en cours : il peut en changer tant que le duel n'est pas clos. */
+  | { readonly genre: 'voter'; readonly face: FaceDuDuel }
+  /** Au tournoi, l'hôte clôt le duel sans attendre ceux qui n'ont pas voté : quelqu'un au moins doit avoir voté. */
+  | { readonly genre: 'clore' }
   /** « Rejouer la face B » : une nouvelle partie, avec les mêmes. */
   | { readonly genre: 'rejouer' }
   /**
@@ -177,9 +182,16 @@ export type Nouvelle =
       readonly seance: readonly ActionDePiste[];
       /** L'adresse de l'extrait de la piste en cours, s'il y en a un : de quoi le reprendre au bon endroit. */
       readonly extrait?: string;
+      /** Au tournoi, les extraits du duel en cours, s'il y en a un : chacun les écoute à son rythme. */
+      readonly extraits?: ExtraitsDuDuel;
     }
   /** Un événement de plus du journal publié. */
   | { readonly genre: 'evenement'; readonly heure: number; readonly evenement: EvenementDePartie }
+  /**
+   * Au tournoi, les extraits du duel en cours : à son ouverture, puis chaque fois que le serveur en a relu les liens, qui expirent.
+   * Ils voyagent hors du journal, comme l'extrait d'une piste : un lien d'hier ne sert plus à rien.
+   */
+  | ({ readonly genre: 'extraits'; readonly heure: number } & ExtraitsDuDuel)
   /**
    * Le déroulé de la piste : le décompte qui part (avec l'adresse de l'extrait, à précharger pendant le décompte), tous les appareils
    * prêts (l'extrait part), la révélation.
@@ -204,6 +216,15 @@ export type Nouvelle =
   | { readonly genre: 'horsCompte'; readonly heure: number };
 
 /**
+ * Les extraits d'un duel : l'instant où il s'est ouvert (de quoi ne pas prendre ceux d'un autre), et l'adresse de chaque face,
+ * quand la source en donne une (une partie d'exemple n'en a pas).
+ */
+export interface ExtraitsDuDuel {
+  readonly duel: number;
+  readonly faces: Readonly<Partial<Record<FaceDuDuel, string>>>;
+}
+
+/**
  * Ce que l'extrait publié dit de la réponse avant la révélation : rien. Le téléphone sait qu'une piste est en cours,
  * et en 4 choix, quelles étiquettes tendre ; la vraie réponse n'arrive qu'avec la révélation.
  */
@@ -214,14 +235,19 @@ const reponseRevelee = ({ reponse, anecdote }: PisteDuMode): Reponse => (anecdot
 
 /**
  * Le journal tel que le serveur le publie : l'extrait sans la réponse (ni rien qui la dise : son identifiant chez Deezer, ses
- * surnoms, son anecdote), chaque réponse jugée sans ce qui a été tapé, la révélation avec la réponse et son anecdote. Rejoué par
- * un téléphone, il donne les mêmes points, les mêmes têtes, le même classement.
+ * surnoms, son anecdote), chaque réponse jugée sans ce qui a été tapé, la révélation avec la réponse et son anecdote. Au tournoi,
+ * un vote sans la face choisie, et une seule fois par duel (qu'il change d'avis ne se voit pas) : la clôture les révèle tous.
+ * Rejoué par un téléphone, il donne les mêmes points, les mêmes têtes, le même classement.
  */
 export function publier(journal: readonly EvenementDePartie[]): EvenementDePartie[] {
   let etat = ROOM_VIDE;
   const publies: EvenementDePartie[] = [];
   for (const e of [...journal].sort((x, y) => x.a - y.a)) {
-    if (e.genre === 'extrait') {
+    if (e.genre === 'vote') {
+      const duel = etat.tournoi?.enCours;
+      const compte = duel !== undefined && etat.joueurs.some((j) => j.id === e.id && !j.spectateur);
+      if (compte && !duel.votants.includes(e.id)) publies.push({ genre: 'vote', a: e.a, id: e.id });
+    } else if (e.genre === 'extrait') {
       // Le téléphone n'en apprend que les étiquettes du 4 choix ; l'adresse de l'extrait voyage avec le lancer de la piste.
       const { choix } = e.piste;
       publies.push({ ...e, piste: { reponse: REPONSE_MASQUEE, ...(choix !== undefined ? { choix } : {}) } });
@@ -232,7 +258,8 @@ export function publier(journal: readonly EvenementDePartie[]): EvenementDeParti
     } else if (e.genre === 'revelation') {
       // Avec ce qu'il fallait trouver, et ce que le départage rapporte à chacun : un téléphone ne connaît pas les propositions des autres.
       const piste = etat.piste;
-      const departage = piste !== undefined ? departageDeLaPiste(MODES[etat.mode], piste) : {};
+      const mode = modeADeviner(etat.mode);
+      const departage = piste !== undefined && mode !== undefined ? departageDeLaPiste(mode, piste) : {};
       publies.push({
         ...e,
         ...(piste !== undefined ? { reponse: reponseRevelee(piste.attendue) } : {}),
@@ -280,9 +307,14 @@ function lireUneProposition(x: unknown): Proposition | undefined {
 /** Le plus de pistes qu'une partie peut compter : le plus grand cran du bouton « Pistes ». */
 const PISTES_AU_PLUS = Math.max(...REGLAGES.pistes.choix);
 
+/** Vrai si ce nombre de pistes va à ce mode : de un au plus grand cran du bouton, ou, au tournoi, l'une des tailles du tableau. */
+const pistesDuMode = (mode: CleDeMode, pistes: unknown): pistes is number =>
+  enDuels(mode) ? (TOURNOI.titres.choix as readonly unknown[]).includes(pistes) : estUnEntier(pistes, 1, PISTES_AU_PLUS);
+
 /**
  * Ce qu'un téléphone a envoyé, s'il l'a bien formé : chaque champ attendu, de la bonne sorte et de la bonne taille, et rien d'autre
- * n'est gardé. Une durée d'extrait est l'un des crans du bouton ; un nombre de pistes, de un au plus grand cran.
+ * n'est gardé. Une durée d'extrait est l'un des crans du bouton ; un nombre de pistes, de un au plus grand cran (au tournoi, une
+ * taille du tableau) ; une face de duel, A ou B.
  * @returns rien si ce n'est pas une action : le serveur ne la verra pas.
  */
 export function lireUneAction(x: unknown): Action | undefined {
@@ -292,8 +324,7 @@ export function lireUneAction(x: unknown): Action | undefined {
       return estUnNombre(x['depart']) ? { genre: 'quelleHeure', depart: x['depart'] } : undefined;
     case 'creer': {
       const { mode, pistes, extrait, son, playlist, pochette } = x;
-      if (!estUnMode(mode) || !estUnEntier(pistes, 1, PISTES_AU_PLUS) || !(REGLAGES.extrait.choix as readonly unknown[]).includes(extrait))
-        return undefined;
+      if (!estUnMode(mode) || !pistesDuMode(mode, pistes) || !(REGLAGES.extrait.choix as readonly unknown[]).includes(extrait)) return undefined;
       if ((son !== 'tous' && son !== 'hote') || !estUnTexte(playlist, BORNES.playlist) || !estUnePochette(pochette)) return undefined;
       return { genre: 'creer', mode, pistes, extrait: extrait as number, son, playlist, pochette };
     }
@@ -308,6 +339,10 @@ export function lireUneAction(x: unknown): Action | undefined {
     case 'repondre': {
       const proposition = lireUneProposition(x['proposition']);
       return proposition !== undefined ? { genre: 'repondre', proposition } : undefined;
+    }
+    case 'voter': {
+      const face = FACES_DU_DUEL.find((f) => f === x['face']);
+      return face !== undefined ? { genre: 'voter', face } : undefined;
     }
     case 'chercher':
       return estUnTexte(x['recherche'], BORNES.recherche) && x['recherche'].trim() !== ''
@@ -343,6 +378,7 @@ export function lireUneAction(x: unknown): Action | undefined {
       return typeof x['session'] === 'string' && SECRET.test(x['session']) ? { genre: 'reprendreLeCompte', session: x['session'] } : undefined;
     case 'pret':
     case 'lancer':
+    case 'clore':
     case 'rejouer':
     case 'quitter':
     case 'sortirDuCompte':

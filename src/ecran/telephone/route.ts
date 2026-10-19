@@ -4,7 +4,7 @@
  * Pur : la même mémoire, à la même heure, montre le même écran.
  */
 
-import { MODES, type ModeDeJeu } from '../../regles/modes';
+import { MODES, modeADeviner, type ModeDuRegistre } from '../../regles/modes';
 import { jugerUnMotDePasse } from '../../regles/mot-de-passe';
 import { numeroDeLaPiste, partieA, partieAvant, type EtatDeLaPartie, type EvenementDePartie, type SonDeLaRoom } from '../../regles/partie';
 import { jouer, type Reponse } from '../../regles/piste';
@@ -44,7 +44,7 @@ export type EcranDuTelephone =
     }
   | {
       readonly genre: 'reglages';
-      readonly mode: ModeDeJeu;
+      readonly mode: ModeDuRegistre;
       readonly pistes: number;
       readonly extrait: number;
       readonly son: SonDeLaRoom;
@@ -188,7 +188,9 @@ function ecranDeLaPiste(
   const moi = etat.joueurs.find((j) => j.id === room.toi);
   const revelee = revelation?.reponse;
   const pouce = m.pouce.lanceeA === lanceeA ? m.pouce : undefined;
-  const mode = MODES[etat.mode];
+  // Une piste se devine : le tournoi n'en a pas (ses duels ont leur écran).
+  const mode = modeADeviner(etat.mode);
+  if (mode === undefined) return undefined;
   const ouverte =
     extrait !== undefined && revelee === undefined && moi !== undefined && !moi.spectateur && !(etat.piste?.complets.includes(room.toi) ?? false);
   const frappe = pouce?.frappe;

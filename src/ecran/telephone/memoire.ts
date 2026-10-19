@@ -6,7 +6,15 @@
  */
 
 import { hasard } from '../../lowpoly/aleatoire';
-import { estUnThemeDuBac, type Action, type CompteVu, type Nouvelle, type PlaylistTrouvee, type RaisonDeRefus } from '../../regles/messages';
+import {
+  estUnThemeDuBac,
+  type Action,
+  type CompteVu,
+  type ExtraitsDuDuel,
+  type Nouvelle,
+  type PlaylistTrouvee,
+  type RaisonDeRefus,
+} from '../../regles/messages';
 import { MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { numeroDeLaPiste, partieA, type EvenementDePartie, type Face, type SonDeLaRoom } from '../../regles/partie';
 import type { ActionDePiste } from '../../regles/piste';
@@ -33,6 +41,8 @@ export interface RoomConnue {
   readonly seance: readonly ActionDePiste[];
   /** L'adresse de l'extrait de la piste en cours, quand la source en donne un. */
   readonly extrait: string | undefined;
+  /** Au tournoi, les extraits du duel en cours : les derniers liens que le serveur en a donnés. */
+  readonly extraits?: ExtraitsDuDuel;
 }
 
 /**
@@ -394,7 +404,15 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
     case 'etat':
       return {
         ...m,
-        room: { code: n.code, toi: n.toi, jeton: n.jeton, journal: n.journal, seance: n.seance, extrait: n.extrait },
+        room: {
+          code: n.code,
+          toi: n.toi,
+          jeton: n.jeton,
+          journal: n.journal,
+          seance: n.seance,
+          extrait: n.extrait,
+          ...(n.extraits !== undefined ? { extraits: n.extraits } : {}),
+        },
         // Dans une room, l'ampli est allumé d'office : le son part au premier toucher, sans rien à allumer.
         ampliAllumeA: m.ampliAllumeA ?? -Infinity,
         refus: undefined,
@@ -405,6 +423,8 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
       };
     case 'evenement':
       return m.room === undefined ? m : { ...m, room: { ...m.room, journal: [...m.room.journal, n.evenement] } };
+    case 'extraits':
+      return m.room === undefined ? m : { ...m, room: { ...m.room, extraits: { duel: n.duel, faces: n.faces } } };
     case 'piste': {
       if (m.room === undefined) return m;
       const lancee = n.action.genre === 'lancer';

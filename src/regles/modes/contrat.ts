@@ -2,7 +2,8 @@
  * Le contrat d'un mode de jeu. Un mode déclare : son nom (sa clé, que les textes nomment) et son cran sur le sélecteur,
  * ses réglages propres, ses phases, ce que le joueur a sous le pouce pour répondre, ce qu'il y a à trouver et la façon de juger
  * une réponse, son barème, et ce que montrent l'étiquette et le bras. Le socle ne connaît aucun mode par son nom :
- * il passe par ce contrat, et par le registre.
+ * il passe par ce contrat, et par le registre. Un mode a l'un de deux déroulés : des pistes à deviner (le blind test, tous les
+ * modes sauf un), ou des duels où l'on vote (le tournoi), qui n'a rien à juger et se joue à part (`regles/tournoi.ts`).
  */
 
 import type { Verdict } from '../jugement';
@@ -44,12 +45,21 @@ export interface Jugement {
   readonly verdict: Verdict;
 }
 
-export interface ModeDeJeu {
+/** Ce que tout mode déclare, qu'on y devine des pistes ou qu'on y vote : sa clé, son cran, ses réglages, ses joueurs. */
+interface CeQueToutModeDeclare {
   readonly cle: string;
   /** Son cran sur le sélecteur rotatif de la platine, de 0 au dernier cran gravé. */
   readonly cran: number;
   /** Ses réglages propres, s'il en a : le nombre de réponses proposées, par exemple. */
   readonly reglages: Readonly<Record<string, number>>;
+  /** Combien de joueurs il faut pour lancer, et combien la room en accueille au plus ; sans cela, ceux de toute partie. */
+  readonly joueurs?: { readonly auMoins: number; readonly auPlus: number };
+}
+
+/** Un mode de blind test : des pistes à deviner, l'une après l'autre. */
+export interface ModeDeJeu extends CeQueToutModeDeclare {
+  /** Son déroulé : des pistes (c'est celui de tous les modes, sauf le tournoi). */
+  readonly deroule?: 'pistes';
   /** Les phases d'une de ses pistes, dans l'ordre. */
   readonly phases: readonly PhaseDePiste[];
   /** Ce que le joueur a sous le pouce pour répondre. */
@@ -78,8 +88,17 @@ export interface ModeDeJeu {
   readonly son?: number;
   /** Vrai si la piste s'arrête dès qu'un joueur a tout trouvé : la réponse se révèle aussitôt. */
   readonly finitAuPremier?: boolean;
-  /** Combien de joueurs il faut pour lancer une piste, et combien la room en accueille au plus ; sans cela, ceux de toute partie. */
-  readonly joueurs?: { readonly auMoins: number; readonly auPlus: number };
   /** En combien d'équipes il range les joueurs, s'il en fait : leurs points se mettent en commun, et la tablée se range en autant de piles. */
   readonly equipes?: number;
 }
+
+/**
+ * Un mode en duels : le tournoi. Rien à deviner ni à juger : deux titres par disque, chacun vote pour la face qu'il garde. Son
+ * déroulé est à part (`regles/tournoi.ts`) ; le registre ne lui demande que ce que tout mode déclare.
+ */
+export interface ModeEnDuels extends CeQueToutModeDeclare {
+  readonly deroule: 'duels';
+}
+
+/** Ce que le registre tient : un mode de blind test, ou un mode en duels. */
+export type ModeDuRegistre = ModeDeJeu | ModeEnDuels;

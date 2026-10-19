@@ -4,12 +4,15 @@
  * les veut (combien), et une piste qui a déjà les siens les garde.
  */
 
-import { MODES, type CleDeMode, type PisteDuMode } from '../regles/modes';
+import { modeADeviner, type CleDeMode, type PisteDuMode } from '../regles/modes';
 import { memeReponse, type Reponse } from '../regles/piste';
 import type { Tirage } from '../regles/pochette';
 
-/** Combien de réponses un mode propose : son réglage « choix », ou aucun s'il fait taper la réponse. */
-const combienDeChoix = (mode: CleDeMode): number => (MODES[mode].sousLePouce === 'etiquettesAToucher' ? (MODES[mode].reglages['choix'] ?? 0) : 0);
+/** Combien de réponses un mode propose : son réglage « choix », ou aucun s'il fait taper la réponse (ou s'il n'a rien à deviner). */
+function combienDeChoix(cle: CleDeMode): number {
+  const mode = modeADeviner(cle);
+  return mode?.sousLePouce === 'etiquettesAToucher' ? (mode.reglages['choix'] ?? 0) : 0;
+}
 
 /** Un entier de zéro à n - 1, tiré au sort. */
 const unRang = (n: number, tirage: Tirage): number => Math.min(n - 1, Math.floor(tirage() * n));

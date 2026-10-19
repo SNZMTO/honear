@@ -7,9 +7,10 @@
  */
 
 import type { Action, Connexion, Nouvelle } from '../regles/messages';
-import type { CleDeMode, PisteDuMode } from '../regles/modes';
+import { enDuels, type CleDeMode, type PisteDuMode } from '../regles/modes';
 import { assezLongue, codeDePartie, type EtatDeLaPartie } from '../regles/partie';
 import type { Tirage } from '../regles/pochette';
+import { tailleDuTableau } from '../regles/tournoi';
 import { SERVEUR } from '../ressources/reglages';
 import { avecDesChoix } from './choix';
 import { dansLOrdre, lOrdreDeLaPlaylist, unOrdreAuHasard } from './ordre';
@@ -65,6 +66,13 @@ const AFFAIRES_DU_RESEAU: ReadonlySet<Action['genre']> = new Set([
   'diagnostic',
   'statistique',
 ]);
+
+/**
+ * Vrai si une playlist a de quoi jouer une partie de ce mode : assez de titres pour la face ; au tournoi, assez de titres différents
+ * pour un tableau, quitte à ce qu'il soit plus petit que celui qu'on a réglé.
+ */
+const dequoiJouer = (mode: CleDeMode, pistes: readonly PisteDuMode[], voulues: number): boolean =>
+  enDuels(mode) ? tailleDuTableau(pistes, voulues) !== undefined : assezLongue(pistes.length, voulues);
 
 export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
   const rooms = new Map<string, Room>();
@@ -168,7 +176,7 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
       const changerDePlaylist = (room: Room, id: string, playlist: string, heure: number): void => {
         if (room.etat.hote !== id) return;
         const pistes = o.playlist(playlist);
-        if (pistes === undefined || !assezLongue(pistes.length, room.etat.pistes)) {
+        if (pistes === undefined || !dequoiJouer(room.etat.mode, pistes, room.etat.pistes)) {
           recevoir({ genre: 'refus', heure, raison: 'tropCourt' });
           o.raconter?.({ genre: 'refus', raison: 'tropCourt' });
           return;
@@ -206,7 +214,7 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
           if (AFFAIRES_DU_RESEAU.has(action.genre)) return;
           if (action.genre === 'creer') {
             const pistes = o.playlist(action.playlist);
-            if (pistes === undefined || !assezLongue(pistes.length, action.pistes)) {
+            if (pistes === undefined || !dequoiJouer(action.mode, pistes, action.pistes)) {
               recevoir({ genre: 'refus', heure, raison: 'tropCourt' });
               o.raconter?.({ genre: 'refus', raison: 'tropCourt' });
               return;
@@ -221,7 +229,8 @@ export function demarrerLeServeur(o: OptionsDuServeur): Serveur {
             const { mode, extrait, son } = action;
             const finie = (etat: EtatDeLaPartie): void => o.quandUneFaceFinit?.(code, etat);
             const lues = lire(action.playlist, pistes, mode);
-            const room = ouvrirUneRoom(code, { mode, pistes: action.pistes, extrait, son }, action.playlist, lues, heure, finie, o.raconter);
+            const reglages = { mode, pistes: action.pistes, extrait, son };
+            const room = ouvrirUneRoom(code, reglages, action.playlist, lues, heure, o.tirage, finie, o.raconter);
             rooms.set(room.code, room);
             if (depuis !== undefined) {
               ouvertesDepuis.set(room.code, depuis);

@@ -28,6 +28,16 @@ export const DEROULE = {
 } as const;
 
 /**
+ * Le tournoi : combien de titres entrent au tableau, sur les crans du bouton « Titres » (8 titres font 7 duels ; 32, une soirée
+ * entière), et tous les combien de secondes un duel qui dure relit les liens de ses deux extraits, qui expirent : chacun les écoute
+ * à son rythme, aussi longtemps qu'il veut.
+ */
+export const TOURNOI = {
+  titres: { choix: [8, 16, 32], defaut: 16 },
+  relecture: 60,
+} as const;
+
+/**
  * Le serveur, en secondes : une room où plus personne n'est branché s'en va au bout de ce temps (de quoi recharger sa page, retrouver
  * le réseau, ou revenir après une pause), bien plus tôt si l'on n'y a jamais lancé de piste (ouverte, puis laissée) ; aucune ne vit
  * plus longtemps que la plus longue des soirées. Il tient tant de rooms au plus ; une même adresse en a tant d'ouvertes à la fois, et

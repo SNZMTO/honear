@@ -1,12 +1,14 @@
 /**
  * Ce que le serveur du jeu raconte de ce qui s'y passe, pour qu'on le compte (voir reseau/statistiques.ts) : une room qui s'ouvre,
- * un joueur qui arrive, une piste lancée, une réponse jugée, une face finie… Jamais qui : ni nom, ni pochette, ni ce qu'on a tapé.
+ * un joueur qui arrive, une piste lancée, une réponse jugée, un duel clos, une face finie… Jamais qui : ni nom, ni pochette, ni ce
+ * qu'on a tapé, ni pour quelle face on a voté.
  * Chaque fait d'une room dit son code (pour suivre une partie de bout en bout, en mémoire), son mode et sa playlist.
  */
 
 import type { Verdict } from '../regles/jugement';
 import type { CleDeMode } from '../regles/modes';
 import type { Face, SonDeLaRoom } from '../regles/partie';
+import type { ParQuoi } from '../regles/tournoi';
 
 /** Ce que chaque fait d'une room porte : la room, par son code, son mode, et la playlist qu'elle joue. */
 export interface DeLaRoom {
@@ -51,7 +53,11 @@ export type FaitDuJeu =
             readonly trouveurs: number;
             readonly joueurs: number;
           }
-        /** Une face jouée jusqu'au bout : combien de joueurs, sa durée depuis le premier lancer, le meilleur score. */
+        /** Au tournoi, un duel s'ouvre : son numéro (le premier lance la partie). */
+        | { readonly genre: 'duel'; readonly numero: number }
+        /** Au tournoi, un duel se clôt : comment (aux voix, à pile ou face, par forfait), combien ont voté, sur combien de joueurs. */
+        | { readonly genre: 'cloture'; readonly par: ParQuoi; readonly votants: number; readonly joueurs: number }
+        /** Une face jouée jusqu'au bout (au tournoi, sa finale close) : combien de joueurs, sa durée depuis le premier lancer, le meilleur score. */
         | { readonly genre: 'faceFinie'; readonly face: Face; readonly joueurs: number; readonly duree: number; readonly meilleur: number }
         /** « Rejouer la face B » ; une autre playlist, prise en cours de partie. */
         | { readonly genre: 'rejouer' | 'autrePlaylist' }

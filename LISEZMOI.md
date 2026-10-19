@@ -374,7 +374,9 @@ src/
     partie.ts                   Une partie rejouée depuis son journal : les joueurs, leurs points, leurs têtes, le hit-parade, la finale, le code.
     jugement.ts                 Juste, presque ou faux : la saisie normalisée, comparée à l'attendu à quelques fautes près.
     modes/                      Le contrat d'un mode et le registre ; « Libre », « Solo », « First one », « 1re note », chacun son barème
-                                (« 4 choix », au registre, n'est plus sur la manette).
+                                (« 4 choix », au registre, n'est plus sur la manette ; « Tournoi », au registre, n'y est pas encore).
+    tournoi.ts                  Le tournoi : le tableau, le duel qui vient, les votes, la clôture (majorité, pile ou face, forfait),
+                                le disque d'or, l'oreille de la room.
     messages.ts                 Le contrat du transport : actions, nouvelles, et le journal tel que le serveur le publie.
     mot-de-passe.ts             Ce que vaut un mot de passe de compte (au téléphone comme au serveur), et sa forme normale.
     statistiques.ts             Ce que la page des statistiques reçoit du serveur.
@@ -504,6 +506,7 @@ src/
                                 `statistiques.ts` (ce qui se passe, compté, jamais qui).
   serveur/
     room.ts                     Une room : son journal, le déroulé de sa piste, sa playlist, ceux qui y sont branchés ; elle décide de tout.
+    tournoi.ts                  Le tournoi d'une room : le tableau tiré au premier lancer, le duel et ses extraits relus, les votes, la clôture.
     serveur.ts                  Les rooms par leur code, les connexions des téléphones et leurs jetons, une seule horloge, l'expiration.
     choix.ts sources/essai.ts   Les leurres du 4 choix, pris dans la playlist ; la source d'essai (quarante tubes, sans le son).
     sources/deezer.ts liens.ts  Ce qu'on demande à Deezer et ce qu'on lit de ses réponses ; ce que désigne un lien collé (un lien Spotify
@@ -1086,7 +1089,24 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
     guise ; les limites par adresse s'en contournaient. Il ne lit cet en-tête que derrière un relais de confiance (`RELAIS=1`, dans
     `compose.yaml`), et n'en prend que la dernière valeur, celle que Caddy ajoute ; sinon, l'adresse de la prise.
 
+- **Le tournoi, ses règles et son serveur** (le 20) : un mode en duels (`deroule: 'duels'`, `regles/modes/tournoi.ts`), à part du blind
+  test : rien à deviner, deux titres par disque, chacun écoute ses deux faces à son rythme et vote pour celle qu'il garde (`voter`).
+  - *Le tableau* : 8, 16 ou 32 titres (`TOURNOI.titres`, sur le bouton Titres), tirés au premier lancer, chacun une fois (un live, un
+    remaster, un feat de plus ne font pas un titre de plus : `memeTitre`) ; une playlist qui n'en remplit pas assez prend le plus grand
+    tableau qu'elle remplit, sous huit titres elle est refusée (`tropCourt`). Une revanche prend d'abord les titres pas encore joués.
+  - *Le vote* : publié sans sa face, une fois par joueur ; on change d'avis tant que le duel n'est pas clos. Il se clôt dès que tous
+    les joueurs branchés ont voté (qui arrive en cours regarde, qui part ne compte plus), ou quand l'hôte le clôt (`clore`, un vote au
+    moins). La clôture révèle chaque vote ; à égalité, le disque est lancé comme une pièce, du hasard du serveur. Content si sa face
+    passe, dépité sinon, endormi sans avoir voté. Pas de points : une partie au compte, jamais de victoire.
+  - *Les extraits* voyagent hors du journal (`extraits`, et dans `etat`) ; un duel qui dure les relit toutes les minutes
+    (`TOURNOI.relecture`). Une piste que la playlist ne donne plus perd par forfait.
+  - *L'oreille de la room* : qui a le plus souvent voté comme la majorité (les égalités et les forfaits ne comptent pas), pour la fin.
+
 ## Ce qui attend les étapes suivantes
+
+- **Le tournoi, à l'écran et au MCP** : ses planches d'abord (le disque à deux faces, ses deux vraies pochettes, les étiquettes A et B,
+  le bras qui remet en arrière, les pochettes qui passent du côté de leur vote, le disque d'or et le tableau, la place du Tournoi
+  sur la manette), puis le client, et `creer_tournoi` au MCP. Le site se met en ligne avant le MCP.
 
 - **Les comptes, la suite** : les clés d'accès (passkeys), pour entrer sans e-mail sur un téléphone déjà connu.
 - **Au téléphone, le regard saute d'un écran à l'autre** : les glissades de la planche d'animations ne sont pas encore jouées par le client,

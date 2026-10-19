@@ -9,7 +9,7 @@
  * téléphone. Le haut-parleur fait aussi le petit bruit des touches et des crans, par le moteur audio du navigateur.
  */
 
-import { MODES } from '../../regles/modes';
+import { modeADeviner } from '../../regles/modes';
 import { partieA, type EvenementDePartie } from '../../regles/partie';
 import { jouer, type Piste } from '../../regles/piste';
 import { BRUITS, TELEPHONE, type NomDeBruit } from '../../ressources/ecran';
@@ -49,7 +49,7 @@ export function sonVoulu(m: Memoire): SonVoulu | undefined {
   if (piste === undefined || lanceeA === undefined) return undefined;
   const aLaReponse = finDeLaReponse(piste, room.journal, lanceeA);
   // Un mode qui ne fait entendre que le début (la première note) : le son se tait passé ces secondes, le temps d'un fondu.
-  const entendu = MODES[etat.mode].son;
+  const entendu = modeADeviner(etat.mode)?.son;
   const auBout = entendu !== undefined && piste.extraitA !== undefined ? piste.extraitA + entendu + TELEPHONE.son.fondu : undefined;
   const jusqua = aLaReponse !== undefined && auBout !== undefined ? Math.min(aLaReponse, auBout) : (aLaReponse ?? auBout);
   return { adresse: room.extrait, lanceeA, depuis: piste.extraitA, jusqua };
