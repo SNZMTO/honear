@@ -1067,6 +1067,10 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   un thème ou « Mes playlists » (sa pochette personnalisée) ; dessous, une seule touche, « Chercher » (`TOUCHES_DU_BAC`). Un thème
   touché ramène aux thèmes d'où qu'on vienne : depuis « Mes playlists », on restait coincé, les intercalaires ne répondaient plus
   avant qu'on retouche « Prêtes à jouer ».
+- **Le serveur tient bon** (le 19), d'après un audit :
+  - *Un fichier qu'on ne sait pas relire* (coupé en route, abîmé, d'une autre version, une entrée qu'on ne reconnaît pas) passait
+    pour un fichier vide : la première écriture effaçait tous les comptes. Il ne s'ouvre plus et n'est jamais réécrit ; les comptes
+    restent fermés (`/sante` dit `illisibles`), les statistiques aussi, et le journal dit pourquoi, sans rien citer du fichier.
 
 ## Ce qui attend les étapes suivantes
 

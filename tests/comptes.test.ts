@@ -172,12 +172,43 @@ test('le fichier garde les comptes et les sessions, jamais un secret ; relu, il 
     victoires: 0,
     motDePasse: false,
   });
-  // Un fichier abîmé ne casse rien : on repart sans comptes.
-  assert.equal(desComptes({ lu: '{pas du json' }).comptes.reprendre(ouvert.session), undefined);
+  // Un fichier abîmé ne s'ouvre pas : repartir sans comptes, ce serait les effacer à la première écriture.
+  assert.throws(() => desComptes({ lu: '{pas du json' }), /illisible/);
   // Effacer : le compte, ses sessions, tout part.
   relus.comptes.effacer(ouvert.id);
   assert.equal(relus.comptes.reprendre(ouvert.session), undefined);
   assert.ok(!(relus.garde[relus.garde.length - 1] ?? '').includes('mateo@example.com'));
+});
+
+test('un fichier qu’on ne sait pas relire en entier ne s’ouvre pas, et l’erreur n’en cite rien : coupé en route, abîmé, d’une autre version', async () => {
+  const { comptes, garde, dernierLien } = desComptes();
+  await comptes.demanderUnLien('mateo@example.com', 'ici');
+  const ouvert = comptes.ouvrir(dernierLien());
+  assert.ok(ouvert !== undefined);
+  const fichier = garde[garde.length - 1] ?? '';
+  const lu = JSON.parse(fichier) as { comptes: Record<string, unknown>[]; sessions: unknown[] };
+  const abimes = [
+    fichier.slice(0, Math.floor(fichier.length / 2)),
+    '',
+    'null',
+    '[]',
+    JSON.stringify({ ...lu, comptes: 'mateo@example.com' }),
+    JSON.stringify({ ...lu, version: 2 }),
+    JSON.stringify({ ...lu, comptes: [...lu.comptes, { email: 'sans-identifiant@example.com', creeLe: 0 }] }),
+    JSON.stringify({ ...lu, sessions: [...lu.sessions, { compte: ouvert.id }] }),
+  ];
+  for (const texte of abimes) {
+    const gardes: string[] = [];
+    assert.throws(
+      () => desComptes({ lu: texte, garder: (t) => gardes.push(t) }),
+      (erreur: unknown) => erreur instanceof Error && /illisible/.test(erreur.message) && !/@/.test(erreur.message),
+      texte,
+    );
+    assert.deepEqual(gardes, [], texte);
+  }
+  // Ce qu'il sait lire s'ouvre ; une pochette que le jeu ne connaît plus s'oublie, son compte reste.
+  const sansPochette = desComptes({ lu: JSON.stringify({ ...lu, comptes: lu.comptes.map((c) => ({ ...c, pochette: { motif: 'disparu' } })) }) });
+  assert.equal(sansPochette.comptes.reprendre(ouvert.session)?.compte.email, 'mateo@example.com');
 });
 
 test('une face finie compte une partie à chacun de ceux qui y jouaient sous un compte, et une victoire au premier', async () => {

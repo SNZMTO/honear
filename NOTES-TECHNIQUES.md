@@ -193,7 +193,9 @@ Facultatifs, avec ou sans mot de passe (`reseau/comptes.ts`). Le serveur envoie 
 le secret est dans l'ancre, qui ne passe dans aucun journal ; la page l'efface de son adresse et attend qu'on touche « Entrer ». Un
 lien sert une fois, un quart d'heure ; il ouvre (ou crée) le compte de cette adresse, et donne au téléphone le secret d'une session
 de six mois, qu'il garde (`localStorage`) et redonne en se branchant. Les liens vivent en mémoire ; les comptes et les sessions (leur
-empreinte SHA-256, jamais le secret) dans un fichier JSON réécrit d'un coup à chaque changement. La ligne garde, pour chaque
+empreinte SHA-256, jamais le secret) dans un fichier JSON réécrit d'un coup à chaque changement. Un fichier qu'on ne sait pas relire
+en entier (coupé en route, abîmé, d'une autre version) ne s'ouvre pas, et n'est jamais réécrit : les comptes restent fermés
+(`/sante` dit `illisibles`), le journal dit pourquoi sans rien en citer ; de même pour les statistiques. La ligne garde, pour chaque
 téléphone, son compte et sa place dans la room ; à la fin d'une face, `quandUneFaceFinit` (le serveur du jeu) fait compter une partie
 à chacun, une victoire au premier. Le courrier (`reseau/courrier.ts`) parle SMTP, chiffré d'emblée sur le port 465, avec `AUTH PLAIN`,
 un message en texte et en HTML, en base 64. Les envois sont limités par adresse, par téléphone et par jour (`RESEAU.comptes`).
