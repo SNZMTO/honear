@@ -1124,4 +1124,5 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
 
 ## Polices
 
-Voir `polices/LICENCES.md` : deux familles sous licence OFL, auto-hébergées. Caprasimo pour le titrage, Barlow Condensed pour le technique.
+Voir `polices/LICENCES.md` : deux familles sous licence OFL, auto-hébergées, et le texte de leur licence avec leur copyright.
+Caprasimo pour le titrage, Barlow Condensed pour le technique.
