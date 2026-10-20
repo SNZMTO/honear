@@ -47,6 +47,11 @@ export interface Kraft {
   readonly angle: number;
   /** La piste dont elle porte la pastille. */
   readonly piste: { readonly numero: number; readonly sur: number };
+  /**
+   * Ce qu'elle porte, quand ce n'est pas un disque mystère : son tampon, et les deux lignes de sa pastille. Au tournoi, rien n'est à
+   * deviner : elle dit « Tournoi », et combien de titres sont en lice.
+   */
+  readonly ecrit?: { readonly tampon: string; readonly pastille: readonly [string, string] };
   /** Ce dont le disque qui en sort l'a entraînée, en px, du côté de son ouverture : le papier frotte contre lui. */
   readonly entrainee?: number;
   /** Vrai tant que le disque est pris entre ses deux papiers, même à moitié sorti : le papier du devant le recouvre. */
@@ -62,8 +67,8 @@ export interface KraftDessinee {
 }
 
 /** Le tampon « Disque mystère », un peu de travers, comme un vrai : ses lignes centrées l'une sous l'autre, dans la largeur qu'on lui laisse. */
-function tampon(nom: NomDeCalque, textes: Textes, mesurer: Mesure): Calque {
-  const { lignes, corps } = mettreEnLignes(mesurer, { contenu: textes.piste.mystere, role: 'titrage' }, K.tampon.place, 'intertitre');
+function tampon(nom: NomDeCalque, ecrit: string, mesurer: Mesure): Calque {
+  const { lignes, corps } = mettreEnLignes(mesurer, { contenu: ecrit, role: 'titrage' }, K.tampon.place, 'intertitre');
   const ecrites = lignes.map((contenu, rang): Texte => ({
     genre: 'texte',
     role: 'titrage',
@@ -80,15 +85,15 @@ function tampon(nom: NomDeCalque, textes: Textes, mesurer: Mesure): Calque {
   });
 }
 
-/** La pastille du numéro de la piste : « Piste 3 », et « sur 15 » dessous. */
-function pastilleDuNumero(nom: NomDeCalque, textes: Textes, piste: Kraft['piste']): Calque {
+/** La pastille du numéro de la piste : « Piste 3 », et « sur 15 » dessous ; ou les deux lignes qu'on lui donne. */
+function pastilleDuNumero(nom: NomDeCalque, [ligne, dessous]: readonly [string, string]): Calque {
   const [grand, petit] = [CORPS.mention, CORPS.gravure];
   // Les deux lignes, serrées autour du centre de la pastille : du haut de la première au pied de la seconde, deux fois « haut ».
   const haut = (ligneDeBaseSous(0, grand) + K.pastille.interligne + ligneDeBaseSous(0, petit)) / 2;
   const contenu: Dessin[] = [
     ...papierDePastille(K.pastille.rayon),
-    ligneSurMiel(remplir(textes.piste.numero, { numero: piste.numero }), 'techniqueFort', grand, ligneDeBaseSous(-haut, grand)),
-    ligneSurMiel(remplir(textes.piste.sur, { total: piste.sur }), 'technique', petit, haut),
+    ligneSurMiel(ligne, 'techniqueFort', grand, ligneDeBaseSous(-haut, grand)),
+    ligneSurMiel(dessous, 'technique', petit, haut),
   ];
   return calque(nom, [calque(`${nom}/tourne`, contenu, { transformations: [{ genre: 'tourner', de: K.pastille.angle }] })], {
     transformations: [{ genre: 'glisser', de: K.pastille.en }],
@@ -98,13 +103,14 @@ function pastilleDuNumero(nom: NomDeCalque, textes: Textes, piste: Kraft['piste'
 const CALQUES = { ombre: 'kraft/ombre', corps: 'kraft/corps', devant: 'kraft/devant' } as const;
 
 /** Le papier du devant, avec ce qu'il porte : sa fenêtre et son encoche, le tampon, la pastille de la piste. */
-function papierDuDevant(nom: NomDeCalque, k: Pick<Kraft, 'piste'>, textes: Textes, mesurer: Mesure): Dessin[] {
+function papierDuDevant(nom: NomDeCalque, k: Pick<Kraft, 'piste' | 'ecrit'>, textes: Textes, mesurer: Mesure): Dessin[] {
   const fenetre = cercle([0, 0], K.fenetre.rayon, K.fenetre.pans);
+  const pastille = k.ecrit?.pastille ?? [remplir(textes.piste.numero, { numero: k.piste.numero }), remplir(textes.piste.sur, { total: k.piste.sur })];
   return [
     // Deux contours de sens opposés : la fenêtre est un trou dans le papier.
     aplat([carreEncoche(), [...fenetre].reverse()], 'kraft', tonAPlat()),
-    tampon(`${nom}/tampon`, textes, mesurer),
-    pastilleDuNumero(`${nom}/pastille`, textes, k.piste),
+    tampon(`${nom}/tampon`, k.ecrit?.tampon ?? textes.piste.mystere, mesurer),
+    pastilleDuNumero(`${nom}/pastille`, pastille),
   ];
 }
 

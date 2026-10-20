@@ -247,6 +247,61 @@ export const TABLEE = {
       titresEnEntier: 3,
     },
     /**
+     * Un duel du tournoi, le regard posé sur le disque (celui de la révélation) : sous la platine, le papier du tour, qui dit aussi
+     * qui a voté ; l'éventail des pochettes, une pastille sur celles qui ont voté ; la phrase d'un état (la place du message) ; les
+     * deux étiquettes des faces, côte à côte dans la zone du pouce, leur lettre collée à cheval sur le coin haut gauche ; à la clôture,
+     * leurs voix collées à cheval sur leur bord bas, au-dessus de qui les a données ; chez l'hôte, la touche qui clôt sans attendre. À la clôture, l'éventail se range sous les
+     * étiquettes, chacun sous la face qu'il a votée : leurs pochettes, plus petites, se serrent dans la colonne de leur face.
+     */
+    duel: {
+      tour: { en: [168, 506], largeur: 300, angle: -1.5 },
+      eventail: { y: 574, de: 42, a: 348 },
+      faces: {
+        x: [104, 286],
+        y: 714,
+        largeur: 166,
+        angles: [-1.5, 1.2],
+        lettre: { coin: [-0.42, -8], angle: -9 },
+        voix: { coin: 0.34, sous: 16, angle: 6 },
+      },
+      clore: [18, 798],
+      votes: { y: 790, taille: 40, pasAuPlus: 30, angles: [-5, 4, -3, 6, -6, 3, 5, -4, 7, -3, 4, -6] },
+    },
+    /**
+     * Le tableau du tournoi, entre deux duels et à la fin : le dos d'une pochette sur le bois nu, comme les titres joués. Les pochettes
+     * des titres en rangs, de la moitié du haut à celle du bas, qui se rejoignent au milieu : le premier tour en haut et en bas, la
+     * finale au milieu, le vainqueur entre les deux. Le côté d'une pochette au plus, et la part du pas d'un rang qu'elle prend ; le trait
+     * qui relie deux titres à celui qui passe, sa largeur ; la pochette du vainqueur, plus grande ; chez l'hôte, la touche qui lance le
+     * duel suivant ; chez l'invité, qui va le lancer.
+     */
+    tableau: {
+      papier: { gauche: 14, haut: 78, largeur: 362, bas: 744, angle: 0.6, marge: 14 },
+      sousLeTitre: 16,
+      pochetteAuPlus: 40,
+      partDuPas: 0.86,
+      trait: 1.4,
+      vainqueur: 64,
+      suivant: [18, 798],
+      attente: { en: [132, 796], largeur: 228 },
+    },
+    /**
+     * Le palmarès, à la fin du tournoi : le vainqueur au milieu, le finaliste à gauche, les deux demi-finalistes à droite, leurs
+     * disques glissés derrière (diamant, platine, or, comme à la finale) ; le papier du vainqueur ; l'oreille de la room, un papier
+     * où s'écrivent les premiers de qui a voté comme la majorité ; la revanche, chez l'hôte.
+     */
+    palmares: {
+      podium: [
+        { en: [190, 532], angle: -3, taille: 92 },
+        { en: [74, 566], angle: 5, taille: 64 },
+        { en: [292, 556], angle: -6, taille: 56 },
+        { en: [328, 608], angle: 5, taille: 48 },
+      ],
+      vainqueur: { en: [195, 640], largeur: 300, angle: -1 },
+      /** L'oreille de la room : un papier, son titre, et les premiers, un par ligne. */
+      oreille: { en: [195, 722], largeur: 300, angle: 1.2, lignes: 3 },
+      revanche: [195, 806],
+    },
+    /**
      * Les titres joués, qu'on revoit en touchant leur papier à la finale : le regard se pose à côté de la platine, sur le bois nu.
      * Un grand papier, le dos d'une pochette : en haut le titre, puis chaque titre joué avec sa pochette, en une colonne jusqu'à dix,
      * en deux au-delà ; « Retour » dessous. En px dans le regard.

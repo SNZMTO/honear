@@ -26,6 +26,7 @@
     "animations": "tsx src/planche/etape7.ts",
     "prototype": "tsx src/planche/prototype.ts",
     "vitrine": "tsx src/planche/vitrine.ts",
+    "tournoi": "tsx src/planche/tournoi.ts",
     "construire": "tsx outils/construire.ts",
     "exporter-pour-le-mcp": "tsx outils/exporter-pour-le-mcp.ts",
     "site": "node dist/serveur.mjs"

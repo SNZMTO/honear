@@ -437,7 +437,9 @@ src/
     ampli/danse.ts              La danse des aiguilles pendant un extrait, écrite une fois et suivie par le moteur.
     telephone/                  Les écrans du téléphone, ceux du jeu comme des planches : leurs pièces (`pieces.ts`), le meuble qu'ils montrent
                                 (`meuble.ts`, `kraft.ts`), « Fais ta pochette » (`pochette.ts`), les écrans hors des pistes (`ecrans.ts`),
-                                ce qu'on pose autour d'une piste (`piste.ts`, `reponse.ts`), les titres joués (`titres.ts`).
+                                ce qu'on pose autour d'une piste (`piste.ts`, `reponse.ts`), les titres joués (`titres.ts`) ; au tournoi,
+                                ce qu'on pose autour d'un duel (`duel.ts`), le tableau et le palmarès (`tableau.ts`).
+    duel.ts                     Un duel du tournoi sur la platine : le disque à deux faces, chacune dessinée comme un verso, le bras qui la lit.
     etiquette/code.ts           L'étiquette du disque du salon, qui porte le code de la partie.
     piste/
       etat.ts                   Ce qu'un écran sait d'une piste : son déroulé, et les rayures de ce joueur.
@@ -528,6 +530,7 @@ src/
     etape6.ts etape6/           La planche de l'écran de l'hôte : ses images (`etape6/scenes.ts`), sa page, ses mots.
     animations/                 Les treize animations jouées en direct : une scène, un geste, un régleur, une interruption ; et leur lecture.
     etape7.ts etape7/           La planche d'animations : sa page, ses fiches (réglages, temps, frises), et son script (`etape7/vivante.ts`).
+    tournoi.ts tournoi/         La planche du tournoi : deux façons de le choisir, son salon, un duel à ses moments, le tableau, le palmarès.
     prototype.ts prototype/     Le prototype : la partie scénarisée (`scenario.ts`), les cinq potes simulés qui la jouent (`potes.ts`), et sa page
                                 (`gabarit.ts`, `demarrage.ts` : le serveur, les potes et le téléphone, branchés par la même connexion qu'un WebSocket).
     feuille.ts                  Ce que les pages des étapes 3 à 6 partagent : la feuille de style, les figures, les deux écritures.
@@ -1102,11 +1105,25 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
     (`TOURNOI.relecture`). Une piste que la playlist ne donne plus perd par forfait.
   - *L'oreille de la room* : qui a le plus souvent voté comme la majorité (les égalités et les forfaits ne comptent pas), pour la fin.
 
+- **La planche du tournoi** (le 20, `npm run tournoi`) : ses écrans sont ceux du jeu (`scene/duel.ts`, `scene/telephone/duel.ts`,
+  `tableau.ts`), à valider avant le client.
+  - *Le disque d'un duel* porte un titre sur chaque face, dessinée comme le verso d'une piste révélée (`DisqueADeuxFaces`) ; le regard
+    est celui de la révélation : le disque entier, et la tête du bras, qu'on tire vers le bord pour revenir en arrière. Une main le
+    retourne toujours du même côté : la face B à 180°, de nouveau la face A à 360° (`faceEnHaut`).
+  - *Sous la platine* : le papier du tour (« Quarts, duel 2 sur 4 », et qui a voté) ; l'éventail, un rond miel sans rien d'écrit sur
+    qui a voté ; les étiquettes des faces, A et B, celle qu'on a votée enfoncée en kraft ; « Clore le duel » chez l'hôte, dès un vote.
+    À la clôture, chacun passe sous sa face, ses voix collées sous l'étiquette ; au forfait, ni voix ni pochettes.
+  - *Le palmarès reprend les disques de la finale* : au blind test, l'or est la troisième place ; le vainqueur du tournoi prend donc le
+    diamant, le finaliste le platine, les demi-finalistes l'or. L'oreille de la room tient sur un papier, les trois premiers.
+  - *La kraft du salon* dit « Tournoi » et ses titres en lice (`Kraft.ecrit`), la touche « Lancer le tournoi ».
+  - *Deux variantes pour le choisir* : le tournoi prend la place de 1re note sur la manette, ou deux crans sous la platine (Blind test,
+    Tournoi). Sur la platine même, entre « Secondes » et la manette, un sélecteur à deux crans n'a pas la place de ses deux noms.
+
 ## Ce qui attend les étapes suivantes
 
-- **Le tournoi, à l'écran et au MCP** : ses planches d'abord (le disque à deux faces, ses deux vraies pochettes, les étiquettes A et B,
-  le bras qui remet en arrière, les pochettes qui passent du côté de leur vote, le disque d'or et le tableau, la place du Tournoi
-  sur la manette), puis le client, et `creer_tournoi` au MCP. Le site se met en ligne avant le MCP.
+- **Le tournoi, à l'écran et au MCP** : choisir sa place (variante 1 ou 2) ; publier le tableau entier au premier lancer (le téléphone
+  ne connaît encore les titres que duel par duel) ; le client (le disque qui tourne, se retourne, le bras qu'on tire, le son de chaque
+  face) ; puis `creer_tournoi` au MCP. Le site se met en ligne avant le MCP.
 
 - **Les comptes, la suite** : les clés d'accès (passkeys), pour entrer sans e-mail sur un téléphone déjà connu.
 - **Au téléphone, le regard saute d'un écran à l'autre** : les glissades de la planche d'animations ne sont pas encore jouées par le client,
