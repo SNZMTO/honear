@@ -149,7 +149,7 @@ et publie un événement à la fois. Tout est dans `regles/messages.ts`, typé, 
 | `evenement` | un événement du journal publié | à chaque fois qu'il se passe quelque chose |
 | `piste` | `lancer` (le décompte part, la durée de l'extrait, et son adresse à précharger), `prets` (tous chargés : l'extrait part à cette heure), `reveler` (avec la réponse) | le déroulé d'une piste |
 | `etat` (suite) | `jeton` (le secret de ce joueur), `extrait` (l'adresse de celui de la piste en cours), `extraits` (ceux du duel en cours) | |
-| `extraits` | `duel` (l'instant où il s'est ouvert), `faces` (l'adresse de l'extrait de A et de B) | au tournoi, à l'ouverture d'un duel, et quand le serveur en a relu les liens |
+| `extraits` | `duel` (l'instant où il s'est ouvert), `faces` (l'adresse de l'extrait de A et de B), `duree` (ce qu'on entend de chaque face : le bouton « Secondes ») | au tournoi, à l'ouverture d'un duel, et quand le serveur en a relu les liens. Chaque téléphone joue la face du haut de *son* disque, d'où il l'a laissée : rien n'y est synchronisé |
 | `heure` | `heure`, `depart` (celui de la question) | la réponse à `quelleHeure` |
 | `playlists` | `recherche`, `playlists` (`lien`, `titre`, `total`) | ce que Deezer a trouvé |
 | `importee` | `playlist` (`lien`, `titre`, `total`, `jouables`) | la playlist d'un lien collé, lue |
@@ -160,8 +160,8 @@ et publie un événement à la fois. Tout est dans `regles/messages.ts`, typé, 
 
 **Les événements du journal (`EvenementDePartie`)** : `ouverture` (mode, nombre de pistes, qui joue le son), `arrivee` (avec la pochette), `deconnexion`,
 `retour`, `depart`, `extrait` (la piste), `reponse` (la proposition), `jugee` (ce qu'elle trouve, son verdict, ses points, et si le joueur
-a tout trouvé), `revelation` (la réponse, et le départage s'il y en a un) ; au tournoi, `duel` (ses deux faces, chacune un titre à sa
-place au tableau), `vote` (qui, et la face au serveur seulement), `cloture` (les votes, la face qui passe, et comment : `voix`,
+a tout trouvé), `revelation` (la réponse, et le départage s'il y en a un) ; au tournoi, `tableau` (au premier lancer, les titres en
+lice, chacun à sa place), `duel` (ses deux faces, chacune un titre à sa place au tableau), `vote` (qui, et la face au serveur seulement), `cloture` (les votes, la face qui passe, et comment : `voix`,
 `pileOuFace`, `forfait`).
 
 **Ce que le serveur garde pour lui.** Il tient le vrai journal ; il n'envoie que `publier(journal)`. Ce journal-là a l'extrait sans la

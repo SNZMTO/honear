@@ -58,6 +58,9 @@ import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '..
 import { lignesDeLaPiste, pochetteSurLeVerso, pouceAuPlusGrand, pouceDeLaPiste, tableeDeLaPiste } from '../../scene/telephone/piste';
 import { REGARD_DE_LA_POCHETTE, vueDeLaPochette } from '../../scene/telephone/pochette';
 import { imagesDesTitres, vueDesTitres } from '../../scene/telephone/titres';
+import { vueDuDuel } from '../../scene/telephone/duel';
+import { vueDuPalmares, vueDuTableau } from '../../scene/telephone/tableau';
+import { partSousLeDoigt, POSE_DU_DUEL, regleurDuDuel, type PoseDuDuel } from '../../scene/duel';
 import { calquesDeLaTouche } from '../../scene/touche';
 import { lancerLaBoucle } from '../boucle';
 import { factureVoulue } from '../facture';
@@ -92,6 +95,7 @@ import {
 import { ecranDuTelephone, type EcranDuTelephone } from './route';
 import { ouvrirLeDiagnostic } from './diagnostic';
 import { poserDesImages, type ImagePosee } from './images';
+import { dureeDesFaces, platineDuDuelEnCours, poseDeLaPlatine } from './duel';
 import { brancherLeHautParleur, sonVoulu, type HautParleur } from './son';
 import { choseATouche } from './touchers';
 
@@ -197,7 +201,7 @@ function vueDe(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>, a: Ecr
     case 'bac':
       return vueDuBac(a, e.bac);
     case 'reglages':
-      return vueDesReglages(a, e.mode, { pistes: e.pistes, extrait: e.extrait, son: e.son });
+      return vueDesReglages(a, e.mode, { pistes: e.pistes, extrait: e.extrait, son: e.son }, e.jeu);
     case 'salon':
       return vueDuSalon(a, e.etat, e.code, e.qui, true, e.copie);
     case 'ampli':
@@ -208,6 +212,20 @@ function vueDe(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>, a: Ecr
       return vueDeLaFinale(a, e.etat, e.joues, e.hote, true, true);
     case 'titres':
       return vueDesTitres(a, e.joues);
+    case 'duel':
+      // La platine dessinée au repos, une fois par duel : le téléphone la règle ensuite à la pose de sa platine, d'image en image.
+      return vueDuDuel(a, {
+        etat: e.etat,
+        toi: e.toi,
+        pose: POSE_DU_DUEL,
+        aide: e.aide,
+        ...(e.monVote !== undefined ? { monVote: e.monVote } : {}),
+        ...(e.phrase !== undefined ? { phrase: e.phrase } : {}),
+      });
+    case 'tableau':
+      return vueDuTableau(a, e.etat, e.toi, e.revoir);
+    case 'palmares':
+      return vueDuPalmares(a, e.etat, e.toi);
   }
 }
 
@@ -581,6 +599,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     touches: ReadonlyMap<NomDeCalque, Calque>,
     fondre = false,
     croiser = false,
+    enPlus: readonly NomDeCalque[] = [],
   ): Montee {
     const plan = poserUnPlan(dans, regard);
     plan.suivreLeCadre();
@@ -589,7 +608,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const babioles = calquesNommes(arbre, DECOR_QUI_BOUGE);
     const montage = monter(arbre, {
       etendue: regard,
-      reglables: new Set([...boutons.map((b) => b.nom), ...curseurs, ...babioles]),
+      reglables: new Set([...boutons.map((b) => b.nom), ...curseurs, ...babioles, ...enPlus]),
       remplacables: new Set(touches.keys()),
       definition: d,
       mesurer: a.encrier.largeur,
@@ -779,7 +798,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       zone.className = 'zone';
       zone.dataset['zone'] = String(choses.length);
       zone.setAttribute('aria-label', chose.libelle);
-      zone.style.cssText = place;
+      // Sur le disque d'un duel, le doigt glisse pour placer le bras : la page ne défile pas dessous.
+      zone.style.cssText = chose.toucher.genre === 'retourner' ? `${place}touch-action:none;` : place;
       zones.append(zone);
       choses.push({ toucher: chose.toucher, nom: c.nom });
     }
@@ -1041,6 +1061,20 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     vider(coucheDeLaTablee);
   }
 
+  /** Au duel, la platine montée dans la couche du meuble, de quoi la régler, et la pose qu'on lui a donnée en dernier. */
+  let duelMonte: { readonly montage: Montage; readonly regler: (pose: PoseDuDuel) => Reglage[]; pose: string } | undefined;
+  /** La platine du duel, à la pose que ce téléphone lui donne à cette heure : on ne la règle que quand elle change. */
+  function reglerLeDuel(t: number): void {
+    const room = memoire.room;
+    const platine = platineDuDuelEnCours(memoire);
+    if (duelMonte === undefined || room === undefined) return;
+    const pose = platine !== undefined ? poseDeLaPlatine(platine, t, dureeDesFaces(room)) : POSE_DU_DUEL;
+    const ecrite = JSON.stringify(pose);
+    if (ecrite === duelMonte.pose) return;
+    duelMonte.pose = ecrite;
+    duelMonte.montage.regler(duelMonte.regler(pose));
+  }
+
   /** @param cle celle de l'écran à cette proportion de la fenêtre (voir `cleDe`) : le même écran ne se remonte pas. */
   function montrerUnEcran(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>, p: number | undefined, cle: string): void {
     if (piste !== undefined) fermerLaPiste();
@@ -1053,7 +1087,8 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     // est le même d'un écran à l'autre, sur le meuble entier (le bac et l'ampli ne le font plus glisser), et ce qu'on touche d'un
     // écran posé sur la platine se range sous le vinyle (celui du bac reste sous le bac) ; seuls sa pochette et les titres joués,
     // posés sur la table, s'y montrent de près.
-    const surLaTable = vue.regard === REGARD_DE_LA_POCHETTE;
+    // Un duel garde aussi son regard, sur le disque : on le retourne, on y glisse le doigt.
+    const surLaTable = vue.regard === REGARD_DE_LA_POCHETTE || e.genre === 'duel';
     const surOrdinateur = p !== undefined && dispositionDe(p) === 'ordinateur';
     const base = surOrdinateur && !surLaTable ? SUR_LA_PLATINE : vue.regard;
     const regard = dansLaFenetre(base, p);
@@ -1081,18 +1116,14 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     const [meuble, devant] = auMeuble < 0 ? [objets, []] : [objets.slice(0, auMeuble), objets.slice(auMeuble)];
     const d = definition(regard);
     const cleDuMeuble = JSON.stringify([meuble.map(numeroDe), regard, d]);
-    if (meubleMonte?.cle !== cleDuMeuble)
-      meubleMonte = monterDans(
-        coucheDuMeuble,
-        meubleMonte,
-        cleDuMeuble,
-        dessinerLeMeuble({ regard, densite: DENSITE, objets: meuble }),
-        regard,
-        d,
-        new Map(),
-        fondre,
-      );
-    else meubleMonte.plan.suivreLeCadre();
+    if (meubleMonte?.cle !== cleDuMeuble) {
+      const arbre = dessinerLeMeuble({ regard, densite: DENSITE, objets: meuble });
+      // Au duel, la platine se règle d'image en image : le disque qui se retourne, le bras.
+      const regleur = e.genre === 'duel' ? regleurDuDuel(arbre, DENSITE) : undefined;
+      const aRegler = regleur !== undefined ? regleur(POSE_DU_DUEL).map((r) => r.calque) : [];
+      meubleMonte = monterDans(coucheDuMeuble, meubleMonte, cleDuMeuble, arbre, regard, d, new Map(), fondre, false, aRegler);
+      duelMonte = regleur !== undefined ? { montage: meubleMonte.montage, regler: regleur, pose: '' } : undefined;
+    } else meubleMonte.plan.suivreLeCadre();
     ecranMonte = monterDans(
       scene,
       ecranMonte,
@@ -1126,6 +1157,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     ecranMonte = undefined;
     meubleMonte?.montage.demonter();
     meubleMonte = undefined;
+    duelMonte = undefined;
     vider(coucheDuMeuble);
   }
 
@@ -1503,6 +1535,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
       const cle = cleDe(e, p);
       if (enfoncer(cle)) return true;
       montrerUnEcran(e, p, cle);
+      if (e.genre === 'duel') reglerLeDuel(t);
     }
     // La page apprend d'abord quel écran on montre : son pied, ses liens en dépendent.
     if (e.genre !== genre) {
@@ -1586,10 +1619,43 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   }
   /** Vrai si c'est le bouton du volume qu'on touche : il a ses gestes à lui. */
   const surLeVolume = (cible: EventTarget | null): boolean => cible instanceof HTMLElement && cible.closest('[data-volume]') !== null;
+  /**
+   * Le doigt posé sur le disque d'un duel : d'où il est parti, et s'il a glissé. Levé sans avoir glissé, il retourne le disque ; en
+   * glissant, il tient le bras à la distance du centre où il passe ; levé, le bras s'y pose. La couche des zones le suit (l'écran
+   * peut changer sous lui : un vote arrive), jusqu'à ce qu'il se lève.
+   */
+  let doigtSurLeDisque:
+    | {
+        readonly id: number;
+        readonly x: number;
+        readonly y: number;
+        readonly z: { readonly toucher: Toucher; readonly nom: NomDeCalque };
+        glisse: boolean;
+        part: number;
+      }
+    | undefined;
+  /** La part de la face sous ce doigt, d'après le point de la scène qu'il touche. */
+  const partSousCeDoigt = (ev: PointerEvent): number => {
+    const boite = cadre.getBoundingClientRect();
+    const r = regardMonte;
+    const x = r.origine[0] + ((ev.clientX - boite.left) / boite.width) * r.largeur;
+    const y = r.origine[1] + ((ev.clientY - boite.top) / boite.height) * r.hauteur;
+    return partSousLeDoigt([x, y]);
+  };
   const auToucher = (ev: PointerEvent): void => {
     if (!ev.isPrimary || ev.button !== 0 || surLeVolume(ev.target)) return;
     avaler = true;
     enAttente = undefined;
+    const surLeDisque = zoneDe(ev.target);
+    if (surLeDisque?.toucher.genre === 'retourner') {
+      doigtSurLeDisque = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, z: surLeDisque, glisse: false, part: 0 };
+      try {
+        zones.setPointerCapture(ev.pointerId);
+      } catch {
+        // Un navigateur qui ne laisse pas suivre le doigt : on le suit tant qu'il reste sur les zones.
+      }
+      return;
+    }
     const attendre = (agir: () => void): void => {
       enAttente = { id: ev.pointerId, x: ev.clientX, y: ev.clientY, agir };
     };
@@ -1606,8 +1672,20 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
   };
   const auGlisser = (ev: PointerEvent): void => {
     if (enAttente !== undefined && ev.pointerId === enAttente.id && aGlisse(ev, enAttente)) enAttente = undefined;
+    const d = doigtSurLeDisque;
+    if (d === undefined || ev.pointerId !== d.id || (!d.glisse && !aGlisse(ev, d))) return;
+    d.glisse = true;
+    d.part = partSousCeDoigt(ev);
+    agir({ genre: 'tenirLeBras', part: d.part });
   };
   const auLever = (ev: PointerEvent): void => {
+    const d = doigtSurLeDisque;
+    if (d !== undefined && ev.pointerId === d.id) {
+      doigtSurLeDisque = undefined;
+      if (d.glisse) agir({ genre: 'poserLeBras', part: ev.type === 'pointerup' ? partSousCeDoigt(ev) : d.part });
+      else if (ev.type === 'pointerup') presser(d.z);
+      return;
+    }
     const attente = enAttente;
     if (attente === undefined || ev.pointerId !== attente.id) return;
     enAttente = undefined;

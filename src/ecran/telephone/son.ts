@@ -14,6 +14,8 @@ import { partieA, type EvenementDePartie } from '../../regles/partie';
 import { jouer, type Piste } from '../../regles/piste';
 import { BRUITS, TELEPHONE, type NomDeBruit } from '../../ressources/ecran';
 import { instantsDeLaPiste } from '../../scene/piste/instants';
+import type { EtatDuTournoi } from '../../regles/tournoi';
+import { dureeDesFaces, faceQuiJoue, platineDuDuelEnCours } from './duel';
 import type { Memoire } from './memoire';
 
 /** Ce que le haut-parleur doit jouer : l'extrait de la piste lancée à cette heure, et quand. Les heures sont celles du serveur. */
@@ -41,8 +43,10 @@ export function finDeLaReponse(piste: Piste, journal: readonly EvenementDePartie
 /** Ce que le téléphone doit jouer, d'après ce qu'il sait : rien si l'ampli est éteint, si la source n'a pas d'extrait, ou si ce n'est pas à lui de jouer. */
 export function sonVoulu(m: Memoire): SonVoulu | undefined {
   const room = m.room;
-  if (room === undefined || room.extrait === undefined || m.ampliAllumeA === undefined) return undefined;
+  if (room === undefined || m.ampliAllumeA === undefined) return undefined;
   const etat = partieA(room.journal, Infinity);
+  if (etat.tournoi !== undefined) return sonDuDuel(m, room, etat.tournoi);
+  if (room.extrait === undefined) return undefined;
   if (etat.son === 'hote' && etat.hote !== room.toi) return undefined;
   const piste = room.seance.reduce(jouer, undefined);
   const lanceeA = room.seance.find((a) => a.genre === 'lancer')?.a;
@@ -53,6 +57,20 @@ export function sonVoulu(m: Memoire): SonVoulu | undefined {
   const auBout = entendu !== undefined && piste.extraitA !== undefined ? piste.extraitA + entendu + TELEPHONE.son.fondu : undefined;
   const jusqua = aLaReponse !== undefined && auBout !== undefined ? Math.min(aLaReponse, auBout) : (aLaReponse ?? auBout);
   return { adresse: room.extrait, lanceeA, depuis: piste.extraitA, jusqua };
+}
+
+/**
+ * Au tournoi, chaque téléphone joue son disque, à son rythme (même quand c'est l'hôte qui joue le son des pistes pour tous) : la face
+ * du haut, depuis l'heure où elle est partie, jusqu'au bout de ce qu'on en entend, ou jusqu'à ce que le tableau remplace le duel clos.
+ */
+function sonDuDuel(m: Memoire, room: NonNullable<Memoire['room']>, t: EtatDuTournoi): SonVoulu | undefined {
+  const platine = platineDuDuelEnCours(m);
+  const joue = platine !== undefined ? faceQuiJoue(platine, dureeDesFaces(room)) : undefined;
+  const adresse = joue !== undefined && room.extraits?.duel === platine?.duel ? room.extraits?.faces[joue.face] : undefined;
+  if (platine === undefined || joue === undefined || adresse === undefined) return undefined;
+  const clos = t.clos.find((d) => d.a === platine.duel);
+  const jusqua = clos !== undefined ? Math.min(joue.jusqua, clos.closA + TELEPHONE.duel.apresLaCloture) : joue.jusqua;
+  return { adresse, lanceeA: platine.duel, depuis: joue.depuis, jusqua };
 }
 
 /** Le volume à cette heure : plein, puis il baisse jusqu'au silence pendant le fondu qui finit à `jusqua`. */

@@ -15,19 +15,21 @@ import {
   type PlaylistTrouvee,
   type RaisonDeRefus,
 } from '../../regles/messages';
-import { MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
+import { enDuels, MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { numeroDeLaPiste, partieA, type EvenementDePartie, type Face, type SonDeLaRoom } from '../../regles/partie';
 import type { ActionDePiste } from '../../regles/piste';
+import type { FaceDuDuel } from '../../regles/tournoi';
 import { jugerUnMotDePasse } from '../../regles/mot-de-passe';
 import { autreAlbum, nomTape, pochetteAuHasard, type ListesAuHasard } from '../../regles/pochette';
 import type { ChoixDeLAvatar } from '../../ressources/avatar';
 import { TELEPHONE } from '../../ressources/ecran';
 import type { Pochette } from '../../ressources/pochettes';
-import { JUGEMENT, MOT_DE_PASSE, PARTIE, REGLAGES } from '../../ressources/reglages';
+import { JUGEMENT, MOT_DE_PASSE, PARTIE, REGLAGES, TOURNOI } from '../../ressources/reglages';
 import { TABLEE } from '../../ressources/tablee';
 import type { RefusDuCompte } from '../../scene/telephone/compte';
-import type { CranDuBac } from '../../scene/telephone/ecrans';
+import type { CranDuBac, JeuDesReglages } from '../../scene/telephone/ecrans';
 import { pochetteAvecLOption } from '../../scene/telephone/pochette';
+import { avancerLaPlatine, dureeDesFaces, platineDuDuelEnCours, platineNeuve, poserLeBras, retourner, tenirLeBras, type PlatineDuDuel } from './duel';
 import { sonVoulu } from './son';
 
 /** La room telle que le serveur l'a donnée à ce téléphone. */
@@ -91,6 +93,9 @@ export type Preparation =
       readonly playlist: string;
       readonly bac: BacEnCours;
       readonly cran?: CranDuBac;
+      /** Le jeu qu'on ouvre : un blind test, au mode de la manette ; ou un tournoi, d'un tableau de tant de titres. */
+      readonly jeu: JeuDesReglages;
+      readonly titres: number;
     } & ReglagesDeLaPlatine);
 
 /**
@@ -190,6 +195,8 @@ export interface Memoire {
   readonly lienCopieA?: number;
   /** Vrai quand le navigateur a refusé de jouer l'extrait faute d'un geste : l'écran demande qu'on le touche. */
   readonly sonBloque?: boolean;
+  /** Au tournoi, la platine du duel en cours, telle que ce téléphone la tient : la face qu'il écoute, où, ce qu'il a voté. */
+  readonly duel?: PlatineDuDuel;
   /**
    * Le lien de la liste sur mesure du MCP qui a ouvert la page (« honear.fr/?liste=… ») : le bac de l'hôte s'ouvre dessus, comme
    * s'il l'avait collé. Une fois : la room d'après choisit comme d'habitude.
@@ -272,8 +279,15 @@ export type Toucher =
   | { readonly genre: 'autrePlaylist' | 'fermerLeBac' }
   | { readonly genre: 'toucherLEtiquette'; readonly rang: number }
   | { readonly genre: 'tournerLeBouton'; readonly bouton: 'pistes' | 'extrait' | 'mode' }
-  /** Un nom gravé autour de la manette, touché : ce mode-là. */
+  /** Un nom gravé autour de la manette, touché : ce mode-là, au blind test. */
   | { readonly genre: 'choisirLeMode'; readonly mode: CleDeMode }
+  /** Un des deux crans sous la platine : le blind test, ou le tournoi. */
+  | { readonly genre: 'choisirLeJeu'; readonly jeu: JeuDesReglages }
+  /** Au tournoi : retourner le disque du duel ; voter pour une face ; clore le duel (l'hôte). */
+  | { readonly genre: 'retourner' | 'clore' }
+  | { readonly genre: 'voter'; readonly face: FaceDuDuel }
+  /** Au tournoi, le bras du duel, tenu au doigt à cette part de la face, puis lâché : il s'y pose. */
+  | { readonly genre: 'tenirLeBras' | 'poserLeBras'; readonly part: number }
   /** Aux « Prêtes à jouer », un thème touché : on cherche ses playlists, et la première sort du bac. */
   | { readonly genre: 'theme'; readonly cle: string; readonly recherche: string }
   /** Aux « Prêtes à jouer » : une des playlists du genre, tirée au sort. */
@@ -395,6 +409,27 @@ export function memoireDeDepart(
 /** Le cran suivant d'un bouton, en revenant au premier après le dernier ; un réglage hors des crans repart du premier. */
 const suivant = <T>(crans: readonly T[], courant: T): T => crans[(crans.indexOf(courant) + 1) % crans.length] ?? courant;
 
+/**
+ * La platine du duel, l'heure passée : une neuve quand un duel s'ouvre (la face A part), celle qu'on tient sinon, qui avance ; rien
+ * hors d'un tournoi. Rend la même quand rien ne change.
+ */
+function avancerLeDuel(m: Memoire, heure: number): PlatineDuDuel | undefined {
+  const room = m.room;
+  if (room === undefined) return undefined;
+  const t = partieA(room.journal, Infinity).tournoi;
+  if (t === undefined) return undefined;
+  if (t.enCours !== undefined && m.duel?.duel !== t.enCours.a) return platineNeuve(t.enCours.a, heure);
+  const platine = platineDuDuelEnCours(m);
+  return platine !== undefined ? avancerLaPlatine(platine, heure, dureeDesFaces(room)) : undefined;
+}
+
+/** La taille du tableau d'un tournoi : celle qu'on voulait, ou la plus grande qu'une playlist de tant de titres jouables remplit. */
+function tableauRempli(voulue: number, jouables: number | undefined): number {
+  const remplis = TOURNOI.titres.choix.filter((n) => jouables === undefined || n <= jouables);
+  const prise = (TOURNOI.titres.choix as readonly number[]).includes(voulue) ? voulue : TOURNOI.titres.defaut;
+  return jouables === undefined || jouables >= prise || remplis.length === 0 ? prise : Math.max(...remplis);
+}
+
 /** La piste qu'on joue, par son lancer : le dernier du déroulé. */
 const lancerEnCours = (room: RoomConnue | undefined): number | undefined => room?.seance.find((a) => a.genre === 'lancer')?.a;
 
@@ -424,7 +459,7 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
     case 'evenement':
       return m.room === undefined ? m : { ...m, room: { ...m.room, journal: [...m.room.journal, n.evenement] } };
     case 'extraits':
-      return m.room === undefined ? m : { ...m, room: { ...m.room, extraits: { duel: n.duel, faces: n.faces } } };
+      return m.room === undefined ? m : { ...m, room: { ...m.room, extraits: { duel: n.duel, faces: n.faces, duree: n.duree } } };
     case 'piste': {
       if (m.room === undefined) return m;
       const lancee = n.action.genre === 'lancer';
@@ -718,7 +753,10 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       return rien;
     case 'choisir': {
       if (prep.ecran !== 'bac') return rien;
-      const { mode, pistes, extrait, son } = p;
+      const { pistes, extrait, son } = p;
+      // Le jeu réglé d'avance : un tournoi, si c'est son mode ; la manette garde alors le premier mode du blind test.
+      const jeu: JeuDesReglages = enDuels(p.mode) ? 'tournoi' : 'blindTest';
+      const mode = jeu === 'tournoi' ? ((MODES_PAR_CRAN[0]?.cle as CleDeMode | undefined) ?? p.mode) : p.mode;
       // À la recherche, sans résultat touché, on prend le premier ; aux « Prêtes à jouer », sans thème touché, celle du site, s'il n'a
       // pas de vraie source (avec une, il faut toucher un thème : la playlist d'essai n'a pas le son).
       const choisie = prep.bac.choisie ?? (prep.cran === 'chercher' ? prep.bac.resultats?.[0] : undefined);
@@ -728,30 +766,61 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       // la plus longue face qu'elle remplit : sans cela, le salon la refusait, et l'on revenait au bac.
       const jouables = choisie?.jouables;
       const remplies = REGLAGES.pistes.choix.filter((n) => jouables === undefined || n <= jouables);
-      const face = jouables === undefined || jouables >= pistes || remplies.length === 0 ? pistes : Math.max(...remplies);
+      const face =
+        jeu === 'tournoi'
+          ? REGLAGES.pistes.defaut
+          : jouables === undefined || jouables >= pistes || remplies.length === 0
+            ? pistes
+            : Math.max(...remplies);
+      // Au tournoi, de même : le plus grand tableau qu'elle remplit, si elle ne remplit pas celui qu'on voulait.
+      const titres = tableauRempli(jeu === 'tournoi' ? pistes : TOURNOI.titres.defaut, jouables);
       // Dans la room, l'hôte change de playlist : la room repart dessus, réglée comme elle l'était ; le serveur dira si elle est trop courte.
       if (m.room !== undefined)
         return { memoire: { ...m, refus: undefined, preparation: { ecran: 'accueil' } }, actions: [{ genre: 'changerDePlaylist', playlist }] };
       return seul({
         ...m,
         refus: undefined,
-        preparation: { ecran: 'reglages', pochette: prep.pochette, playlist, bac: prep.bac, cran: prep.cran, mode, pistes: face, extrait, son },
+        preparation: {
+          ecran: 'reglages',
+          pochette: prep.pochette,
+          playlist,
+          bac: prep.bac,
+          cran: prep.cran,
+          jeu,
+          mode,
+          pistes: face,
+          titres,
+          extrait,
+          son,
+        },
       });
     }
     case 'tournerLeBouton': {
       if (prep.ecran !== 'reglages' || !p.commandes) return rien;
       if (t.bouton === 'mode') {
+        // Au tournoi, toucher la manette ramène au blind test, sur le mode qu'elle montre.
+        if (prep.jeu === 'tournoi') return seul({ ...m, preparation: { ...prep, jeu: 'blindTest' } });
         // Les modes de la manette, dans l'ordre de leurs crans : ceux d'au-delà ne se choisissent pas.
         const cles = MODES_PAR_CRAN.map((m) => m.cle as CleDeMode);
         return seul({ ...m, preparation: { ...prep, mode: suivant(cles, prep.mode) } });
       }
+      // Au tournoi, « Titres » passe d'une taille du tableau à la suivante, parmi celles que la playlist remplit.
+      if (t.bouton === 'pistes' && prep.jeu === 'tournoi') {
+        const jouables = prep.bac.choisie?.jouables;
+        const tailles = TOURNOI.titres.choix.filter((n) => jouables === undefined || n <= jouables);
+        return seul({ ...m, preparation: { ...prep, titres: suivant(tailles.length > 0 ? tailles : TOURNOI.titres.choix, prep.titres) } });
+      }
       return seul({ ...m, preparation: { ...prep, [t.bouton]: suivant(REGLAGES[t.bouton].choix, prep[t.bouton]) } });
     }
     case 'choisirLeMode':
-      return prep.ecran === 'reglages' && p.commandes ? seul({ ...m, preparation: { ...prep, mode: t.mode } }) : rien;
+      return prep.ecran === 'reglages' && p.commandes ? seul({ ...m, preparation: { ...prep, jeu: 'blindTest', mode: t.mode } }) : rien;
+    case 'choisirLeJeu':
+      return prep.ecran === 'reglages' && p.commandes ? seul({ ...m, preparation: { ...prep, jeu: t.jeu } }) : rien;
     case 'ouvrir': {
       if (prep.ecran !== 'reglages') return rien;
-      const { mode, pistes, extrait, son, pochette, playlist } = prep;
+      const { extrait, son, pochette, playlist } = prep;
+      // Au tournoi, la room se joue en duels, d'un tableau de la taille réglée ; au blind test, au mode de la manette.
+      const [mode, pistes]: [CleDeMode, number] = prep.jeu === 'tournoi' ? ['tournoi', prep.titres] : [prep.mode, prep.pistes];
       return { memoire: m, actions: [{ genre: 'creer', mode, pistes, extrait, son, playlist, pochette }] };
     }
     case 'allumer': {
@@ -797,6 +866,32 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
         actions: [{ genre: 'repondre', proposition: { genre: 'choix', rang: t.rang } }],
       };
     }
+    case 'retourner':
+    case 'tenirLeBras':
+    case 'poserLeBras': {
+      const platine = platineDuDuelEnCours(m);
+      if (platine === undefined || m.room === undefined) return rien;
+      const duree = dureeDesFaces(m.room);
+      const apres =
+        t.genre === 'tenirLeBras'
+          ? tenirLeBras(platine, t.part, heure)
+          : t.genre === 'poserLeBras'
+            ? poserLeBras(platine, t.part, heure, duree)
+            : retourner(platine, heure, duree);
+      return apres === platine ? rien : seul({ ...m, duel: apres });
+    }
+    case 'voter': {
+      const platine = platineDuDuelEnCours(m);
+      const room = m.room;
+      if (platine === undefined || room === undefined || platine.monVote === t.face) return rien;
+      // On ne vote qu'au duel en cours, en jouant : qui est arrivé pendant le duel regarde.
+      const etat = partieA(room.journal, Infinity);
+      const moi = etat.joueurs.find((j) => j.id === room.toi);
+      if (etat.tournoi?.enCours?.a !== platine.duel || moi === undefined || moi.spectateur) return rien;
+      return { memoire: { ...m, duel: { ...platine, monVote: t.face } }, actions: [{ genre: 'voter', face: t.face }] };
+    }
+    case 'clore':
+      return m.room !== undefined && partieA(m.room.journal, Infinity).hote === m.room.toi ? { memoire: m, actions: [{ genre: 'clore' }] } : rien;
     case 'compte':
     case 'taperLAdresse':
     case 'envoyerLeLien':
@@ -904,6 +999,8 @@ export const tapeA = (frappe: { readonly texte: string; readonly depuis: number 
 
 /** Le temps passe : le clavier finit de taper, et la réponse part. */
 export function avancer(m: Memoire, heure: number): Suite {
+  const duel = avancerLeDuel(m, heure);
+  if (duel !== m.duel) return { memoire: duel !== undefined ? { ...m, duel } : (({ duel: _fini, ...reste }) => reste)(m), actions: [] };
   const pouce = pouceDeLaPiste(m);
   const { frappe } = pouce;
   if (pouce !== m.pouce && frappe === undefined) return { memoire: { ...m, pouce }, actions: [] };

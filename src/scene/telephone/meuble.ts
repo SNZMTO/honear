@@ -9,7 +9,7 @@ import { MODES_PAR_CRAN } from '../../regles/modes';
 import { BAC, COULEURS_DES_THEMES, PLAYLISTS_PAR_THEME, type CleDeTheme } from '../../ressources/bac';
 import type { Densite } from '../../ressources/densites';
 import { PLATINE } from '../../ressources/platine';
-import { REGLAGES } from '../../ressources/reglages';
+import { REGLAGES, TOURNOI } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
 import { dessinerLAmpli, type EtatDeLAmpli } from '../ampli';
 import type { EtatDuBac, Rangee } from '../bac';
@@ -85,8 +85,11 @@ export interface PlatineALArret {
   readonly code?: { readonly code: string; readonly joueurs: number };
   /** Le cran du mode, vers lequel la manette se couche : par défaut, celui du premier mode. */
   readonly mode?: number;
-  /** Ce que l'hôte a réglé sur les boutons « Titres » et « Secondes » ; sans eux, les réglages du site. */
-  readonly reglages?: { readonly pistes: number; readonly extrait: number };
+  /**
+   * Ce que l'hôte a réglé sur les boutons « Titres » et « Secondes » ; sans eux, les réglages du site. Au tournoi (`tableau`), le
+   * bouton « Titres » est gravé des tailles du tableau.
+   */
+  readonly reglages?: { readonly pistes: number; readonly extrait: number; readonly tableau?: boolean };
 }
 
 /** Le cran d'un bouton pour une valeur : le sien, ou celui de la valeur par défaut si elle n'est pas gravée sur le bouton. */
@@ -114,13 +117,15 @@ function platineFaite(a: Ecritoire, code: PlatineALArret['code'], mode: number, 
   const disque = dessinerLeDisque({ en: CENTRE_DU_PLATEAU, hauteur: HAUTEURS.feutrine, support: HAUTEURS.feutrine, etiquette }, DENSITE);
   const platine = platineDeLAccueil(a.textes);
   const { boutons } = platine.commandes;
-  const { pistes, extrait } = REGLAGES;
+  const { extrait } = REGLAGES;
+  // Au tournoi, « Titres » dit la taille du tableau : 8, 16 ou 32.
+  const pistes = reglages?.tableau === true ? TOURNOI.titres : REGLAGES.pistes;
   const reglesSurLaPlatine =
     reglages === undefined
       ? boutons
       : {
           ...boutons,
-          pistes: { ...boutons.pistes, choisi: cranDe(pistes.choix, reglages.pistes, pistes.defaut) },
+          pistes: { ...boutons.pistes, crans: pistes.choix.map(String), choisi: cranDe(pistes.choix, reglages.pistes, pistes.defaut) },
           extrait: { ...boutons.extrait, choisi: cranDe(extrait.choix, reglages.extrait, extrait.defaut) },
         };
   const reglee = { ...platine, commandes: { boutons: reglesSurLaPlatine, interrupteurs: { mode: manetteDuMode(a.textes, mode) } } };

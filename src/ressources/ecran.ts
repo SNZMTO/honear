@@ -92,6 +92,8 @@ export const TELEPHONE = {
    * bout à l'autre ; un clic sans glisser, ou une flèche du clavier, le change d'un pas.
    */
   volume: { depart: 0.7, courbe: 3, bruitsAuMoins: 0.3, pas: 0.1, course: 160 },
+  /** Au tournoi, un duel clos reste à l'écran ce temps-là (chacun sous sa face, la face qui passe dite) avant le tableau. */
+  duel: { apresLaCloture: 6 },
 } as const;
 
 /**

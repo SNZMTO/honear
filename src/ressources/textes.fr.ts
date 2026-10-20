@@ -253,7 +253,7 @@ export const TEXTES: Textes = {
     tours: ['Finale', 'Demies', 'Quarts', 'Huitièmes', 'Seizièmes'],
     duel: '{tour}, duel {numero} sur {sur}',
     ontVote: '{n} sur {sur} ont voté',
-    aide: 'Touche le disque pour l’autre face ; glisse le bras pour revenir en arrière.',
+    aide: 'Touche le disque pour l’autre face ; glisse dessus pour revenir en arrière.',
     voix: '{n} voix',
     faces: { A: 'A', B: 'B' },
     passe: '« {titre} » passe.',
@@ -269,6 +269,9 @@ export const TEXTES: Textes = {
     attenteDuSalon: 'On attend {hote} pour lancer le tournoi.',
     kraft: { tampon: 'Tournoi', titres: '{titres} titres', enLice: 'en lice' },
     touches: { lancer: 'Lancer le tournoi', clore: 'Clore le duel', suivant: 'Duel suivant', revanche: 'Une revanche' },
+    retourner: 'Retourner le disque',
+    voterPour: 'Voter pour « {titre} »',
+    jeux: { blindTest: 'Blind test', tournoi: 'Tournoi' },
   },
 
   etats: {

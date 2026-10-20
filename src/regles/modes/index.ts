@@ -1,7 +1,8 @@
 /**
  * Le registre des modes de jeu : ajouter un mode, c'est un fichier, et une ligne ici ; son nom dans les textes.
  * Les crans des modes sont les positions de la manette, dans l'ordre de la table de la platine ; un mode au-delà (les 4 choix,
- * dont le solo a pris la place, et le tournoi, dont la place reste à dessiner) reste au registre, mais ne s'y choisit pas.
+ * dont le solo a pris la place, et le tournoi, qui se choisit par son cran à lui, sous la platine) reste au registre, mais ne s'y
+ * choisit pas.
  */
 
 import { PLATINE } from '../../ressources/platine';

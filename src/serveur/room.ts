@@ -155,6 +155,7 @@ export function ouvrirUneRoom(
         ajouter: (e) => void ajouter(e),
         diffuser: (nouvelle) => diffuser(nouvelle),
         pistes: () => pistes(),
+        extrait: reglages.extrait,
         tirage,
         raconter: (fait) => raconterDeLaRoom(fait),
         quandFini: (a) => faceFinie(a),

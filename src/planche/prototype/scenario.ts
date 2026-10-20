@@ -131,3 +131,12 @@ export const SCENARIO = {
 
 /** La playlist du prototype, telle que sa source la donne au serveur : la face A, puis la face B. */
 export const PLAYLIST_DU_PROTOTYPE: readonly PisteDuMode[] = SCENARIO.pistes.map((p) => p.attendue);
+
+/**
+ * Au tournoi du prototype, les potes votent : chacun tant de secondes après l'ouverture d'un duel (Baron, le dernier, laisse à
+ * l'hôte le temps de clore sans lui) ; pour la face A, sauf au duel dont le rang, plus le sien, tombe sur le multiple de trois.
+ */
+export const VOTES_DES_POTES = {
+  apres: { lady: 5, mc: 7, dj: 9, mamie: 12, baron: 40 },
+  faceBTousLes: 3,
+} as const satisfies { readonly apres: Readonly<Record<Pote, number>>; readonly faceBTousLes: number };

@@ -23,6 +23,7 @@ import { TABLEE, type Place } from '../../ressources/tablee';
 import type { Textes } from '../../ressources/textes';
 import type { Calque } from '../calque';
 import { dessinerLeDuel, REGARD_DU_DUEL, type DecorDuDuel, type PoseDuDuel } from '../duel';
+import { lesDerniers, uneFoisPar } from '../memoire';
 import { remplir } from '../phrases';
 import { dessinerLaTablee, type JoueurPose, type PlaceDeLaTablee } from '../tablee';
 import { platineDeLAccueil } from './meuble';
@@ -194,6 +195,18 @@ function votesSousLesFaces(a: Ecritoire, etat: EtatDeLaPartie, clos: DuelClos): 
   });
 }
 
+/** Combien de platines de duel on garde toutes faites : de quoi aller et venir entre un duel et son tableau. */
+const GARDEES = 2;
+const platinesDe = uneFoisPar((_a: Ecritoire) => lesDerniers<Calque>(GARDEES));
+
+/**
+ * La platine d'un duel, son disque aux deux titres : faite une fois pour ces faces et cette pose, puis redonnée telle quelle. Un vote
+ * qui arrive ne la redessine pas : le téléphone la règle d'image en image (voir `regleurDuDuel`).
+ */
+function platineDuDuel(a: Ecritoire, decor: DecorDuDuel, faces: Readonly<Record<FaceDuDuel, Reponse>>, pose: PoseDuDuel): Calque {
+  return platinesDe(a)(JSON.stringify([decor, faces, pose]), () => dessinerLeDuel(decor, faces, pose, a.encrier.largeur, DENSITE));
+}
+
 /** L'écran d'un duel, au téléphone. */
 export function vueDuDuel(a: Ecritoire, o: DuelAuTelephone): VueDuTelephone {
   const r = REGARD_DU_DUEL;
@@ -245,7 +258,7 @@ export function vueDuDuel(a: Ecritoire, o: DuelAuTelephone): VueDuTelephone {
   return {
     regard: r,
     objets: [
-      dessinerLeDuel(decorDuDuel(a.textes, o.etat.tournoi?.titres ?? o.etat.pistes), faces, o.pose, a.encrier.largeur, DENSITE),
+      platineDuDuel(a, decorDuDuel(a.textes, o.etat.tournoi?.titres ?? o.etat.pistes), faces, o.pose),
       ...papierDuTour,
       ...eventail,
       ...(dite !== undefined ? phrase(dite, r, a.encrier) : []),
