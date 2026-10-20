@@ -1133,11 +1133,14 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
     c'est le bouton « Secondes » (`extraits.duree`). Le duel clos reste six secondes à l'écran (`TELEPHONE.duel`), le son s'y éteint.
   - *Corrigé en route* : la clôture d'un duel oubliait le tableau publié ; l'oreille de la room ne liste plus qui n'a voté à aucun
     duel tranché aux voix (« 0 sur 0 »).
+  - *Les listes du MCP faites pour un tournoi* (`creer_tournoi`) disent la taille de leur tableau : importées, elles se prennent
+    dès huit titres, et les réglages s'ouvrent sur le tournoi. L'export pour le MCP donne les tailles du tableau.
 
 ## Ce qui attend les étapes suivantes
 
-- **Le tournoi au MCP** : `creer_tournoi` (8, 16, 32 titres) rend le lien d'une partie qui s'ouvre en tournoi. Le site se met en ligne
-  avant le MCP. À essayer sur de vrais téléphones : le son de chaque face sur l'iPhone, le doigt qui glisse sur le disque.
+- **Le tournoi en ligne** : le site lit déjà `tournoi` dans une liste du MCP (les réglages s'ouvrent sur le tournoi, à son tableau) ;
+  `creer_tournoi` est prêt dans l'atelier du MCP. Le site se met en ligne avant le MCP. À essayer sur de vrais téléphones : le son de
+  chaque face sur l'iPhone, le doigt qui glisse sur le disque.
 
 - **Les comptes, la suite** : les clés d'accès (passkeys), pour entrer sans e-mail sur un téléphone déjà connu.
 - **Au téléphone, le regard saute d'un écran à l'autre** : les glissades de la planche d'animations ne sont pas encore jouées par le client,

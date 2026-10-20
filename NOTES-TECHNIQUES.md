@@ -264,7 +264,8 @@ identifiant. Le jeu garde une playlist sous un lien à lui : `deezer:1306931615`
   serveur. Une piste peut aussi porter une anecdote, de 160 signes au plus : elle ne part qu'avec la réponse révélée, et se lit sur
   un papier crème sous la platine (`papierDeLAnecdote`), cinq secondes de plus. Une liste dont la difficulté monte (`dans_l_ordre`)
   se joue dans son ordre (`gardeSonOrdre`), sans être mélangée. Plus courte que la face réglée, les réglages la règlent sur la plus
-  longue face qu'elle remplit.
+  longue face qu'elle remplit. Une liste faite pour un tournoi (`creer_tournoi`, au MCP) dit la taille de son tableau (`tournoi` :
+  8, 16 ou 32, rien d'autre n'est lu) ; importée, elle se prend dès huit titres, et les réglages s'ouvrent sur le tournoi, à ce tableau.
 - Deezer est partagé : le jeu et le MCP sortent par la même adresse, et Deezer compte 50 appels par 5 secondes pour les deux. Le jeu
   en fait 30, le MCP 10 (`ressources/reseau.ts`, et `ressources/reglages.py` du MCP).
 - `reseau/musique.ts` appelle : une limite de débit par service, une file plafonnée, des réponses gardées (une recherche une heure, une

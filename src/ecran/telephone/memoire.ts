@@ -476,7 +476,9 @@ export function recevoir(m: Memoire, n: Nouvelle): Memoire {
     case 'importee': {
       const p = m.preparation;
       if (p.ecran !== 'bac' || p.cran !== 'laMienne' || p.bac.enAttente === undefined) return m;
-      const assez = (n.playlist.jouables ?? n.playlist.total) >= Math.min(...REGLAGES.pistes.choix);
+      // Une liste faite pour un tournoi se joue dès huit titres ; une autre, dès la plus courte face.
+      const auMoins = Math.min(...(n.playlist.tournoi !== undefined ? TOURNOI.titres.choix : REGLAGES.pistes.choix));
+      const assez = (n.playlist.jouables ?? n.playlist.total) >= auMoins;
       // Une playlist qu'on peut jouer rejoint « Mes playlists », en tête ; on n'en garde que ce que le bac en montre.
       const mesPlaylists = assez
         ? [n.playlist, ...m.mesPlaylists.filter((p) => p.lien !== n.playlist.lien)].slice(0, MES_PLAYLISTS_AU_PLUS)
@@ -754,12 +756,13 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
     case 'choisir': {
       if (prep.ecran !== 'bac') return rien;
       const { pistes, extrait, son } = p;
-      // Le jeu réglé d'avance : un tournoi, si c'est son mode ; la manette garde alors le premier mode du blind test.
-      const jeu: JeuDesReglages = enDuels(p.mode) ? 'tournoi' : 'blindTest';
-      const mode = jeu === 'tournoi' ? ((MODES_PAR_CRAN[0]?.cle as CleDeMode | undefined) ?? p.mode) : p.mode;
       // À la recherche, sans résultat touché, on prend le premier ; aux « Prêtes à jouer », sans thème touché, celle du site, s'il n'a
       // pas de vraie source (avec une, il faut toucher un thème : la playlist d'essai n'a pas le son).
       const choisie = prep.bac.choisie ?? (prep.cran === 'chercher' ? prep.bac.resultats?.[0] : undefined);
+      // Le jeu réglé d'avance : un tournoi, si c'est son mode, ou si la liste choisie est faite pour un tournoi ; la manette garde
+      // alors le premier mode du blind test.
+      const jeu: JeuDesReglages = enDuels(p.mode) || choisie?.tournoi !== undefined ? 'tournoi' : 'blindTest';
+      const mode = enDuels(p.mode) ? ((MODES_PAR_CRAN[0]?.cle as CleDeMode | undefined) ?? p.mode) : p.mode;
       if (choisie === undefined && p.chercher) return rien;
       const playlist = choisie?.lien ?? p.playlist;
       // Une playlist plus courte que la face réglée (une liste sur mesure de douze titres, quand la face en veut quinze) se règle sur
@@ -773,7 +776,7 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
             ? pistes
             : Math.max(...remplies);
       // Au tournoi, de même : le plus grand tableau qu'elle remplit, si elle ne remplit pas celui qu'on voulait.
-      const titres = tableauRempli(jeu === 'tournoi' ? pistes : TOURNOI.titres.defaut, jouables);
+      const titres = tableauRempli(choisie?.tournoi ?? (enDuels(p.mode) ? pistes : TOURNOI.titres.defaut), jouables);
       // Dans la room, l'hôte change de playlist : la room repart dessus, réglée comme elle l'était ; le serveur dira si elle est trop courte.
       if (m.room !== undefined)
         return { memoire: { ...m, refus: undefined, preparation: { ecran: 'accueil' } }, actions: [{ genre: 'changerDePlaylist', playlist }] };

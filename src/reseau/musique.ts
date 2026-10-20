@@ -86,6 +86,8 @@ interface PlaylistLue {
   readonly total: number;
   readonly pistes: readonly PisteDuMode[];
   readonly dansLOrdre?: boolean;
+  /** Une liste sur mesure faite pour un tournoi : la taille de son tableau. */
+  readonly tournoi?: number;
 }
 
 /** Une limite de débit : jamais plus de tant d'appels dans une fenêtre de tant de secondes ; les instants des derniers. */
@@ -222,7 +224,13 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
         `Une liste sur mesure : ${ratees.length} piste(s) sur ${decrite.pistes.length} ne se sont pas lues chez Deezer : ${motifDe(ratees[0])}`,
       );
     const pistes = lues.flat();
-    const lue: PlaylistLue = { titre: decrite.titre, total: decrite.pistes.length, pistes, dansLOrdre: decrite.dansLOrdre };
+    const lue: PlaylistLue = {
+      titre: decrite.titre,
+      total: decrite.pistes.length,
+      pistes,
+      dansLOrdre: decrite.dansLOrdre,
+      ...(decrite.tournoi !== undefined ? { tournoi: decrite.tournoi } : {}),
+    };
     garder(playlists, lien, { valeur: lue, jusqua: jusquaQuand(pistes) }, o.maintenant(), D.gardeesAuPlus);
   }
 
@@ -278,7 +286,14 @@ export function brancherLaMusique(o: OptionsDeLaMusique): Musique {
       const lien = lu.genre === 'deezer' ? lienDeezer(lu.id) : lienListe(lu.id);
       await preparer(lien);
       const lue = playlists.get(lien)?.valeur;
-      return lue === undefined ? 'introuvable' : { lien, titre: lue.titre, total: lue.total, jouables: lue.pistes.length };
+      if (lue === undefined) return 'introuvable';
+      return {
+        lien,
+        titre: lue.titre,
+        total: lue.total,
+        jouables: lue.pistes.length,
+        ...(lue.tournoi !== undefined ? { tournoi: lue.tournoi } : {}),
+      };
     },
     preparer: (lien) => preparer(lien),
     pistes(lien) {
