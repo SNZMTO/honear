@@ -12,7 +12,7 @@ import { PREMIER_ARRIVE } from './premier';
 import { PREMIERE_NOTE } from './premiere-note';
 import { QUATRE_CHOIX } from './quatre-choix';
 import { SOLO } from './solo';
-import { TOURNOI } from './tournoi';
+import { TOURNOI, TOURNOI_SOLO } from './tournoi';
 
 export const MODES = {
   libre: LIBRE,
@@ -21,6 +21,7 @@ export const MODES = {
   premiereNote: PREMIERE_NOTE,
   quatreChoix: QUATRE_CHOIX,
   tournoi: TOURNOI,
+  tournoiSolo: TOURNOI_SOLO,
 } as const satisfies Readonly<Record<string, ModeDuRegistre>>;
 export type CleDeMode = keyof typeof MODES;
 
@@ -28,6 +29,9 @@ export type CleDeMode = keyof typeof MODES;
 export const MODES_PAR_CRAN: readonly ModeDuRegistre[] = Object.values(MODES)
   .filter((m: ModeDuRegistre) => m.cran < PLATINE.commandes.interrupteur.manette.directions.length)
   .sort((a, b) => a.cran - b.cran);
+
+/** Les modes du tournoi, tels que la manette les montre quand on ouvre un tournoi : en solo à gauche, à plusieurs à droite. */
+export const MODES_DU_TOURNOI: readonly ModeDuRegistre[] = [TOURNOI_SOLO, TOURNOI];
 
 /** Vrai si ce mode se joue en duels (le tournoi), et non en pistes à deviner. */
 export const enDuels = (cle: CleDeMode): boolean => MODES[cle].deroule === 'duels';

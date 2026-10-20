@@ -6,7 +6,7 @@
 
 import type { NomDeCalque } from '../../lexique';
 import { hitParade } from '../../regles/partie';
-import { enDuels, MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
+import { enDuels, MODES_DU_TOURNOI, MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { FACES_DU_DUEL } from '../../regles/tournoi';
 import { PLATINE } from '../../ressources/platine';
 import { TABLEE } from '../../ressources/tablee';
@@ -116,11 +116,17 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     const C = textes.commandes;
     if (nom === 'bouton-pistes') return de({ genre: 'tournerLeBouton', bouton: 'pistes' }, `${C.pistes} : ${ecran.pistes}`);
     if (nom === 'bouton-extrait') return de({ genre: 'tournerLeBouton', bouton: 'extrait' }, `${C.extrait} : ${ecran.extrait}`);
-    // La manette du mode : la toucher la couche vers le mode suivant ; toucher un nom gravé autour d'elle prend ce mode-là.
-    if (nom === 'interrupteur-mode')
-      return de({ genre: 'tournerLeBouton', bouton: 'mode' }, `${C.mode} : ${C.modes[ecran.mode.cle] ?? ecran.mode.cle}`);
+    // La manette du mode : la toucher la couche vers le mode suivant ; toucher un nom gravé autour d'elle prend ce mode-là. Au
+    // tournoi, elle n'a que deux noms : Solo, à gauche, et Multi, à droite.
+    const actuel = ecran.jeu === 'tournoi' ? ecran.tournoi : ecran.mode;
+    if (nom === 'interrupteur-mode') return de({ genre: 'tournerLeBouton', bouton: 'mode' }, `${C.mode} : ${C.modes[actuel.cle] ?? actuel.cle}`);
     const direction = DIRECTIONS.find((d) => nom === `interrupteur-mode/${d}`);
-    const mode = direction !== undefined ? MODES_PAR_CRAN[PLATINE.commandes.interrupteur.manette.directions.indexOf(direction)] : undefined;
+    const mode =
+      direction === undefined
+        ? undefined
+        : ecran.jeu === 'tournoi'
+          ? MODES_DU_TOURNOI[['gauche', 'droite'].indexOf(direction)]
+          : MODES_PAR_CRAN[PLATINE.commandes.interrupteur.manette.directions.indexOf(direction)];
     if (mode !== undefined) return de({ genre: 'choisirLeMode', mode: mode.cle as CleDeMode }, `${C.mode} : ${C.modes[mode.cle] ?? mode.cle}`);
     // Les deux crans sous la platine : le blind test, ou le tournoi.
     const jeu = JEUX.find((j) => nom === `touche-jeu-${j}`);

@@ -40,7 +40,9 @@ import { partieA } from '../src/regles/partie';
 import { TELEPHONE } from '../src/ressources/ecran';
 import { TEXTES } from '../src/ressources/textes.fr';
 import { DUREE_DU_RETOURNEMENT } from '../src/scene/duel';
+import { vueDuSalon } from '../src/scene/telephone/ecrans';
 import { demarrerLeServeur } from '../src/serveur/serveur';
+import { ENCRIER } from './planche';
 
 const DUREE = 20;
 const POCHETTE = joueursDExemple(TEXTES)[0]!.pochette;
@@ -160,14 +162,14 @@ function uneTablee() {
   return { ecran, toucherLe, agir, passer, inviter, invites, memoire: () => m, heure: () => heure };
 }
 
-test('aux réglages, le cran « Tournoi » ouvre un tournoi : « Titres » passe de 16 à 32 puis 8 ; toucher la manette ramène au blind test', () => {
+test('aux réglages, le cran « Tournoi » ouvre un tournoi : « Titres » passe de 16 à 32 puis 8 ; la manette n’a plus que Solo et Multi', () => {
   const t = uneTablee();
   t.agir({ genre: 'choisir' });
   let e = t.ecran();
   assert.ok(e.genre === 'reglages' && e.jeu === 'blindTest' && e.pistes === 15);
   t.toucherLe('touche-jeu-tournoi');
   e = t.ecran();
-  assert.ok(e.genre === 'reglages' && e.jeu === 'tournoi' && e.pistes === 16);
+  assert.ok(e.genre === 'reglages' && e.jeu === 'tournoi' && e.pistes === 16 && e.tournoi.cle === 'tournoi');
   const tailles: number[] = [];
   for (let k = 0; k < 3; k++) {
     t.toucherLe('bouton-pistes');
@@ -175,18 +177,32 @@ test('aux réglages, le cran « Tournoi » ouvre un tournoi : « Titres » passe
     if (r.genre === 'reglages') tailles.push(r.pistes);
   }
   assert.deepEqual(tailles, [32, 8, 16]);
+  // La manette se couche de Multi vers Solo, et revient ; ses deux noms se touchent ; ceux du blind test n'y sont plus.
   t.toucherLe('interrupteur-mode');
   e = t.ecran();
-  assert.ok(
-    e.genre === 'reglages' && e.jeu === 'blindTest' && e.pistes === 15 && e.mode.cle === 'libre',
-    'la manette ne change pas de mode : elle ramène au blind test',
-  );
+  assert.ok(e.genre === 'reglages' && e.jeu === 'tournoi' && e.tournoi.cle === 'tournoiSolo');
+  t.toucherLe('interrupteur-mode/droite');
+  e = t.ecran();
+  assert.ok(e.genre === 'reglages' && e.tournoi.cle === 'tournoi');
+  assert.equal(choseATouche('interrupteur-mode/haut', e, TEXTES), undefined);
+  t.toucherLe('interrupteur-mode/gauche');
+  // Le blind test garde son mode : on y revient par son cran.
+  t.toucherLe('touche-jeu-blindTest');
+  e = t.ecran();
+  assert.ok(e.genre === 'reglages' && e.jeu === 'blindTest' && e.mode.cle === 'libre' && e.pistes === 15);
   t.toucherLe('touche-jeu-tournoi');
   t.toucherLe('touche-ouvrir');
   const room = t.memoire().room;
   assert.ok(room !== undefined);
-  assert.equal(partieA(room.journal, Infinity).mode, 'tournoi');
+  assert.equal(partieA(room.journal, Infinity).mode, 'tournoiSolo');
   assert.equal(partieA(room.journal, Infinity).tournoi?.titres, 16);
+  // En solo, la room n'accueille que son hôte : le salon ne montre ni QR code ni lien à partager.
+  t.passer(1);
+  e = t.ecran();
+  assert.ok(e.genre === 'salon');
+  const noms = vueDuSalon({ textes: TEXTES, encrier: ENCRIER }, e.etat, e.code, e.qui).objets.map((o) => o.nom);
+  assert.ok(!noms.includes('etiquette-lien') && !noms.includes('kraft-qr'), noms.join(' '));
+  assert.ok(noms.includes('touche-lancer'));
 });
 
 test('un tournoi au téléphone : le duel, sa platine et son son ; le vote ; la clôture un moment, le tableau, le duel suivant ; le palmarès', () => {

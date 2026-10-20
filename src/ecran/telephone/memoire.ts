@@ -15,7 +15,7 @@ import {
   type PlaylistTrouvee,
   type RaisonDeRefus,
 } from '../../regles/messages';
-import { enDuels, MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
+import { enDuels, MODES_DU_TOURNOI, MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { numeroDeLaPiste, partieA, type EvenementDePartie, type Face, type SonDeLaRoom } from '../../regles/partie';
 import type { ActionDePiste } from '../../regles/piste';
 import type { FaceDuDuel } from '../../regles/tournoi';
@@ -96,6 +96,8 @@ export type Preparation =
       /** Le jeu qu'on ouvre : un blind test, au mode de la manette ; ou un tournoi, d'un tableau de tant de titres. */
       readonly jeu: JeuDesReglages;
       readonly titres: number;
+      /** Au tournoi, son mode : en solo, ou à plusieurs. */
+      readonly tournoi: CleDeMode;
     } & ReglagesDeLaPlatine);
 
 /**
@@ -793,6 +795,7 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
           mode,
           pistes: face,
           titres,
+          tournoi: enDuels(p.mode) ? p.mode : 'tournoi',
           extrait,
           son,
         },
@@ -801,8 +804,18 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
     case 'tournerLeBouton': {
       if (prep.ecran !== 'reglages' || !p.commandes) return rien;
       if (t.bouton === 'mode') {
-        // Au tournoi, toucher la manette ramène au blind test, sur le mode qu'elle montre.
-        if (prep.jeu === 'tournoi') return seul({ ...m, preparation: { ...prep, jeu: 'blindTest' } });
+        // Au tournoi, la manette passe de Solo à Multi, et inversement.
+        if (prep.jeu === 'tournoi')
+          return seul({
+            ...m,
+            preparation: {
+              ...prep,
+              tournoi: suivant(
+                MODES_DU_TOURNOI.map((m) => m.cle as CleDeMode),
+                prep.tournoi,
+              ),
+            },
+          });
         // Les modes de la manette, dans l'ordre de leurs crans : ceux d'au-delà ne se choisissent pas.
         const cles = MODES_PAR_CRAN.map((m) => m.cle as CleDeMode);
         return seul({ ...m, preparation: { ...prep, mode: suivant(cles, prep.mode) } });
@@ -816,14 +829,16 @@ export function toucher(m: Memoire, t: Toucher, heure: number, p: Preparatifs): 
       return seul({ ...m, preparation: { ...prep, [t.bouton]: suivant(REGLAGES[t.bouton].choix, prep[t.bouton]) } });
     }
     case 'choisirLeMode':
-      return prep.ecran === 'reglages' && p.commandes ? seul({ ...m, preparation: { ...prep, jeu: 'blindTest', mode: t.mode } }) : rien;
+      if (prep.ecran !== 'reglages' || !p.commandes) return rien;
+      // Un nom gravé autour de la manette : au tournoi, Solo ou Multi ; au blind test, son mode.
+      return seul({ ...m, preparation: enDuels(t.mode) ? { ...prep, tournoi: t.mode } : { ...prep, jeu: 'blindTest', mode: t.mode } });
     case 'choisirLeJeu':
       return prep.ecran === 'reglages' && p.commandes ? seul({ ...m, preparation: { ...prep, jeu: t.jeu } }) : rien;
     case 'ouvrir': {
       if (prep.ecran !== 'reglages') return rien;
       const { extrait, son, pochette, playlist } = prep;
       // Au tournoi, la room se joue en duels, d'un tableau de la taille réglée ; au blind test, au mode de la manette.
-      const [mode, pistes]: [CleDeMode, number] = prep.jeu === 'tournoi' ? ['tournoi', prep.titres] : [prep.mode, prep.pistes];
+      const [mode, pistes]: [CleDeMode, number] = prep.jeu === 'tournoi' ? [prep.tournoi, prep.titres] : [prep.mode, prep.pistes];
       return { memoire: m, actions: [{ genre: 'creer', mode, pistes, extrait, son, playlist, pochette }] };
     }
     case 'allumer': {
