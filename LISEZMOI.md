@@ -1133,6 +1133,8 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
     c'est le bouton « Secondes » (`extraits.duree`). Le duel clos reste six secondes à l'écran (`TELEPHONE.duel`), le son s'y éteint.
   - *Corrigé en route* : la clôture d'un duel oubliait le tableau publié ; l'oreille de la room ne liste plus qui n'a voté à aucun
     duel tranché aux voix (« 0 sur 0 »).
+  - *Solo ou Multi* : au tournoi, la manette n'a plus que ces deux noms (le blind test garde ses quatre modes) ; en solo
+    (`tournoiSolo`), la room n'accueille que son hôte, ni QR code ni lien au salon, et chaque duel se clôt à son vote.
   - *Les vraies pochettes* (celles de Deezer) se posent par-dessus les vignettes : au milieu du disque d'un duel posé à plat (pas pendant
     qu'il se retourne), sur chaque titre connu du tableau, sur le podium du palmarès (`imagesDuTableau`, `imagesDuPalmares`,
     `pochetteDuDuel`) ; sans image, la vignette reste.

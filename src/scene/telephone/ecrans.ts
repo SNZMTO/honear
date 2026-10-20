@@ -299,17 +299,22 @@ export function vueDesReglages(
   mode: ModeDuRegistre,
   reglages?: { readonly pistes: number; readonly extrait: number; readonly son: SonDeLaRoom },
   jeu?: JeuDesReglages,
+  modeDuTournoi: ModeDuRegistre = MODES.tournoi,
 ): VueDuTelephone {
   const r = SUR_LA_PLATINE;
   const tournoi = jeu === 'tournoi';
-  // Au tournoi, la manette reste sur son mode de blind test : c'est le cran « Tournoi » qui dit le jeu, et « Titres », le tableau.
-  const platine = platineArretee(a, { mode: mode.cran, ...(reglages !== undefined ? { reglages: { ...reglages, tableau: tournoi } } : {}) });
+  // Au tournoi, c'est le cran « Tournoi » qui dit le jeu ; la manette n'a plus que Solo et Multi, et « Titres » dit le tableau.
+  const platine = platineArretee(a, {
+    mode: mode.cran,
+    ...(tournoi ? { tournoi: modeDuTournoi.cle } : {}),
+    ...(reglages !== undefined ? { reglages: { ...reglages, tableau: tournoi } } : {}),
+  });
   return {
     regard: r,
     objets: [
       platine,
       ...(jeu !== undefined ? cransDuJeu(a, jeu) : []),
-      ...phrase(a.textes.partie.bareme[tournoi ? 'tournoi' : mode.cle] ?? '', r, a.encrier),
+      ...phrase(a.textes.partie.bareme[tournoi ? modeDuTournoi.cle : mode.cle] ?? '', r, a.encrier),
       toucheAuMilieu('touche-ouvrir', 'principale', a.textes.partie.ouvrirLeSalon, r, T.reglages.ouvrir, a.encrier),
       toucheAuMilieu('touche-revenir', 'secondaire', a.textes.partie.retour, r, T.reglages.retour, a.encrier),
     ],

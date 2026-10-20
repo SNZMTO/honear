@@ -10,7 +10,7 @@ import { test } from 'node:test';
 import { hasard } from '../src/lowpoly/aleatoire';
 import { pochetteDExemple } from '../src/planche/exemples';
 import { lireUneAction, publier, type Action, type Connexion, type ExtraitsDuDuel, type Nouvelle } from '../src/regles/messages';
-import type { PisteDuMode } from '../src/regles/modes';
+import type { CleDeMode, PisteDuMode } from '../src/regles/modes';
 import { partieA, type EtatDeLaPartie, type EvenementDePartie } from '../src/regles/partie';
 import {
   disqueDOr,
@@ -282,9 +282,9 @@ function monde(pistes: () => readonly PisteDuMode[] | undefined) {
   return { serveur, telephone, a, faits, finies };
 }
 
-const creerLeTournoi = (pistes = 8): Action => ({
+const creerLeTournoi = (pistes = 8, mode: CleDeMode = 'tournoi'): Action => ({
   genre: 'creer',
-  mode: 'tournoi',
+  mode,
   pistes,
   extrait: 20,
   son: 'tous',
@@ -476,4 +476,21 @@ test('au premier lancer, le tableau est publié en entier : chacun voit les titr
   // Et il reste, duel clos après duel clos.
   assert.equal(vu(hote).tournoi?.clos.length, 1);
   assert.equal(vu(hote).tournoi?.tableau?.length, 8);
+});
+
+test('le tournoi en solo : la room n’accueille que son hôte, et chaque duel se clôt à son vote', () => {
+  const m = monde(() => playlist(12));
+  const hote = m.telephone();
+  hote.connexion.envoyer(creerLeTournoi(8, 'tournoiSolo'));
+  const invite = m.telephone();
+  invite.connexion.envoyer({ genre: 'rejoindre', code: hote.code, pochette: POCHETTE });
+  assert.equal(invite.recu.at(-1)?.genre, 'refus');
+  assert.deepEqual(invite.recu.at(-1), { genre: 'refus', heure: 0, raison: 'solo' });
+  m.a(10);
+  hote.connexion.envoyer({ genre: 'lancer' });
+  assert.ok(vu(hote).tournoi?.enCours !== undefined);
+  m.a(12);
+  hote.connexion.envoyer({ genre: 'voter', face: 'B' });
+  assert.equal(vu(hote).tournoi?.enCours, undefined);
+  assert.equal(clotures(hote).at(-1)?.gagnante, 'B');
 });

@@ -49,6 +49,8 @@ export type EcranDuTelephone =
       /** Le jeu qu'on ouvre : au tournoi, « Titres » dit la taille du tableau (`pistes`). */
       readonly jeu: JeuDesReglages;
       readonly mode: ModeDuRegistre;
+      /** Au tournoi, son mode : en solo, ou à plusieurs (la manette n'a plus que ces deux noms). */
+      readonly tournoi: ModeDuRegistre;
       readonly pistes: number;
       readonly extrait: number;
       readonly son: SonDeLaRoom;
@@ -185,6 +187,7 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
         genre: 'reglages',
         jeu: prep.jeu,
         mode: MODES[prep.mode],
+        tournoi: MODES[prep.tournoi],
         pistes: prep.jeu === 'tournoi' ? prep.titres : prep.pistes,
         extrait: prep.extrait,
         son: prep.son,

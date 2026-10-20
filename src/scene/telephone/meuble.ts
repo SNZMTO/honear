@@ -5,7 +5,7 @@
  */
 
 import { AMPLI } from '../../ressources/ampli';
-import { MODES_PAR_CRAN } from '../../regles/modes';
+import { MODES_DU_TOURNOI, MODES_PAR_CRAN } from '../../regles/modes';
 import { BAC, COULEURS_DES_THEMES, PLAYLISTS_PAR_THEME, type CleDeTheme } from '../../ressources/bac';
 import type { Densite } from '../../ressources/densites';
 import { PLATINE } from '../../ressources/platine';
@@ -44,6 +44,16 @@ export function manetteDuMode(textes: Textes, cran: number): EtatDInterrupteur {
     return mode !== undefined ? nomDuMode(textes, mode.cle) : '';
   });
   return { titre: '', positions: [haut, gauche, droite, bas], choisie: DIRECTIONS.indexOf(directions[cran] ?? 'haut') };
+}
+
+/**
+ * La manette quand on ouvre un tournoi : deux noms seulement, Solo à gauche et Multi à droite (les modes du tournoi) ; elle se couche
+ * vers celui qui est choisi.
+ */
+export function manetteDuTournoi(textes: Textes, cle: string): EtatDInterrupteur {
+  const [solo, multi] = MODES_DU_TOURNOI.map((m) => nomDuMode(textes, m.cle));
+  const choisi = MODES_DU_TOURNOI.findIndex((m) => m.cle === cle);
+  return { titre: '', positions: ['', solo ?? '', multi ?? '', ''], choisie: DIRECTIONS.indexOf(choisi === 0 ? 'gauche' : 'droite') };
 }
 
 /** La platine de l'accueil : à l'arrêt, bras posé sur son repos, levier baissé, réglages par défaut, le logo sur l'étiquette. */
@@ -85,6 +95,8 @@ export interface PlatineALArret {
   readonly code?: { readonly code: string; readonly joueurs: number };
   /** Le cran du mode, vers lequel la manette se couche : par défaut, celui du premier mode. */
   readonly mode?: number;
+  /** Au tournoi, son mode (en solo, à plusieurs) : la manette n'a plus que ces deux noms. */
+  readonly tournoi?: string;
   /**
    * Ce que l'hôte a réglé sur les boutons « Titres » et « Secondes » ; sans eux, les réglages du site. Au tournoi (`tableau`), le
    * bouton « Titres » est gravé des tailles du tableau.
@@ -105,11 +117,17 @@ const meublesDe = uneFoisPar((_a: Ecritoire) => lesDerniers<Calque>(GARDES));
  * La platine à l'arrêt, avec un disque sur le plateau : celui du logo, ou celui du salon qui porte le code ; son sélecteur sur un mode.
  * Faite une fois pour ces réglages, puis redonnée telle quelle : une lettre tapée ne la rebâtit plus, ni ne la fait repeindre.
  */
-export function platineArretee(a: Ecritoire, { code, mode = MODES_PAR_CRAN[0]?.cran ?? 0, reglages }: PlatineALArret = {}): Calque {
-  return meublesDe(a)(JSON.stringify(['platine', code, mode, reglages]), () => platineFaite(a, code, mode, reglages));
+export function platineArretee(a: Ecritoire, { code, mode = MODES_PAR_CRAN[0]?.cran ?? 0, tournoi, reglages }: PlatineALArret = {}): Calque {
+  return meublesDe(a)(JSON.stringify(['platine', code, mode, tournoi, reglages]), () => platineFaite(a, code, mode, reglages, tournoi));
 }
 
-function platineFaite(a: Ecritoire, code: PlatineALArret['code'], mode: number, reglages: PlatineALArret['reglages']): Calque {
+function platineFaite(
+  a: Ecritoire,
+  code: PlatineALArret['code'],
+  mode: number,
+  reglages: PlatineALArret['reglages'],
+  tournoi: string | undefined,
+): Calque {
   const etiquette =
     code === undefined
       ? disqueDeLAccueil(a.textes, DENSITE, a.encrier.largeur).etiquette
@@ -128,7 +146,8 @@ function platineFaite(a: Ecritoire, code: PlatineALArret['code'], mode: number, 
           pistes: { ...boutons.pistes, crans: pistes.choix.map(String), choisi: cranDe(pistes.choix, reglages.pistes, pistes.defaut) },
           extrait: { ...boutons.extrait, choisi: cranDe(extrait.choix, reglages.extrait, extrait.defaut) },
         };
-  const reglee = { ...platine, commandes: { boutons: reglesSurLaPlatine, interrupteurs: { mode: manetteDuMode(a.textes, mode) } } };
+  const manette = tournoi !== undefined ? manetteDuTournoi(a.textes, tournoi) : manetteDuMode(a.textes, mode);
+  const reglee = { ...platine, commandes: { boutons: reglesSurLaPlatine, interrupteurs: { mode: manette } } };
   return dessinerLaPlatine(reglee, DENSITE, [disque.ombre, disque.disque]);
 }
 

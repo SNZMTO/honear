@@ -201,7 +201,7 @@ function vueDe(e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>, a: Ecr
     case 'bac':
       return vueDuBac(a, e.bac);
     case 'reglages':
-      return vueDesReglages(a, e.mode, { pistes: e.pistes, extrait: e.extrait, son: e.son }, e.jeu);
+      return vueDesReglages(a, e.mode, { pistes: e.pistes, extrait: e.extrait, son: e.son }, e.jeu, e.tournoi);
     case 'salon':
       return vueDuSalon(a, e.etat, e.code, e.qui, true, e.copie);
     case 'ampli':

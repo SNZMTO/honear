@@ -127,7 +127,7 @@ const reglages = (a: Ecritoire, platine: readonly Calque[]): VueDuTelephone => (
 function variantePlaceDeLaManette(a: Ecritoire): ImageDePlanche {
   const actuelle = manetteDuMode(a.textes, MODES.libre.cran);
   const [haut = '', gauche = '', droite = ''] = actuelle.positions;
-  const manette: EtatDInterrupteur = { titre: '', positions: [haut, gauche, droite, a.textes.commandes.modes['tournoi'] ?? ''], choisie: 3 };
+  const manette: EtatDInterrupteur = { titre: '', positions: [haut, gauche, droite, a.textes.tournoi.jeux.tournoi], choisie: 3 };
   return ecran('reglages-manette', L.images.reglagesManette, reglages(a, platineDesReglages(a, commandesDuTournoi(a.textes, manette))));
 }
 
