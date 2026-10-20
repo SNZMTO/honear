@@ -3,11 +3,12 @@
  * assistant (Claude, ChatGPT…) : « des chansons avec une couleur dans le titre », « les 30 ans de Léa ». Le MCP les range et
  * les sert sur un réseau que seul le jeu voit ; chacune nomme ses pistes par leur identifiant Deezer, et chaque piste se relit
  * chez Deezer (`deezer.ts`), pour son extrait. Une piste porte aussi ses surnoms : d'autres réponses justes, que le jugement
- * accepte en plus des siennes ; et parfois une anecdote, montrée à la révélation. Ce module ne parle pas au réseau : il dit quelle
- * adresse lire, et ce qu'elle dit.
+ * accepte en plus des siennes ; et parfois une anecdote, montrée à la révélation. Une liste faite pour un tournoi dit la taille de
+ * son tableau. Ce module ne parle pas au réseau : il dit quelle adresse lire, et ce qu'elle dit.
  */
 
 import type { PisteDuMode } from '../../regles/modes';
+import { TOURNOI } from '../../ressources/reglages';
 
 /** Le lien d'une liste, tel que le jeu le garde et le donne pour créer une room : « liste:iTRYNDDqk3g0zBoA ». */
 export const lienListe = (id: string): string => `liste:${id}`;
@@ -31,6 +32,8 @@ export interface ListeLue {
   /** Vrai quand la difficulté monte : la room la joue dans cet ordre, sans la mélanger. */
   readonly dansLOrdre: boolean;
   readonly pistes: readonly { readonly deezer: number; readonly surnoms: Surnoms; readonly anecdote?: string }[];
+  /** Une liste faite pour un tournoi : la taille de son tableau (8, 16 ou 32). */
+  readonly tournoi?: number;
 }
 
 /** Ce qu'une liste porte au plus : ce que le MCP borne déjà, revérifié ici, d'où que vienne la réponse. */
@@ -48,9 +51,11 @@ export function lireLaListe(reponse: unknown): ListeLue | undefined {
   const titre = texte(liste?.['nom'], BORNES.titre);
   const pistes = liste?.['pistes'];
   if (titre === undefined || !Array.isArray(pistes)) return undefined;
+  const tournoi = liste?.['tournoi'];
   return {
     titre,
     dansLOrdre: liste?.['dans_l_ordre'] === true,
+    ...(typeof tournoi === 'number' && (TOURNOI.titres.choix as readonly number[]).includes(tournoi) ? { tournoi } : {}),
     pistes: pistes.slice(0, BORNES.pistes).flatMap((x) => {
       const p = objet(x);
       const deezer = p?.['deezer'];

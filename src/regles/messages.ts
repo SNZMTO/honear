@@ -124,6 +124,8 @@ export interface PlaylistTrouvee {
   readonly total: number;
   /** Ceux qui ont un extrait : on ne le sait qu'une fois la playlist lue. */
   readonly jouables?: number;
+  /** Une liste sur mesure faite pour un tournoi (`creer_tournoi`, au MCP) : la taille de son tableau. Les réglages s'y mettent. */
+  readonly tournoi?: number;
 }
 
 /**

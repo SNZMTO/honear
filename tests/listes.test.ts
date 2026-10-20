@@ -153,3 +153,28 @@ test('une room garde l’ordre d’une liste dont la difficulté monte ; une pla
   assert.deepEqual(ordreDeLaRoom(lienListe(ID)), ['T0', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']);
   assert.notDeepEqual(ordreDeLaRoom('deezer:777'), ['T0', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']);
 });
+
+test('une liste faite pour un tournoi dit la taille de son tableau (8, 16 ou 32, rien d’autre) ; importée, elle le porte au téléphone', async () => {
+  assert.equal(lireLaListe({ ...LISTE, tournoi: 16 })?.tournoi, 16);
+  for (const autre of [12, '16', null, 64]) assert.equal(lireLaListe({ ...LISTE, tournoi: autre })?.tournoi, undefined, String(autre));
+  assert.equal(lireLaListe(LISTE)?.tournoi, undefined);
+  const demandes: string[] = [];
+  const musique = brancherLaMusique({
+    lire: (adresse) => {
+      demandes.push(adresse);
+      if (adresse === `${MCP}/listes/${ID}`) return Promise.resolve({ ...LISTE, tournoi: 8 });
+      const fiche = /\/track\/(\d+)$/.exec(adresse)?.[1];
+      return fiche !== undefined && fiche !== '404'
+        ? Promise.resolve(uneFiche(Number(fiche), `T${fiche}`, `A${fiche}`))
+        : Promise.reject(new Error('404'));
+    },
+    suivre: () => Promise.reject(new Error('pas de réseau')),
+    maintenant: () => 0,
+    monde: () => MONDE,
+    attendre: () => Promise.resolve(),
+    listes: MCP,
+  });
+  const importee = await musique.importer(`https://honear.fr/?liste=${ID}`);
+  assert.ok(importee !== 'introuvable' && importee !== 'spotify');
+  assert.equal(importee.tournoi, 8);
+});

@@ -193,3 +193,21 @@ test('une playlist plus courte que la face réglée se règle sur la plus longue
   };
   assert.deepEqual([reglee(12), reglee(10), reglee(15), reglee(20)], [10, 10, 15, 15]);
 });
+
+test('une liste faite pour un tournoi se prend dès huit titres, et met les réglages au tournoi, sur son tableau', () => {
+  let m = saisir(auBac('laMienne'), 'https://honear.fr/?liste=5SiHPU4qQHlXgbM3');
+  m = valider(m, 0, PREPARATIFS).memoire;
+  const liste = { lien: 'liste:5SiHPU4qQHlXgbM3', titre: 'Le tournoi des génériques', total: 9, jouables: 9, tournoi: 8 };
+  m = recevoir(m, { genre: 'importee', heure: 1, playlist: liste });
+  assert.deepEqual([bacDe(m)?.refus, bacDe(m)?.choisie?.lien], [undefined, liste.lien]);
+  const reglages = toucher(m, { genre: 'choisir' }, 2, PREPARATIFS).memoire.preparation;
+  assert.ok(reglages.ecran === 'reglages');
+  assert.deepEqual([reglages.jeu, reglages.titres], ['tournoi', 8]);
+  // La même, sans le tournoi : neuf titres ne font pas une face.
+  const courte = recevoir(valider(saisir(auBac('laMienne'), 'https://honear.fr/?liste=5SiHPU4qQHlXgbM3'), 0, PREPARATIFS).memoire, {
+    genre: 'importee',
+    heure: 1,
+    playlist: { lien: liste.lien, titre: liste.titre, total: 9, jouables: 9 },
+  });
+  assert.equal(bacDe(courte)?.refus, 'tropCourt');
+});

@@ -1,7 +1,7 @@
 /**
  * Ce que le MCP de Honear (dépôt honear-mcp) reprend du jeu, sans jamais le recopier à la main : les réglages du jugement d'une
  * saisie, une table de cas jugés par le jeu (ceux de tests/cas-du-jugement.ts, et des variantes tirées d'une graine), la part
- * de Deezer que le jeu prend, le moins de pistes qu'une playlist doit avoir pour une partie, sa palette et ses polices (pour le mini blind test, qui a son allure). Il écrit dans le dossier du
+ * de Deezer que le jeu prend, le moins de pistes qu'une playlist doit avoir pour une partie, les tailles du tableau d'un tournoi, sa palette et ses polices (pour le mini blind test, qui a son allure). Il écrit dans le dossier du
  * MCP, qui les versionne et ne les retouche pas : src/honear_mcp/ressources/honear.py, src/honear_mcp/ressources/polices/ et
  * tests/jugement-de-honear.json. Si le jeu change de jugement, le portage du MCP rougit.
  *
@@ -14,7 +14,7 @@ import { hasard } from '../src/lowpoly/aleatoire';
 import { aLOreille, juger, normaliser } from '../src/regles/jugement';
 import { MODES } from '../src/regles/modes';
 import { PALETTE } from '../src/ressources/palette';
-import { JUGEMENT, REGLAGES } from '../src/ressources/reglages';
+import { JUGEMENT, REGLAGES, TOURNOI } from '../src/ressources/reglages';
 import { RESEAU } from '../src/ressources/reseau';
 import { CAS_DE_JUGER, CAS_DES_PARTIES } from '../tests/cas-du-jugement';
 
@@ -121,6 +121,18 @@ class PartieDeHonear:
 
 
 PARTIE_DE_HONEAR = PartieDeHonear(pistes_au_moins=${Math.min(...REGLAGES.pistes.choix)})
+
+
+@dataclass(frozen=True)
+class TournoiDeHonear:
+    """Un tournoi de Honear (\`TOURNOI.titres\`, dans src/ressources/reglages.ts de Honear)."""
+
+    titres: tuple[int, ...]
+    """Les tailles du tableau qu'on peut choisir, de la plus petite à la plus grande : une liste plus courte que la plus
+    petite ne fait pas de tournoi."""
+
+
+TOURNOI_DE_HONEAR = TournoiDeHonear(titres=(${TOURNOI.titres.choix.join(', ')}))
 
 PALETTE: dict[str, str] = {
 ${Object.entries(PALETTE)
