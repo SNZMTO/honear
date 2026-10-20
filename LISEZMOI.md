@@ -1141,6 +1141,11 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   - *Les listes du MCP faites pour un tournoi* (`creer_tournoi`) disent la taille de leur tableau : importées, elles se prennent
     dès huit titres, et les réglages s'ouvrent sur le tournoi. L'export pour le MCP donne les tailles du tableau.
 
+- **La planche « Ce qui se touche »** (le 20, `npm run reperes`) : hors des touches, rien ne disait ce qui se touche (les boutons de
+  la platine, les noms autour de la manette, les étiquettes, le disque). Trois façons de le signaler, sur trois écrans du jeu (les
+  réglages, le bac, un duel) : des coins de visée miel, un pointillé, une pastille au coin. Ce qui se touche, c'est ce que le jeu fait
+  toucher (`calquesATouche`, sorti du client vers `touchers.ts`). À choisir avant de les poser à chaque étape.
+
 ## Ce qui attend les étapes suivantes
 
 - **Le tournoi en ligne** : le site lit déjà `tournoi` dans une liste du MCP (les réglages s'ouvrent sur le tournoi, à son tableau) ;

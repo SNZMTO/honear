@@ -21,6 +21,7 @@ npm run construire     # dist/index.html (la page) et dist/serveur.mjs (le serve
 npm run prototype      # sortie/prototype.html : une partie cliquable contre le serveur simulé
 npm run ecrans         # sortie/ecrans/*.svg : tous les écrans du téléphone (étape 5)
 npm run tournoi        # sortie/tournoi.html : la planche du tournoi (ses deux variantes, un duel, le tableau, le palmarès)
+npm run reperes        # sortie/reperes.html : la planche « Ce qui se touche » (trois façons de le signaler)
 npm run vitrine        # .github/vitrine/*.svg : les images du README, dessinées par le moteur du site
 npm run format         # Prettier
 npm run exporter-pour-le-mcp -- ~/honear-mcp   # pour le MCP de Honear : les réglages du jugement, une table de cas jugés
