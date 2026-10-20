@@ -1,10 +1,12 @@
 /**
  * Ce qu'on peut toucher sur un écran du téléphone, et ce que cela fait : chaque touche, chaque étiquette à toucher, chaque petite
  * pochette de « Fais ta pochette » se reconnaît au nom de son calque. Et ce que dit sa zone à qui ne la voit pas : ce qui est écrit
- * dessus, dans les textes du site.
+ * dessus, dans les textes du site. Où qu'ils soient dans l'arbre d'un écran, on les trouve (`calquesATouche`).
  */
 
 import type { NomDeCalque } from '../../lexique';
+import type { Calque } from '../../scene/calque';
+import { affineDeToutes, composer, SANS_EFFET, type Affine } from '../../scene/rendu/transformation';
 import { hitParade } from '../../regles/partie';
 import { enDuels, MODES_DU_TOURNOI, MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
 import { FACES_DU_DUEL } from '../../regles/tournoi';
@@ -224,4 +226,30 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     default:
       return undefined;
   }
+}
+
+/** Un calque qu'on peut toucher, où qu'il soit dans l'arbre : lui, ce que ses parents lui font, et ce qu'il fait. */
+export interface CalqueATouche {
+  readonly calque: Calque;
+  readonly sous: Affine;
+  readonly chose: ChoseATouche;
+}
+
+/**
+ * Les calques d'un arbre qu'on peut toucher sur cet écran, où qu'ils soient : une touche posée sur le bois, un bouton de la platine,
+ * l'onglet d'un intercalaire ; avec ce que leurs parents leur font (l'intercalaire choisi sort du bac, son onglet avec lui).
+ */
+export function calquesATouche(objets: readonly Calque[], e: EcranDuTelephone, textes: Textes): CalqueATouche[] {
+  const trouves: CalqueATouche[] = [];
+  const parcourir = (c: Calque, sous: Affine): void => {
+    const chose = choseATouche(c.nom, e, textes);
+    if (chose !== undefined) {
+      trouves.push({ calque: c, sous, chose });
+      return;
+    }
+    const dedans = composer(sous, affineDeToutes(c.transformations ?? []));
+    for (const d of c.contenu) if (d.genre === 'calque') parcourir(d, dedans);
+  };
+  for (const objet of objets) parcourir(objet, SANS_EFFET);
+  return trouves;
 }

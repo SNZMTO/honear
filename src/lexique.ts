@@ -101,6 +101,8 @@ export const LEXIQUE = {
   touche: 'Ce qu’on presse : 2 px de course, et l’action part à l’instant du toucher.',
   poussoir: 'Une touche qui reste enclenchée jusqu’à ce qu’on la presse de nouveau : une option.',
   libelle: 'Le nom écrit sur une touche ; pour un cran, c’est lui qu’on presse.',
+  signe:
+    'Ce qui dit, sur un écran, qu’une chose se touche quand elle n’a pas l’air d’une touche : un bouton de la platine, une étiquette, le disque.',
 
   // Les documents de travail.
   planche: 'Un document de travail d’une étape : il montre ce qui est dessiné, ou le rejoue.',

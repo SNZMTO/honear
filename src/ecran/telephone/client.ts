@@ -22,7 +22,6 @@ import { calque, soulever, type Calque } from '../../scene/calque';
 import { dessinerLeMeuble, type Regard } from '../../scene/meuble';
 import { opacite, regler, rotation, type Reglage } from '../../scene/reglage';
 import { empriseDe } from '../../scene/rendu/emprise';
-import { affineDeToutes, composer, SANS_EFFET, type Affine } from '../../scene/rendu/transformation';
 import {
   vueDeLAccueil,
   vueDeLaFinale,
@@ -97,7 +96,7 @@ import { ouvrirLeDiagnostic } from './diagnostic';
 import { poserDesImages, type ImagePosee } from './images';
 import { dureeDesFaces, platineDuDuelEnCours, poseDeLaPlatine } from './duel';
 import { brancherLeHautParleur, sonVoulu, type HautParleur } from './son';
-import { choseATouche } from './touchers';
+import { calquesATouche } from './touchers';
 
 /**
  * Ce qu'un téléphone garde d'une visite à l'autre : la room où il joue (pour y revenir s'il est rechargé, l'ampli allumé s'il
@@ -327,29 +326,6 @@ function indexDesBoutons(arbre: Calque): { readonly nom: NomDeCalque; readonly a
 
 /** Une part d'une longueur, en pourcentage, pour poser une zone dans le cadre quelle que soit sa taille. */
 const part = (longueur: number, totale: number): string => `${(longueur / totale) * 100}%`;
-
-/**
- * Les calques d'un arbre qu'on peut toucher sur cet écran, où qu'ils soient : une touche posée sur le bois, un bouton de la platine,
- * l'onglet d'un intercalaire ; avec ce que leurs parents leur font (l'intercalaire choisi sort du bac, son onglet avec lui).
- */
-function calquesATouche(
-  objets: readonly Calque[],
-  e: EcranDuTelephone,
-  a: Ecritoire,
-): { readonly calque: Calque; readonly sous: Affine; readonly chose: NonNullable<ReturnType<typeof choseATouche>> }[] {
-  const trouves: { readonly calque: Calque; readonly sous: Affine; readonly chose: NonNullable<ReturnType<typeof choseATouche>> }[] = [];
-  const parcourir = (c: Calque, sous: Affine): void => {
-    const chose = choseATouche(c.nom, e, a.textes);
-    if (chose !== undefined) {
-      trouves.push({ calque: c, sous, chose });
-      return;
-    }
-    const dedans = composer(sous, affineDeToutes(c.transformations ?? []));
-    for (const d of c.contenu) if (d.genre === 'calque') parcourir(d, dedans);
-  };
-  for (const objet of objets) parcourir(objet, SANS_EFFET);
-  return trouves;
-}
 
 /** L'enfoncement d'une touche, de 0 (au repos) à 1 (au fond de sa course) : son capuchon descend, ses ombres s'échangent. */
 function enfoncement(nom: NomDeCalque, part: number): Reglage[] {
@@ -778,7 +754,7 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     for (const zone of Array.from(zones.querySelectorAll('[data-zone]'))) retirer(zone);
     choses = [];
     let champPose = false;
-    for (const { calque: c, sous, chose } of calquesATouche(objets, e, a)) {
+    for (const { calque: c, sous, chose } of calquesATouche(objets, e, a.textes)) {
       const emprise = empriseDe([c], a.encrier.largeur, sous);
       if (emprise === undefined) continue;
       const cote = TELEPHONE.zoneAuMoins;
