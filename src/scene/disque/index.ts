@@ -2,6 +2,7 @@
  * Le disque : un objet à part entière, qui sort de sa pochette, se pose sur la platine, tourne et se retourne.
  * Son vinyle est figé en image et ne tourne jamais : ce sont son étiquette et ses arcs qui tournent.
  * Ses deux faces sont dessinées à l'avance ; on passe de l'une à l'autre en le retournant. Son ombre est un calque à part.
+ * Au tournoi, le disque d'un duel porte un titre sur chaque face, son recto dessiné d'avance comme un verso.
  */
 
 import { cercle, rectangleArrondi } from '../../lowpoly/contours';
@@ -62,6 +63,21 @@ export interface Disque {
   readonly retourne?: number;
   /** Hauteur de l'étiquette au-dessus du vinyle, en px visibles : collée, elle vaut 0. Seule la vue éclatée la décolle. */
   readonly etiquetteDecollee?: number;
+}
+
+/** Une face dessinée d'avance, comme un verso : son fond, le vinyle, puis ce qu'on y lit, autour du centre du disque posé à plat. */
+export interface FaceDessinee {
+  readonly fond: readonly Dessin[];
+  readonly reponse: readonly Dessin[];
+}
+
+/**
+ * Un disque dont chaque face porte un titre, dessinée d'avance comme un verso : celui d'un duel, au tournoi. Son recto n'a ni
+ * étiquette qui tourne ni arcs : on lit ce qu'il porte, des deux côtés.
+ */
+export interface DisqueADeuxFaces extends Omit<Disque, 'etiquette' | 'verso' | 'etiquetteDecollee'> {
+  readonly recto: FaceDessinee;
+  readonly verso: FaceDessinee;
 }
 
 export interface DisqueDessine {
@@ -227,28 +243,38 @@ function ombreDuDisque(disque: Pick<Disque, 'en' | 'hauteur' | 'support'>, par: 
   };
 }
 
-export function dessinerLeDisque(disque: Disque, densite: Densite): DisqueDessine {
+/** Le recto d'un disque à deux faces : sa face dessinée d'avance, son fond en image, ce qu'on y lit en polygones. */
+const faceRecto = (face: FaceDessinee, montreLeVerso: boolean): Calque =>
+  calque(
+    'disque/recto',
+    [calque('disque/recto/image', face.fond, { role: 'image' }), calque('disque/recto/reponse', face.reponse, { role: 'mobile' })],
+    { opacite: montreLeVerso ? 0 : 1 },
+  );
+
+export function dessinerLeDisque(disque: Disque | DisqueADeuxFaces, densite: Densite): DisqueDessine {
   const pans = densite.pansDeDisque;
-  const decollee = disque.etiquetteDecollee ?? 0;
   const retourne = disque.retourne ?? 0;
   const vue = vueDuDisqueRetourne(retourne);
-  const recto = calque(
-    'disque/recto',
-    [
-      // Le vinyle ne change jamais de facettes : il est figé en image.
-      calque('disque/vinyle', [peinture(peindre(vinyle({ centre: ICI, dessus: D.epaisseur }, densite)))], { role: 'image' }),
-      // L'étiquette porte son ombre sur le vinyle : collée, elle la cache ; décollée, elle la découvre. Ronde, cette ombre n'a pas à tourner.
-      ombreDePile('etiquette/ombre', {
-        en: ICI,
-        angle: 0,
-        silhouettes: [cercle(ICI, D.etiquette, pans)],
-        hauteur: ETIQUETTE.colle + decollee,
-        support: D.epaisseur,
-      }),
-      dessinerLEtiquette(disque.etiquette, D.epaisseur + ETIQUETTE.colle + decollee),
-    ],
-    { opacite: vue.montreLeVerso ? 0 : 1 },
-  );
+  const recto =
+    'recto' in disque
+      ? faceRecto(disque.recto, vue.montreLeVerso)
+      : calque(
+          'disque/recto',
+          [
+            // Le vinyle ne change jamais de facettes : il est figé en image.
+            calque('disque/vinyle', [peinture(peindre(vinyle({ centre: ICI, dessus: D.epaisseur }, densite)))], { role: 'image' }),
+            // L'étiquette porte son ombre sur le vinyle : collée, elle la cache ; décollée, elle la découvre. Ronde, cette ombre n'a pas à tourner.
+            ombreDePile('etiquette/ombre', {
+              en: ICI,
+              angle: 0,
+              silhouettes: [cercle(ICI, D.etiquette, pans)],
+              hauteur: ETIQUETTE.colle + (disque.etiquetteDecollee ?? 0),
+              support: D.epaisseur,
+            }),
+            dessinerLEtiquette(disque.etiquette, D.epaisseur + ETIQUETTE.colle + (disque.etiquetteDecollee ?? 0)),
+          ],
+          { opacite: vue.montreLeVerso ? 0 : 1 },
+        );
 
   return {
     ombre: { ...ombre('disque/ombre', ombreDuDisque(disque, vue.ombre.par, densite)), opacite: vue.ombre.seMontre ? 1 : 0 },

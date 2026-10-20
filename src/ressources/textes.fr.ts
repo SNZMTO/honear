@@ -234,7 +234,7 @@ export const TEXTES: Textes = {
       quatreChoix: '4 choix : 1 point, 1 de plus au plus rapide.',
       premierArrive: 'First one : le premier qui trouve l’artiste et le titre gagne 3 points, la piste s’arrête.',
       premiereNote: '1re note : une seconde de son, puis on cherche. 1 point par partie.',
-      tournoi: 'Tournoi : deux titres par disque, chacun vote pour sa face, la majorité passe. Jusqu’au disque d’or.',
+      tournoi: 'Tournoi : deux titres par disque, chacun vote, la majorité passe.',
     },
     titresJoues: 'Face A, ce soir',
     titreJoue: '{numero}. {titre} – {artiste}',
@@ -247,6 +247,28 @@ export const TEXTES: Textes = {
     /** Zéro ou un point : au singulier. */
     unPoint: '{points} pt',
     spectateur: 'Piste en cours. Tu joues la suivante.',
+  },
+
+  tournoi: {
+    tours: ['Finale', 'Demies', 'Quarts', 'Huitièmes', 'Seizièmes'],
+    duel: '{tour}, duel {numero} sur {sur}',
+    ontVote: '{n} sur {sur} ont voté',
+    aide: 'Touche le disque pour l’autre face ; glisse le bras pour revenir en arrière.',
+    voix: '{n} voix',
+    faces: { A: 'A', B: 'B' },
+    passe: '« {titre} » passe.',
+    egalite: 'Égalité. Le disque a tranché : face {face}.',
+    forfait: '« {titre} » ne se joue plus. L’autre passe.',
+    spectateur: 'Un duel est en cours. Tu votes au suivant.',
+    oreille: 'L’oreille de la room',
+    classeALOreille: '{rang}. {nom} : {justes} sur {votes}',
+    tableau: 'Le tableau',
+    titresDuTableau: '{titres} titres en lice',
+    revoir: 'Touche pour revoir le tableau.',
+    attente: 'On attend {hote} pour le duel suivant.',
+    attenteDuSalon: 'On attend {hote} pour lancer le tournoi.',
+    kraft: { tampon: 'Tournoi', titres: '{titres} titres', enLice: 'en lice' },
+    touches: { lancer: 'Lancer le tournoi', clore: 'Clore le duel', suivant: 'Duel suivant', revanche: 'Une revanche' },
   },
 
   etats: {

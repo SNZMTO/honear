@@ -188,6 +188,35 @@ export interface Textes {
     readonly spectateur: string;
   };
 
+  /**
+   * Le tournoi : le nom de chaque tour, de la finale aux seizièmes (un tour de deux fois plus de duels à chaque rang) ; ce que dit le
+   * papier d'un duel et qui a voté ; l'aide du premier duel ; les voix d'une face, le nom de chaque face ;
+   * ce qui passe, l'égalité, le forfait, qui regarde ; l'oreille de la room et chacune de ses lignes, le tableau ; et ses touches.
+   */
+  readonly tournoi: {
+    readonly tours: readonly string[];
+    readonly duel: string;
+    readonly ontVote: string;
+    readonly aide: string;
+    readonly voix: string;
+    readonly faces: Readonly<Record<'A' | 'B', string>>;
+    readonly passe: string;
+    readonly egalite: string;
+    readonly forfait: string;
+    readonly spectateur: string;
+    readonly oreille: string;
+    readonly classeALOreille: string;
+    readonly tableau: string;
+    readonly titresDuTableau: string;
+    readonly revoir: string;
+    /** Chez l'invité, entre deux duels : qui va lancer le suivant ; au salon, qui va lancer le tournoi. */
+    readonly attente: string;
+    readonly attenteDuSalon: string;
+    /** Ce que la pochette kraft du salon porte au tournoi : son tampon, et sa pastille, en deux lignes. */
+    readonly kraft: { readonly tampon: string; readonly titres: string; readonly enLice: string };
+    readonly touches: { readonly lancer: string; readonly clore: string; readonly suivant: string; readonly revanche: string };
+  };
+
   /** Ce que dit le jeu quand quelque chose ne va pas comme prévu : chaque état, sa phrase. */
   readonly etats: {
     readonly codeInconnu: string;

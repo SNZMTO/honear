@@ -5,7 +5,7 @@
  */
 
 import type { Vec2 } from '../../lowpoly/vecteurs';
-import { MODES, type ModeDuRegistre } from '../../regles/modes';
+import { enDuels, MODES, type ModeDuRegistre } from '../../regles/modes';
 import { disquesDeLaFinale, hitParade, mouvementsDuClassement, type EtatDeLaPartie, type SonDeLaRoom } from '../../regles/partie';
 import type { Reponse } from '../../regles/piste';
 import { PARTIE, SITE } from '../../ressources/reglages';
@@ -326,7 +326,8 @@ export function vueDuSalon(
   maPochette = false,
   copie = false,
 ): VueDuTelephone {
-  const lancer = etat.face === 'B' ? a.textes.touches.lancerLaFaceB : a.textes.touches.lancer;
+  const tournoi = enDuels(etat.mode);
+  const lancer = tournoi ? a.textes.tournoi.touches.lancer : etat.face === 'B' ? a.textes.touches.lancerLaFaceB : a.textes.touches.lancer;
   const r = SUR_LA_PLATINE;
   const S = T.salon;
   const lien = remplir(a.textes.partie.lien, { site: a.site ?? SITE.adresse, code });
@@ -371,8 +372,10 @@ export function vueDuSalon(
   } else {
     // L'invité n'a rien à lancer : on lui dit qui le fera, plutôt que de le laisser devant un salon muet.
     const hote = etat.joueurs.find((j) => j.id === etat.hote)?.pochette.artiste;
-    if (hote !== undefined && hote !== '')
-      objets.push(...phrase(remplir(a.textes.partie.onAttend, { hote, face: etat.face }), r, a.encrier, S.attente.en, S.attente.largeur));
+    const attente = tournoi
+      ? remplir(a.textes.tournoi.attenteDuSalon, { hote: hote ?? '' })
+      : remplir(a.textes.partie.onAttend, { hote: hote ?? '', face: etat.face });
+    if (hote !== undefined && hote !== '') objets.push(...phrase(attente, r, a.encrier, S.attente.en, S.attente.largeur));
   }
   return { regard: r, objets };
 }

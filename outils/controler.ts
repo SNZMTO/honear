@@ -1,6 +1,7 @@
 /**
  * Passe les contrôles du rendu sur les images de la planche, sur celles de la piste, dans les deux densités et avec
- * les deux versos, sur celles du système visuel, de « Fais ta pochette », des écrans du jeu et de leurs animations, de l'écran de l'hôte ; et affiche ce qu'ils trouvent.
+ * les deux versos, sur celles du système visuel, de « Fais ta pochette », des écrans du jeu et de leurs animations, de l'écran de l'hôte,
+ * du tournoi ; et affiche ce qu'ils trouvent.
  *   npx tsx outils/controler.ts
  */
 import { imagesDeLaPisteAControler } from '../src/planche/etape2/images';
@@ -9,6 +10,7 @@ import { imagesDeLaPochette } from '../src/planche/etape4/scenes';
 import { pelliculesDesAnimations } from '../src/planche/etape5/animations';
 import { toutesLesImagesDesEcrans } from '../src/planche/etape5/scenes';
 import { imagesDeLHote } from '../src/planche/etape6/scenes';
+import { toutesLesImagesDuTournoi } from '../src/planche/tournoi/scenes';
 import { chargerLEncrier } from '../src/planche/polices';
 import { imagesDeLaPlanche } from '../src/planche/scenes';
 import { TEXTES } from '../src/ressources/textes.fr';
@@ -23,6 +25,7 @@ const images = [
   ...toutesLesImagesDesEcrans(TEXTES, encrier),
   ...pelliculesDesAnimations(TEXTES, encrier).flatMap((p) => p.images),
   ...imagesDeLHote(TEXTES, encrier),
+  ...toutesLesImagesDuTournoi(TEXTES, encrier),
 ];
 let defauts = 0;
 for (const image of images) {
