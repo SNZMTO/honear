@@ -14,7 +14,7 @@ export interface TitreDExemple {
 }
 
 export const LEGENDES_DU_TOURNOI = {
-  nom: 'Honear — le tournoi',
+  nom: 'Le tournoi de Honear',
   titre: 'Le tournoi',
   sousTitre: 'Deux titres par disque, on vote, la majorité passe : à valider avant l’écran',
   sections: {
