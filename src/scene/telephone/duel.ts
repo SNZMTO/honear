@@ -22,7 +22,9 @@ import { TOURNOI } from '../../ressources/reglages';
 import { TABLEE, type Place } from '../../ressources/tablee';
 import type { Textes } from '../../ressources/textes';
 import type { Calque } from '../calque';
-import { dessinerLeDuel, REGARD_DU_DUEL, type DecorDuDuel, type PoseDuDuel } from '../duel';
+import { dessinerLeDuel, faceEnHaut, poseDeLaPisteDuDuel, REGARD_DU_DUEL, type DecorDuDuel, type PoseDuDuel } from '../duel';
+import type { Vec2 } from '../../lowpoly/vecteurs';
+import { pochetteSurLeVerso } from './piste';
 import { lesDerniers, uneFoisPar } from '../memoire';
 import { remplir } from '../phrases';
 import { dessinerLaTablee, type JoueurPose, type PlaceDeLaTablee } from '../tablee';
@@ -31,6 +33,8 @@ import { dansLeRegard, DENSITE, interprete, papier, pastilleCollee, phrase, touc
 
 const T = TABLEE.telephone;
 const D = T.duel;
+/** Un demi-tour, en degrés : le disque à plat, son verso en haut. */
+const DEMI_TOUR = 180;
 
 /** La pastille de qui a voté : rien d'écrit, un rond miel, jamais pour quelle face ; le papier du tour dit combien ont voté. */
 const A_VOTE = '';
@@ -205,6 +209,33 @@ const platinesDe = uneFoisPar((_a: Ecritoire) => lesDerniers<Calque>(GARDEES));
  */
 function platineDuDuel(a: Ecritoire, decor: DecorDuDuel, faces: Readonly<Record<FaceDuDuel, Reponse>>, pose: PoseDuDuel): Calque {
   return platinesDe(a)(JSON.stringify([decor, faces, pose]), () => dessinerLeDuel(decor, faces, pose, a.encrier.largeur, DENSITE));
+}
+
+/**
+ * La vraie pochette de la face du haut, quand la source en donne une : au milieu du disque posé à plat, à la place de la pochette
+ * ronde que sa face dessine (sa vignette, en attendant qu'elle arrive), en px dans le regard du duel. Rien pendant que le disque se
+ * retourne.
+ */
+export function pochetteDuDuel(
+  faces: Readonly<Record<FaceDuDuel, Reponse>>,
+  pose: PoseDuDuel,
+):
+  | {
+      readonly adresse: string;
+      readonly centre: Vec2;
+      readonly cote: number;
+      readonly coin: number;
+      readonly trou: number;
+      readonly ecrasement: number;
+    }
+  | undefined {
+  const reponse = faces[faceEnHaut(pose.retourne)];
+  const adresse = 'vignette' in reponse.pochette ? reponse.pochette.image : undefined;
+  if (adresse === undefined || pose.enLAir) return undefined;
+  // Posé à plat, quelle que soit sa face, le milieu du disque est au même endroit : celui d'un verso retourné.
+  const piste = poseDeLaPisteDuDuel(pose);
+  const place = pochetteSurLeVerso({ ...piste, disque: { ...piste.disque, retourne: DEMI_TOUR } });
+  return place !== undefined ? { adresse, ...place } : undefined;
 }
 
 /** L'écran d'un duel, au téléphone. */

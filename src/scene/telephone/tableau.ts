@@ -8,6 +8,7 @@
 
 import { rectangle, rectangleArrondi } from '../../lowpoly/contours';
 import { placer, type Polygone } from '../../lowpoly/polygones';
+import { surLEcran } from '../../lowpoly/projection';
 import { TON_DE_BASE } from '../../lowpoly/tons';
 import type { Vec2 } from '../../lowpoly/vecteurs';
 import type { Disque, EtatDeLaPartie } from '../../regles/partie';
@@ -218,6 +219,36 @@ export function papierDuTableau(a: Ecritoire, t: EtatDuTournoi): Calque[] {
   ];
 }
 
+/** Ce que la projection garde de la profondeur du meuble : une image posée à plat y est écrasée d'autant. */
+const ecrasement = (): number => surLEcran([0, 1])[1] - surLEcran([0, 0])[1];
+
+/** Une vraie pochette à poser par-dessus ce que la scène a dessiné : son adresse, son centre et son côté en px dans le regard. */
+export interface PochetteAPoser {
+  readonly adresse: string;
+  readonly centre: Vec2;
+  readonly cote: number;
+  readonly coin?: number;
+  readonly angle?: number;
+  readonly ecrasement: number;
+}
+
+/**
+ * Les vraies pochettes du tableau, par-dessus leurs vignettes (le client les pose, comme celles des titres joués) : chaque titre connu,
+ * et le vainqueur, au milieu, une fois la finale jouée. Rien pour un titre dont la source ne donne pas d'image.
+ */
+export function imagesDuTableau(t: EtatDuTournoi): PochetteAPoser[] {
+  const titres = titresDuTableau(t);
+  const { rangs, vainqueur } = casesDuTableau(t);
+  const cases = [...rangs.flat(), ...(tournoiFini(t) ? [vainqueur] : [])];
+  return cases.flatMap((c) => {
+    const reponse = c.place !== undefined ? titres[c.place] : undefined;
+    const adresse = reponse !== undefined && 'vignette' in reponse.pochette ? reponse.pochette.image : undefined;
+    return adresse !== undefined
+      ? [{ adresse, centre: [c.en[0], c.en[1] - PAPIER.epaisseur] as Vec2, cote: c.cote, coin: PAPIER.coin / 2, ecrasement: ecrasement() }]
+      : [];
+  });
+}
+
 /** Le trait d'un finaliste au vainqueur, au milieu du papier. */
 function traitsVersLeVainqueur(finaliste: CaseDuTableau, vainqueur: CaseDuTableau, duHaut: boolean): Polygone[] {
   const e = B.trait / 2;
@@ -256,6 +287,26 @@ function podium(t: EtatDuTournoi): { readonly place: number; readonly disque: Di
   ];
 }
 
+/** Les marches du podium : chacune sa place sur le bois, son titre, son disque, son rang. */
+function marchesDuPalmares(t: EtatDuTournoi) {
+  const titres = titresDuTableau(t);
+  return podium(t).flatMap(({ place, disque }, rang) => {
+    const marche = T.palmares.podium[rang];
+    const reponse = titres[place];
+    return marche !== undefined && reponse !== undefined ? [{ marche, reponse, disque, rang }] : [];
+  });
+}
+
+/** Les vraies pochettes du podium, par-dessus leurs vignettes, de travers comme elles. */
+export function imagesDuPalmares(t: EtatDuTournoi): PochetteAPoser[] {
+  return marchesDuPalmares(t).flatMap(({ marche, reponse }) => {
+    const adresse = 'vignette' in reponse.pochette ? reponse.pochette.image : undefined;
+    if (adresse === undefined) return [];
+    const centre: Vec2 = [marche.en[0], marche.en[1] - 2 * PAPIER.epaisseur];
+    return [{ adresse, centre, cote: marche.taille, coin: PAPIER.coin, angle: marche.angle, ecrasement: ecrasement() }];
+  });
+}
+
 /**
  * Le palmarès, à la fin du tournoi : le podium des titres, leurs disques glissés derrière ; le papier du vainqueur, qu'on touche pour
  * revoir le tableau ; l'oreille de la room ; chez l'hôte, la revanche.
@@ -265,13 +316,8 @@ export function vueDuPalmares(a: Ecritoire, etat: EtatDeLaPartie, toi: string): 
   if (t === undefined) throw new Error('Pas de palmarès : la room ne joue pas un tournoi.');
   const r = SUR_LA_PLATINE;
   const P = T.palmares;
-  const titres = titresDuTableau(t);
   const F = T.finale.disque;
-  const marches = podium(t).flatMap(({ place, disque }, rang) => {
-    const marche = P.podium[rang];
-    const reponse = titres[place];
-    return marche !== undefined && reponse !== undefined ? [{ marche, reponse, disque, rang }] : [];
-  });
+  const marches = marchesDuPalmares(t);
   // Les disques, glissés derrière les pochettes, qui en sortent par le coin ; puis les pochettes des titres, leurs vignettes.
   const disques = marches.flatMap(({ marche, disque, rang }) => {
     const centre: Vec2 = [marche.en[0] + F.decalage[0] * marche.taille, marche.en[1] + F.decalage[1] * marche.taille];

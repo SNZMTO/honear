@@ -8,7 +8,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { LEGENDES_DU_TOURNOI as L } from '../src/planche/tournoi/legendes.fr';
-import { imagesDuTournoi, toutesLesImagesDuTournoi } from '../src/planche/tournoi/scenes';
+import { imagesDuTournoi, journalJusquAuDuel, toutesLesImagesDuTournoi } from '../src/planche/tournoi/scenes';
+import { partieA } from '../src/regles/partie';
+import type { Reponse } from '../src/regles/piste';
+import { POSE_DU_DUEL } from '../src/scene/duel';
+import { pochetteDuDuel } from '../src/scene/telephone/duel';
+import { imagesDuPalmares, imagesDuTableau } from '../src/scene/telephone/tableau';
 import { CADRAGES } from '../src/ressources/cadrages';
 import { TEXTES } from '../src/ressources/textes.fr';
 import type { Calque, Texte } from '../src/scene/calque';
@@ -119,4 +124,32 @@ test('entre deux duels, le tableau cercle le duel suivant, et l’hôte le lance
   assert.equal(posesSur('palmares', /^disque-or-\d$/).length, 2);
   assert.ok(toutCeQuOnLit('palmares').includes(TEXTES.tournoi.oreille));
   assert.equal(PAR_SECTION.choisir.length + PAR_SECTION.duel.length + PAR_SECTION.fin.length, IMAGES.length);
+});
+
+test('les vraies pochettes du tournoi se posent sur leurs vignettes : chaque titre connu du tableau, le podium, le disque posé à plat', () => {
+  const avecImage = (r: Reponse): Reponse =>
+    'vignette' in r.pochette ? { ...r, pochette: { ...r.pochette, image: `https://images.test/${r.titre}.jpg` } } : r;
+  const fini = partieA(journalJusquAuDuel(TEXTES, Infinity), Infinity).tournoi;
+  assert.ok(fini !== undefined && fini.tableau !== undefined);
+  const t = {
+    ...fini,
+    tableau: fini.tableau.map(avecImage),
+    clos: fini.clos.map((d) => ({
+      ...d,
+      faces: { A: { ...d.faces.A, reponse: avecImage(d.faces.A.reponse) }, B: { ...d.faces.B, reponse: avecImage(d.faces.B.reponse) } },
+    })),
+  };
+  // Le tableau fini : chaque case connue (16 + 8 + 4 + 2 titres), et le vainqueur au milieu.
+  const tableau = imagesDuTableau(t);
+  assert.equal(tableau.length, 16 + 8 + 4 + 2 + 1);
+  for (const i of tableau) assert.ok(i.cote > 0 && i.ecrasement > 0 && i.ecrasement < 1);
+  // Le podium : le vainqueur, le finaliste, les deux demi-finalistes, de travers comme leurs vignettes.
+  assert.equal(imagesDuPalmares(t).length, 4);
+  assert.ok(imagesDuPalmares(t).every((i) => i.angle !== undefined));
+  // Le disque : la pochette de la face du haut, au milieu ; rien pendant qu'il se retourne.
+  const faces = { A: avecImage(t.clos[0]!.faces.A.reponse), B: avecImage(t.clos[0]!.faces.B.reponse) };
+  assert.equal(pochetteDuDuel(faces, POSE_DU_DUEL)?.adresse, `https://images.test/${faces.A.titre}.jpg`);
+  assert.equal(pochetteDuDuel(faces, { ...POSE_DU_DUEL, retourne: 180 })?.adresse, `https://images.test/${faces.B.titre}.jpg`);
+  assert.equal(pochetteDuDuel(faces, { ...POSE_DU_DUEL, retourne: 90, enLAir: true }), undefined);
+  assert.deepEqual(pochetteDuDuel(faces, POSE_DU_DUEL)?.centre, pochetteDuDuel(faces, { ...POSE_DU_DUEL, retourne: 180 })?.centre);
 });
