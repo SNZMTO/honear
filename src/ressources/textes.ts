@@ -215,6 +215,11 @@ export interface Textes {
     /** Ce que la pochette kraft du salon porte au tournoi : son tampon, et sa pastille, en deux lignes. */
     readonly kraft: { readonly tampon: string; readonly titres: string; readonly enLice: string };
     readonly touches: { readonly lancer: string; readonly clore: string; readonly suivant: string; readonly revanche: string };
+    /** Ce que disent les zones d'un duel à qui ne les voit pas : le disque qu'on retourne, l'étiquette d'une face, pour qui l'on vote. */
+    readonly retourner: string;
+    readonly voterPour: string;
+    /** Les deux crans des réglages, sous la platine : le jeu qu'on ouvre. */
+    readonly jeux: { readonly blindTest: string; readonly tournoi: string };
   };
 
   /** Ce que dit le jeu quand quelque chose ne va pas comme prévu : chaque état, sa phrase. */

@@ -222,6 +222,8 @@ export type Nouvelle =
 export interface ExtraitsDuDuel {
   readonly duel: number;
   readonly faces: Readonly<Partial<Record<FaceDuDuel, string>>>;
+  /** Ce qu'on entend de chaque face, en secondes : la durée que l'hôte a réglée sur le bouton « Secondes ». */
+  readonly duree: number;
 }
 
 /**

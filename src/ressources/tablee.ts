@@ -205,8 +205,11 @@ export const TABLEE = {
       /** D'où viennent les extraits : sous la caisse, au-dessus de ses crans. */
       source: { en: [195, 424], largeur: 230 },
     },
-    /** Les réglages : la touche qui ouvre le salon, une fois les commandes de la platine réglées ; « Retour » au bout, comme à la saisie. */
-    reglages: { ouvrir: 734, retour: 806 },
+    /**
+     * Les réglages : la touche qui ouvre le salon, une fois les commandes de la platine réglées ; « Retour » au bout, comme à la saisie.
+     * Sous la platine, les deux crans du jeu (« Blind test », « Tournoi ») : à cette hauteur, à cet écart l'un de l'autre.
+     */
+    reglages: { ouvrir: 734, retour: 806, jeux: { y: 516, ecart: 10 } },
     /**
      * « Fais ta pochette » : le regard se pose à côté de la platine, sur le bois nu. En haut, la pochette, en grand ; dessous,
      * l'étiquette vierge du nom ; « Au hasard », « C'est moi », et au bout, comme à la saisie, « Retour » (ou, quand on la refait,

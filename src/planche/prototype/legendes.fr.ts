@@ -15,7 +15,7 @@ export const LEGENDES_DU_PROTOTYPE = {
   court: 'Partie courte : trois pistes par face, quel que soit le bouton « Pistes » de la platine.',
   frontieres:
     'Le téléphone ne parle qu’au serveur, par les messages du jeu : le jour où le vrai serveur arrive, on le branche à la place de celui-ci.',
-  reglage: { groupe: 'Le jeu', libre: 'Saisie libre', quatreChoix: '4 choix', recommencer: 'Recommencer' },
+  reglage: { groupe: 'Le jeu', libre: 'Saisie libre', quatreChoix: '4 choix', tournoi: 'Tournoi', recommencer: 'Recommencer' },
   telephone: 'Le téléphone de l’hôte',
   /** Ce que montre le téléphone, par écran. */
   ecrans: {
@@ -31,6 +31,9 @@ export const LEGENDES_DU_PROTOTYPE = {
     hitParade: 'Le hit-parade',
     finale: 'La finale',
     titres: 'Les titres joués',
+    duel: 'Un duel du tournoi',
+    tableau: 'Le tableau du tournoi',
+    palmares: 'Le palmarès du tournoi',
   },
   /** Ce que tape le clavier du prototype sur l'étiquette du code : une room que personne n'a ouverte. */
   codeTape: 'FUNK',

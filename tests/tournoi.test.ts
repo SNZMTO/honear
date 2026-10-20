@@ -270,7 +270,7 @@ function monde(pistes: () => readonly PisteDuMode[] | undefined) {
         t.recu.push(n);
         if (n.genre === 'etat') Object.assign(t, { journal: [...n.journal], toi: n.toi, jeton: n.jeton, code: n.code, extraits: n.extraits });
         if (n.genre === 'evenement') t.journal.push(n.evenement);
-        if (n.genre === 'extraits') t.extraits = { duel: n.duel, faces: n.faces };
+        if (n.genre === 'extraits') t.extraits = { duel: n.duel, faces: n.faces, duree: n.duree };
       }),
     });
     return t;
@@ -451,4 +451,29 @@ test('une piste qui ne se joue plus perd par forfait ; une revanche prend d’au
     assert.ok(faces !== undefined && !joues.has(faces.A.reponse.titre) && !joues.has(faces.B.reponse.titre));
     hote.connexion.envoyer({ genre: 'voter', face: 'B' });
   }
+});
+
+test('au premier lancer, le tableau est publié en entier : chacun voit les titres en lice, à leur place, avant le premier duel', () => {
+  const m = monde(() => playlist(12));
+  const [hote, invite] = tablee(m, 1);
+  assert.ok(hote !== undefined && invite !== undefined);
+  assert.equal(vu(invite).tournoi?.tableau, undefined, 'rien avant le lancer');
+  m.a(10);
+  hote.connexion.envoyer({ genre: 'lancer' });
+  const t = vu(invite).tournoi;
+  assert.equal(t?.tableau?.length, 8);
+  const enCours = t?.enCours;
+  assert.ok(enCours !== undefined);
+  assert.equal(t?.tableau?.[enCours.faces.A.place]?.titre, enCours.faces.A.reponse.titre);
+  assert.equal(t?.tableau?.[enCours.faces.B.place]?.titre, enCours.faces.B.reponse.titre);
+  // Une seule fois : les duels suivants ne le republient pas.
+  m.a(20);
+  invite.connexion.envoyer({ genre: 'voter', face: 'A' });
+  hote.connexion.envoyer({ genre: 'voter', face: 'A' });
+  m.a(30);
+  hote.connexion.envoyer({ genre: 'lancer' });
+  assert.equal(hote.journal.filter((e) => e.genre === 'tableau').length, 1);
+  // Et il reste, duel clos après duel clos.
+  assert.equal(vu(hote).tournoi?.clos.length, 1);
+  assert.equal(vu(hote).tournoi?.tableau?.length, 8);
 });

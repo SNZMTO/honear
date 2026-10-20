@@ -1,5 +1,5 @@
 /**
- * Le tournoi d'une room, côté serveur : le tableau tiré dans sa playlist au premier lancer, le duel que l'hôte lance, ses deux
+ * Le tournoi d'une room, côté serveur : le tableau tiré dans sa playlist au premier lancer (et publié en entier), le duel que l'hôte lance, ses deux
  * extraits (relus tant qu'il dure, leurs liens expirant : chacun écoute à son rythme), les votes, et la clôture, dès que tous ceux
  * qu'on attend ont voté, ou quand l'hôte la demande. Une piste qui ne se joue plus perd par forfait. La room lui prête de quoi lire
  * son état, écrire au journal et parler aux téléphones ; il ne touche ni au réseau ni à l'heure, qu'on lui donne.
@@ -35,6 +35,8 @@ export interface CeQueLaRoomPrete {
   readonly diffuser: (nouvelle: Nouvelle) => void;
   /** Les pistes de la playlist, telles qu'elles sont maintenant (leurs liens frais), dans l'ordre de la room. */
   readonly pistes: () => readonly PisteDuMode[];
+  /** Ce qu'on entend de chaque face d'un duel, en secondes : la durée de l'extrait réglée par l'hôte. */
+  readonly extrait: number;
   /** Le hasard du serveur : les places au tableau, et le disque qu'on lance comme une pièce. */
   readonly tirage: Tirage;
   readonly raconter: (fait: FaitSansLaRoom) => void;
@@ -80,8 +82,9 @@ function fraiche(piste: PisteDuMode, pistes: readonly PisteDuMode[]): PisteDuMod
   return parDeezer ?? pistes.find((p) => memeTitre(p) === memeTitre(piste));
 }
 
-const extraitsDu = (d: DuelDuServeur): ExtraitsDuDuel => ({
+const extraitsDu = (d: DuelDuServeur, duree: number): ExtraitsDuDuel => ({
   duel: d.a,
+  duree,
   faces: {
     ...(d.pistes.A.extrait !== undefined ? { A: d.pistes.A.extrait } : {}),
     ...(d.pistes.B.extrait !== undefined ? { B: d.pistes.B.extrait } : {}),
@@ -125,7 +128,11 @@ export function preparerLeTournoi(r: CeQueLaRoomPrete): TournoiDeLaRoom {
       const e = r.etat();
       const t = e.tournoi;
       if (t === undefined || t.enCours !== undefined || e.phase === 'fin') return undefined;
-      if (t.clos.length === 0 && !tirer(t.titres)) return 'tropCourt';
+      if (t.clos.length === 0) {
+        if (!tirer(t.titres)) return 'tropCourt';
+        // Le tableau entier, publié d'un coup : chacun le voit avant le premier duel, et entre deux.
+        if (t.tableau === undefined) r.ajouter({ genre: 'tableau', a: heure, titres: tableau.map(reponseMontree) });
+      }
       const prochain = prochainDuel(t);
       const [haut, bas] = prochain?.places ?? [];
       const auTableau = { A: haut !== undefined ? tableau[haut] : undefined, B: bas !== undefined ? tableau[bas] : undefined };
@@ -145,7 +152,7 @@ export function preparerLeTournoi(r: CeQueLaRoomPrete): TournoiDeLaRoom {
         return undefined;
       }
       duel = { a: heure, pistes: { A, B }, relireA: heure + TOURNOI.relecture };
-      r.diffuser({ genre: 'extraits', heure, ...extraitsDu(duel) });
+      r.diffuser({ genre: 'extraits', heure, ...extraitsDu(duel, r.extrait) });
       return undefined;
     },
     voter(id, face, heure) {
@@ -169,12 +176,12 @@ export function preparerLeTournoi(r: CeQueLaRoomPrete): TournoiDeLaRoom {
         const changes = pistes.A.extrait !== duel.pistes.A.extrait || pistes.B.extrait !== duel.pistes.B.extrait;
         duel.pistes = pistes;
         duel.relireA = heure + TOURNOI.relecture;
-        if (changes) r.diffuser({ genre: 'extraits', heure, ...extraitsDu(duel) });
+        if (changes) r.diffuser({ genre: 'extraits', heure, ...extraitsDu(duel, r.extrait) });
       }
       return duel.relireA;
     },
     get extraits() {
-      return duel !== undefined ? extraitsDu(duel) : undefined;
+      return duel !== undefined ? extraitsDu(duel, r.extrait) : undefined;
     },
     get duelsClos() {
       return duelsClos;

@@ -78,6 +78,8 @@ export type EvenementDePartie =
    * les réponses les unes par rapport aux autres, les points que cela rapporte à chacun.
    */
   | { readonly genre: 'revelation'; readonly a: number; readonly reponse?: Reponse; readonly departage?: Readonly<Record<string, number>> }
+  /** Au tournoi, le tableau est tiré, au premier lancer : chaque titre à sa place, publié d'un coup, pour qu'on le voie en entier. */
+  | { readonly genre: 'tableau'; readonly a: number; readonly titres: readonly Reponse[] }
   /** Au tournoi, un duel s'ouvre : ses deux faces, chacune un titre du tableau, à sa place. */
   | { readonly genre: 'duel'; readonly a: number; readonly faces: Readonly<Record<FaceDuDuel, Engage>> }
   /**
@@ -300,6 +302,11 @@ export function suivre(etat: EtatDeLaPartie, e: EvenementDePartie): EtatDeLaPart
         trouvees: [...etat.trouvees, !personne],
         phase: pistesJouees >= etat.pistes && etat.pistes > 0 ? 'fin' : 'pistes',
       };
+    }
+    case 'tableau': {
+      const tournoi = etat.tournoi;
+      if (tournoi === undefined || tournoi.clos.length > 0 || tournoi.enCours !== undefined || e.titres.length !== tournoi.titres) return etat;
+      return { ...etat, tournoi: { ...tournoi, tableau: e.titres } };
     }
     case 'duel': {
       const tournoi = etat.tournoi;

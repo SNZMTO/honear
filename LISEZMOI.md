@@ -374,7 +374,7 @@ src/
     partie.ts                   Une partie rejouée depuis son journal : les joueurs, leurs points, leurs têtes, le hit-parade, la finale, le code.
     jugement.ts                 Juste, presque ou faux : la saisie normalisée, comparée à l'attendu à quelques fautes près.
     modes/                      Le contrat d'un mode et le registre ; « Libre », « Solo », « First one », « 1re note », chacun son barème
-                                (« 4 choix », au registre, n'est plus sur la manette ; « Tournoi », au registre, n'y est pas encore).
+                                (« 4 choix », au registre, n'est plus sur la manette ; « Tournoi » se choisit par son cran, sous la platine).
     tournoi.ts                  Le tournoi : le tableau, le duel qui vient, les votes, la clôture (majorité, pile ou face, forfait),
                                 le disque d'or, l'oreille de la room.
     messages.ts                 Le contrat du transport : actions, nouvelles, et le journal tel que le serveur le publie.
@@ -499,7 +499,8 @@ src/
     telephone/                  Le client du téléphone : sa mémoire (`memoire.ts` : ce que le serveur lui a dit, ce qu'on y fait), l'écran
                                 qu'elle donne (`route.ts`), ce qu'on y touche (`touchers.ts`), et la page (`client.ts`) ; l'heure du
                                 serveur (`heure.ts`), la ligne qui se rebranche (`websocket.ts`), le haut-parleur (`son.ts`), les vraies
-                                pochettes posées par-dessus la scène (`images.ts`), et le diagnostic envoyé au journal (`diagnostic.ts`).
+                                pochettes posées par-dessus la scène (`images.ts`), le diagnostic envoyé au journal (`diagnostic.ts`) ; au
+                                tournoi, la platine de chaque duel, que chacun tient à son rythme (`duel.ts`).
 
   reseau/                       Le site en ligne : `index.ts` (l'entrée, la minuterie), `porte.ts` (HTTP), `ligne.ts` (WebSocket), `horloge.ts` ;
                                 `musique.ts` (les appels à Deezer, sous sa limite de débit, et ce qu'on en garde) ;
@@ -1119,11 +1120,24 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   - *Deux variantes pour le choisir* : le tournoi prend la place de 1re note sur la manette, ou deux crans sous la platine (Blind test,
     Tournoi). Sur la platine même, entre « Secondes » et la manette, un sélecteur à deux crans n'a pas la place de ses deux noms.
 
+- **Le tournoi au téléphone** (le 20) : c'est la variante 2 qui est au jeu ; le prototype a son tournoi (`npm run prototype`, « Tournoi »).
+  - *Les réglages* : deux crans sous la platine, Blind test et Tournoi ; au tournoi, « Titres » se grave 8, 16, 32 (16 d'abord, ou le plus
+    grand tableau que la playlist remplit) ; toucher la manette ramène au blind test, sur son mode.
+  - *Le tableau entier* part au premier lancer (`tableau`, au journal) : on le voit avant le premier duel et entre deux ; seul le duel
+    suivant y est cerclé, au tour où il se joue ; chaque titre connu est cerné d'un filet (une vignette crème ne se perd pas sur le papier).
+  - *La platine d'un duel* (`ecran/telephone/duel.ts`) est à chacun : la face A part ; toucher le disque le retourne (comme à la
+    révélation), l'autre face part où on l'avait laissée (du début, si elle était finie) ; glisser le doigt sur le disque y pose le bras,
+    levé tant qu'on le tient, le son coupé ; une face finie lève le bras, et si l'on n'a pas entendu l'autre, le disque se retourne de
+    lui-même. Le téléphone règle la platine montée d'image en image (`regleurDuDuel`) : un vote qui arrive ne la redessine pas.
+  - *Le son* : chaque téléphone joue sa face du haut, même quand l'hôte joue le son des pistes pour tous ; ce qu'on entend d'une face,
+    c'est le bouton « Secondes » (`extraits.duree`). Le duel clos reste six secondes à l'écran (`TELEPHONE.duel`), le son s'y éteint.
+  - *Corrigé en route* : la clôture d'un duel oubliait le tableau publié ; l'oreille de la room ne liste plus qui n'a voté à aucun
+    duel tranché aux voix (« 0 sur 0 »).
+
 ## Ce qui attend les étapes suivantes
 
-- **Le tournoi, à l'écran et au MCP** : choisir sa place (variante 1 ou 2) ; publier le tableau entier au premier lancer (le téléphone
-  ne connaît encore les titres que duel par duel) ; le client (le disque qui tourne, se retourne, le bras qu'on tire, le son de chaque
-  face) ; puis `creer_tournoi` au MCP. Le site se met en ligne avant le MCP.
+- **Le tournoi au MCP** : `creer_tournoi` (8, 16, 32 titres) rend le lien d'une partie qui s'ouvre en tournoi. Le site se met en ligne
+  avant le MCP. À essayer sur de vrais téléphones : le son de chaque face sur l'iPhone, le doigt qui glisse sur le disque.
 
 - **Les comptes, la suite** : les clés d'accès (passkeys), pour entrer sans e-mail sur un téléphone déjà connu.
 - **Au téléphone, le regard saute d'un écran à l'autre** : les glissades de la planche d'animations ne sont pas encore jouées par le client,

@@ -31,9 +31,12 @@ const T = TABLEE.telephone;
 const B = T.tableau;
 const R = REGARD_DE_LA_POCHETTE;
 
-/** Les titres du tableau, à leur place : ce que les duels ont fait connaître (chaque duel porte ses deux titres et leurs places). */
-export function titresDuTableau(t: Pick<EtatDuTournoi, 'titres' | 'clos' | 'enCours'>): (Reponse | undefined)[] {
-  const titres: (Reponse | undefined)[] = Array.from({ length: t.titres }, () => undefined);
+/**
+ * Les titres du tableau, à leur place : le tableau publié au premier lancer, et ce que les duels ont fait connaître (chaque duel
+ * porte ses deux titres et leurs places).
+ */
+export function titresDuTableau(t: Pick<EtatDuTournoi, 'titres' | 'tableau' | 'clos' | 'enCours'>): (Reponse | undefined)[] {
+  const titres: (Reponse | undefined)[] = Array.from({ length: t.titres }, (_, place) => t.tableau?.[place]);
   for (const d of [...t.clos, ...(t.enCours !== undefined ? [t.enCours] : [])])
     for (const face of [d.faces.A, d.faces.B]) if (face.place < titres.length) titres[face.place] = face.reponse;
   return titres;
@@ -126,12 +129,17 @@ function traitsEntre(de: readonly CaseDuTableau[], vers: readonly CaseDuTableau[
   });
 }
 
-/** Une pochette imprimée sur le papier : la vignette d'un titre, ou une case vide, en creux, tant qu'on ne sait pas qui y passe. */
+/**
+ * Une pochette imprimée sur le papier : la vignette d'un titre, cernée d'un filet (une vignette crème ne se perd pas sur le papier) ;
+ * ou une case vide, en creux, tant qu'on ne sait pas qui y passe.
+ */
 function pochetteImprimee(ici: (x: number, y: number) => Vec2, c: CaseDuTableau, reponse: Reponse | undefined): Dessin[] {
   const centre = ici(c.en[0], c.en[1]);
   const carre = rectangleArrondi(centre[0] - c.cote / 2, centre[1] - c.cote / 2, c.cote, c.cote, PAPIER.coin / 2, 1);
   if (reponse === undefined || !('vignette' in reponse.pochette)) return [aplat([carre], 'creme', 2)];
-  return dessinerUneVignette(reponse.pochette.vignette, carre, centre, c.cote);
+  const bord = c.cote / 2 + B.trait;
+  const filet = rectangleArrondi(centre[0] - bord, centre[1] - bord, 2 * bord, 2 * bord, PAPIER.coin / 2, 1);
+  return [aplat([filet], 'kraft', 1), ...dessinerUneVignette(reponse.pochette.vignette, carre, centre, c.cote)];
 }
 
 /**
@@ -179,9 +187,12 @@ export function papierDuTableau(a: Ecritoire, t: EtatDuTournoi): Calque[] {
   const [finalisteDuBas] = rangs[rangs.length - 1] ?? [];
   if (finalisteDuHaut !== undefined) traits.push(...traitsVersLeVainqueur(finalisteDuHaut, vainqueur, true));
   if (finalisteDuBas !== undefined) traits.push(...traitsVersLeVainqueur(finalisteDuBas, vainqueur, false));
-  // Le duel suivant : ses deux titres, cerclés de miel.
+  // Le duel suivant : ses deux titres, cerclés de miel, dans le tour où ils se rencontrent (pas dans ceux qu'ils ont passés).
   const suivant = prochainDuel(t);
-  const cerclees = rangs.flat().filter((c) => c.place !== undefined && t.enCours === undefined && suivant?.places.includes(c.place) === true);
+  const tour = suivant !== undefined ? (placeDuDuel(t.titres, suivant.numero)?.tour ?? 0) : 0;
+  const cerclees = [...(rangs[2 * tour] ?? []), ...(rangs[2 * tour + 1] ?? [])].filter(
+    (c) => c.place !== undefined && t.enCours === undefined && suivant?.places.includes(c.place) === true,
+  );
   const cercles = cerclees.map((c) => {
     const centre = ici(c.en[0], c.en[1]);
     const bord = c.cote / 2 + B.trait * 2;
@@ -298,10 +309,12 @@ export function vueDuPalmares(a: Ecritoire, etat: EtatDeLaPartie, toi: string): 
       : [];
   // L'oreille de la room : qui a le plus souvent voté comme la majorité, les premiers. Pour rire : rien ne compte au compte d'un joueur.
   const O = P.oreille;
+  // Qui n'a voté à aucun duel tranché aux voix n'y figure pas : « 0 sur 0 » ne dit rien.
   const lignes = oreillesDeLaRoom(
     t.clos,
     etat.joueurs.map((j) => j.id),
   )
+    .filter((o) => o.votes > 0)
     .slice(0, O.lignes)
     .map((o) => {
       const nom = etat.joueurs.find((j) => j.id === o.id)?.pochette.artiste ?? '';

@@ -1,6 +1,7 @@
 /**
  * Le prototype, dans la page : le serveur simulé, les cinq potes qui lui parlent, et le téléphone de l'hôte, branché à ce serveur
- * par la même connexion qu'un WebSocket. Le réglage du prototype rejoue la même partie en saisie libre ou en 4 choix ; « Recommencer »
+ * par la même connexion qu'un WebSocket. Le réglage du prototype rejoue la même partie en saisie libre ou en 4 choix, ou ouvre un
+ * tournoi de seize titres, où les potes votent ; « Recommencer »
  * la reprend de l'accueil. Rien ici ne dessine ni ne décide : le téléphone montre ce que le serveur lui dit.
  */
 
@@ -26,10 +27,12 @@ import { LEGENDES_DU_PROTOTYPE as L } from './legendes.fr';
 import { inviterLesPotes, type Potes } from './potes';
 import { PLAYLIST_DU_PROTOTYPE, SCENARIO, type Pote } from './scenario';
 import { lOrdreDeLaPlaylist } from '../../serveur/ordre';
+import type { PisteDuMode } from '../../regles/modes';
+import { LEGENDES_DU_TOURNOI } from '../tournoi/legendes.fr';
 
 /** Les polices du site, en base 64, par nom de fichier. */
 type Polices = Readonly<Record<string, string>>;
-type Mode = 'libre' | 'quatreChoix';
+type Mode = 'libre' | 'quatreChoix' | 'tournoi';
 
 /** Les pochettes des cinq potes : celles de la partie d'exemple des planches. */
 function pochettesDesPotes(): Readonly<Record<Pote, Pochette>> {
@@ -46,6 +49,8 @@ function pochettesDesPotes(): Readonly<Record<Pote, Pochette>> {
 const preparatifs = (mode: Mode): Preparatifs => ({
   mode,
   ...SCENARIO.reglages,
+  // Au tournoi, un tableau de seize titres : ceux de la planche du tournoi.
+  ...(mode === 'tournoi' ? { pistes: PLAYLIST_DU_TOURNOI.length } : {}),
   // La partie du scénario est réglée d'avance : le réglage du prototype choisit le mode, les commandes de la platine ne tournent pas.
   commandes: false,
   // Le serveur de la page n'a pas de source où chercher : le bac du prototype ne sert que sa playlist.
@@ -60,6 +65,11 @@ const preparatifs = (mode: Mode): Preparatifs => ({
     reponse: ({ face, numero }, deja) => SCENARIO.pistes[(face === 'B' ? SCENARIO.reglages.pistes : 0) + numero - 1]?.toi[deja]?.libre,
   },
 });
+
+/** La playlist du tournoi du prototype : les seize titres de la planche du tournoi, chacun sa vignette. */
+const PLAYLIST_DU_TOURNOI: readonly PisteDuMode[] = LEGENDES_DU_TOURNOI.titres.map((t) => ({
+  reponse: { titre: t.titre, artiste: t.artiste, pochette: { vignette: t.vignette } },
+}));
 
 /** Une partie : un serveur neuf, les potes qui le rejoindront, et le téléphone. */
 function unePartie(
@@ -76,7 +86,7 @@ function unePartie(
     ordre: lOrdreDeLaPlaylist,
     // Dans la page, personne d'autre ne peut se brancher : un jeton n'a pas besoin d'y être secret.
     jeton: () => `jeton-${++jetons}`,
-    playlist: (lien) => (lien === SCENARIO.playlist ? PLAYLIST_DU_PROTOTYPE : undefined),
+    playlist: (lien) => (lien === SCENARIO.playlist ? (mode === 'tournoi' ? PLAYLIST_DU_TOURNOI : PLAYLIST_DU_PROTOTYPE) : undefined),
   });
   const pochettes = pochettesDesPotes();
   let potes: Potes | undefined;
@@ -138,7 +148,8 @@ export function lancerLePrototype(polices: Polices): void {
   };
   for (const bouton of modes)
     bouton.addEventListener('click', () => {
-      mode = bouton.dataset['mode'] === 'quatreChoix' ? 'quatreChoix' : 'libre';
+      const voulu = bouton.dataset['mode'];
+      mode = voulu === 'quatreChoix' || voulu === 'tournoi' ? voulu : 'libre';
       commencer();
     });
   recommencer.addEventListener('click', commencer);

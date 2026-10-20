@@ -298,17 +298,40 @@ export function vueDesReglages(
   a: Ecritoire,
   mode: ModeDuRegistre,
   reglages?: { readonly pistes: number; readonly extrait: number; readonly son: SonDeLaRoom },
+  jeu?: JeuDesReglages,
 ): VueDuTelephone {
   const r = SUR_LA_PLATINE;
+  const tournoi = jeu === 'tournoi';
+  // Au tournoi, la manette reste sur son mode de blind test : c'est le cran « Tournoi » qui dit le jeu, et « Titres », le tableau.
+  const platine = platineArretee(a, { mode: mode.cran, ...(reglages !== undefined ? { reglages: { ...reglages, tableau: tournoi } } : {}) });
   return {
     regard: r,
     objets: [
-      platineArretee(a, { mode: mode.cran, ...(reglages !== undefined ? { reglages } : {}) }),
-      ...phrase(a.textes.partie.bareme[mode.cle] ?? '', r, a.encrier),
+      platine,
+      ...(jeu !== undefined ? cransDuJeu(a, jeu) : []),
+      ...phrase(a.textes.partie.bareme[tournoi ? 'tournoi' : mode.cle] ?? '', r, a.encrier),
       toucheAuMilieu('touche-ouvrir', 'principale', a.textes.partie.ouvrirLeSalon, r, T.reglages.ouvrir, a.encrier),
       toucheAuMilieu('touche-revenir', 'secondaire', a.textes.partie.retour, r, T.reglages.retour, a.encrier),
     ],
   };
+}
+
+/** Le jeu qu'on ouvre : un blind test (la manette dit son mode), ou un tournoi. */
+export type JeuDesReglages = 'blindTest' | 'tournoi';
+export const JEUX: readonly JeuDesReglages[] = ['blindTest', 'tournoi'];
+
+/** Les deux crans du jeu, sous la platine, côte à côte au milieu : celui du jeu choisi allumé. */
+function cransDuJeu(a: Ecritoire, jeu: JeuDesReglages): Calque[] {
+  const r = SUR_LA_PLATINE;
+  const J = T.reglages.jeux;
+  const libelles = JEUX.map((j) => a.textes.tournoi.jeux[j]);
+  const largeurs = libelles.map((libelle) => largeurDeLaTouche({ genre: 'cran', libelle, ajustee: true }, a.encrier.largeur));
+  const enTout = largeurs.reduce((somme, l) => somme + l, 0) + J.ecart * (largeurs.length - 1);
+  return JEUX.map((j, rang) => {
+    const avant = largeurs.slice(0, rang).reduce((somme, l) => somme + l + J.ecart, 0);
+    const x = r.largeur / 2 - enTout / 2 + avant + (largeurs[rang] ?? 0) / 2;
+    return touche(`touche-jeu-${j}`, 'cran', libelles[rang] ?? '', r, [x, J.y], a.encrier, j === jeu ? 'allumee' : 'repos', true);
+  });
 }
 
 /** Qui regarde le salon : l'hôte, un invité, ou celui à qui la platine vient de passer parce que l'hôte est parti. */

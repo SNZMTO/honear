@@ -292,6 +292,23 @@ export function dessinerLeDisque(disque: Disque | DisqueADeuxFaces, densite: Den
 }
 
 /**
+ * Ce que le mouvement règle sur un disque à deux faces (celui d'un duel) : sa place et celle de son ombre, la face qu'il montre et
+ * l'ombre qu'elle porte. Il n'a pas d'étiquette qui tourne.
+ */
+export function reglerLeDisqueADeuxFaces(pose: Omit<PoseDeDisque, 'etiquette'>, densite: Densite): Reglage[] {
+  const vue = vueDuDisqueRetourne(pose.retourne);
+  return [
+    ...reglerUneOmbre('disque/ombre', ombreDuDisque(pose, vue.ombre.par, densite)),
+    visibilite('disque/ombre', vue.ombre.seMontre),
+    glissement('disque', 0, surLEcran(pose.en, pose.hauteur)),
+    deformation('disque/faces', 0, vue.faces),
+    visibilite('disque/recto', !vue.montreLeVerso),
+    visibilite('disque/verso', vue.montreLeVerso),
+    ...VOILES_DU_VERSO.map((nom, rang) => visibilite(nom, rang < vue.voiles)),
+  ];
+}
+
+/**
  * Ce que le mouvement règle sur un disque déjà dessiné avec ses arcs et son verso : sa place et celle de son ombre,
  * la face qu'il montre et l'ombre qu'elle porte, l'angle de son étiquette et ce qu'elle laisse lire.
  */

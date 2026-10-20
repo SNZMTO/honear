@@ -8,15 +8,17 @@ import { MODES, modeADeviner, type ModeDuRegistre } from '../../regles/modes';
 import { jugerUnMotDePasse } from '../../regles/mot-de-passe';
 import { numeroDeLaPiste, partieA, partieAvant, type EtatDeLaPartie, type EvenementDePartie, type SonDeLaRoom } from '../../regles/partie';
 import { jouer, type Reponse } from '../../regles/piste';
+import type { FaceDuDuel } from '../../regles/tournoi';
 import type { ChoixDeLAvatar } from '../../ressources/avatar';
 import { TELEPHONE } from '../../ressources/ecran';
 import { FONDS_DE_POCHETTE, MOTIFS_DE_POCHETTE, type Pochette } from '../../ressources/pochettes';
 import type { Textes } from '../../ressources/textes';
 import type { Vignette } from '../../ressources/vignettes';
 import type { PisteEnScene } from '../../scene/piste/etat';
-import type { BacOuvert, QuiRegardeLeSalon, RefusDeLaSaisie } from '../../scene/telephone/ecrans';
+import type { BacOuvert, JeuDesReglages, QuiRegardeLeSalon, RefusDeLaSaisie } from '../../scene/telephone/ecrans';
 import type { CompteOuvertAuTelephone } from '../../scene/telephone/compte';
 import type { AutourDeLaPiste } from '../../scene/telephone/piste';
+import { platineDuDuelEnCours } from './duel';
 import { estUnRefusDuCompte, tapeA, type Memoire, type Preparatifs, type RoomConnue } from './memoire';
 import { finDeLaReponse } from './son';
 
@@ -44,6 +46,8 @@ export type EcranDuTelephone =
     }
   | {
       readonly genre: 'reglages';
+      /** Le jeu qu'on ouvre : au tournoi, « Titres » dit la taille du tableau (`pistes`). */
+      readonly jeu: JeuDesReglages;
       readonly mode: ModeDuRegistre;
       readonly pistes: number;
       readonly extrait: number;
@@ -77,7 +81,24 @@ export type EcranDuTelephone =
   | { readonly genre: 'hitParade'; readonly avant: EtatDeLaPartie; readonly apres: EtatDeLaPartie; readonly hote: boolean; readonly toi: string }
   | { readonly genre: 'finale'; readonly etat: EtatDeLaPartie; readonly joues: readonly Reponse[]; readonly hote: boolean; readonly toi: string }
   /** Les titres joués, revus depuis la finale, avec leurs pochettes. */
-  | { readonly genre: 'titres'; readonly joues: readonly Reponse[] };
+  | { readonly genre: 'titres'; readonly joues: readonly Reponse[] }
+  /**
+   * Au tournoi, un duel : en cours, ou clos un moment (chacun sous sa face). La platine de ce téléphone se règle à part, d'image en
+   * image (voir `platineDuDuelEnCours`) : l'écran ne change qu'avec les votes. `voter` : on peut voter (on joue, le duel est ouvert).
+   */
+  | {
+      readonly genre: 'duel';
+      readonly etat: EtatDeLaPartie;
+      readonly toi: string;
+      readonly voter: boolean;
+      readonly aide: boolean;
+      readonly monVote?: FaceDuDuel;
+      readonly phrase?: string;
+    }
+  /** Au tournoi, le tableau : entre deux duels (l'hôte lance le suivant), ou revu depuis le palmarès. */
+  | { readonly genre: 'tableau'; readonly etat: EtatDeLaPartie; readonly toi: string; readonly revoir: boolean }
+  /** Au tournoi, à la fin : le podium des titres, l'oreille de la room ; chez l'hôte, la revanche. */
+  | { readonly genre: 'palmares'; readonly etat: EtatDeLaPartie; readonly toi: string };
 
 /** La vignette d'une playlist trouvée : une couleur et un motif tirés de son lien, toujours les mêmes pour elle. */
 function vignetteDe(lien: string): Vignette {
@@ -160,7 +181,15 @@ function ecranDeLaPreparation(m: Memoire, p: Preparatifs): EcranDuTelephone {
       return { genre: 'bac', bac, chercher: p.chercher };
     }
     case 'reglages':
-      return { genre: 'reglages', mode: MODES[prep.mode], pistes: prep.pistes, extrait: prep.extrait, son: prep.son, commandes: p.commandes };
+      return {
+        genre: 'reglages',
+        jeu: prep.jeu,
+        mode: MODES[prep.mode],
+        pistes: prep.jeu === 'tournoi' ? prep.titres : prep.pistes,
+        extrait: prep.extrait,
+        son: prep.son,
+        commandes: p.commandes,
+      };
   }
 }
 
@@ -254,6 +283,36 @@ function ecranDeLaPiste(
   };
 }
 
+/**
+ * Les écrans d'un tournoi : le duel en cours, ou celui qu'on vient de clore, un moment ; entre deux duels, le tableau ; à la fin, le
+ * palmarès (et le tableau, qu'on y revoit). Rien avant le premier duel : c'est le salon.
+ */
+function ecranDuTournoi(m: Memoire, room: RoomConnue, etat: EtatDeLaPartie, heure: number, textes: Textes): EcranDuTelephone | undefined {
+  const t = etat.tournoi;
+  if (t === undefined) return undefined;
+  const toi = room.toi;
+  const dernier = t.clos[t.clos.length - 1];
+  if (t.enCours !== undefined || (dernier !== undefined && heure < dernier.closA + TELEPHONE.duel.apresLaCloture)) {
+    const platine = platineDuDuelEnCours(m);
+    const moi = etat.joueurs.find((j) => j.id === toi);
+    const ouvert = t.enCours !== undefined;
+    const phrase = m.horsLigne ? textes.etats.connexionPerdue : m.sonBloque === true && ouvert ? textes.etats.sonBloque : undefined;
+    return {
+      genre: 'duel',
+      etat,
+      toi,
+      voter: ouvert && moi !== undefined && !moi.spectateur && !m.horsLigne,
+      // Au premier duel, tant qu'on n'a pas retourné son disque, on dit comment faire.
+      aide: ouvert && t.clos.length === 0 && (platine?.tours ?? 0) === 0,
+      ...(ouvert && platine?.monVote !== undefined ? { monVote: platine.monVote } : {}),
+      ...(phrase !== undefined ? { phrase } : {}),
+    };
+  }
+  if (etat.phase === 'fin')
+    return m.preparation.ecran === 'titres' ? { genre: 'tableau', etat, toi, revoir: true } : { genre: 'palmares', etat, toi };
+  return t.clos.length > 0 ? { genre: 'tableau', etat, toi, revoir: false } : undefined;
+}
+
 /** L'écran du téléphone, à cette heure du serveur. */
 export function ecranDuTelephone(m: Memoire, heure: number, p: Preparatifs, textes: Textes): EcranDuTelephone {
   const room = m.room;
@@ -267,6 +326,8 @@ export function ecranDuTelephone(m: Memoire, heure: number, p: Preparatifs, text
   const prep = m.preparation;
   if (prep.ecran === 'pochette' && prep.venue.genre === 'retoucher')
     return { genre: 'pochette', pochette: prep.pochette, choisi: prep.choisi, retouche: true, sansNom: prep.sansNom === true };
+  const tournoi = ecranDuTournoi(m, room, etat, heure, textes);
+  if (tournoi !== undefined) return tournoi;
   const hote = etat.hote === room.toi;
   const toi = room.toi;
   if (etat.phase === 'fin') {

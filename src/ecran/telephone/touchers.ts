@@ -6,12 +6,14 @@
 
 import type { NomDeCalque } from '../../lexique';
 import { hitParade } from '../../regles/partie';
-import { MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
+import { enDuels, MODES_PAR_CRAN, type CleDeMode } from '../../regles/modes';
+import { FACES_DU_DUEL } from '../../regles/tournoi';
 import { PLATINE } from '../../ressources/platine';
 import { TABLEE } from '../../ressources/tablee';
 import { DIRECTIONS } from '../../scene/platine/interrupteur';
 import type { Textes } from '../../ressources/textes';
-import { TOUCHES_DU_BAC } from '../../scene/telephone/ecrans';
+import { JEUX, TOUCHES_DU_BAC } from '../../scene/telephone/ecrans';
+import { remplir } from '../../scene/phrases';
 import { interprete } from '../../scene/telephone/pieces';
 import { CLES_DES_CHOIX } from '../../scene/telephone/pochette';
 import type { Toucher } from './memoire';
@@ -43,6 +45,22 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     if (rang !== undefined && choix !== undefined && ecran.pouce === 'choix')
       return de({ genre: 'toucherLEtiquette', rang }, `${choix.titre} · ${interprete(textes, choix)}`);
     return undefined;
+  }
+  // Au tournoi, pendant un duel : le disque se retourne (et l'on glisse dessus pour placer le bras) ; on vote à l'étiquette d'une face.
+  if (ecran.genre === 'duel') {
+    if (nom === 'disque') return de({ genre: 'retourner' }, textes.tournoi.retourner);
+    const enCours = ecran.etat.tournoi?.enCours;
+    const face = FACES_DU_DUEL.find((f) => nom === `etiquette-face-${f}`);
+    if (face !== undefined && enCours !== undefined && ecran.voter)
+      return de({ genre: 'voter', face }, remplir(textes.tournoi.voterPour, { titre: enCours.faces[face].reponse.titre }));
+    if (nom === 'touche-clore') return de({ genre: 'clore' }, textes.tournoi.touches.clore);
+    return undefined;
+  }
+  if (ecran.genre === 'tableau' || ecran.genre === 'palmares') {
+    if (nom === 'touche-suivant') return de({ genre: 'lancer' }, textes.tournoi.touches.suivant);
+    if (nom === 'touche-revanche') return de({ genre: 'rejouer' }, textes.tournoi.touches.revanche);
+    if (nom === 'etiquette-vainqueur') return de({ genre: 'revoirLesTitres' }, textes.tournoi.revoir);
+    if (nom === 'touche-fermer-tableau') return de({ genre: 'fermerLesTitres' }, textes.partie.retour);
   }
   if (ecran.genre === 'pochette') {
     const rang = rangDans(nom, 'pochette-choix-');
@@ -104,6 +122,9 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     const direction = DIRECTIONS.find((d) => nom === `interrupteur-mode/${d}`);
     const mode = direction !== undefined ? MODES_PAR_CRAN[PLATINE.commandes.interrupteur.manette.directions.indexOf(direction)] : undefined;
     if (mode !== undefined) return de({ genre: 'choisirLeMode', mode: mode.cle as CleDeMode }, `${C.mode} : ${C.modes[mode.cle] ?? mode.cle}`);
+    // Les deux crans sous la platine : le blind test, ou le tournoi.
+    const jeu = JEUX.find((j) => nom === `touche-jeu-${j}`);
+    if (jeu !== undefined) return de({ genre: 'choisirLeJeu', jeu }, textes.tournoi.jeux[jeu]);
   }
   switch (nom) {
     case 'touche-poser':
@@ -184,7 +205,13 @@ export function choseATouche(nom: NomDeCalque, ecran: EcranDuTelephone, textes: 
     case 'touche-lancer':
       return de(
         { genre: 'lancer' },
-        ecran.genre === 'hitParade' ? T.suivante : ecran.genre === 'salon' && ecran.etat.face === 'B' ? T.lancerLaFaceB : T.lancer,
+        ecran.genre === 'hitParade'
+          ? T.suivante
+          : ecran.genre === 'salon' && enDuels(ecran.etat.mode)
+            ? textes.tournoi.touches.lancer
+            : ecran.genre === 'salon' && ecran.etat.face === 'B'
+              ? T.lancerLaFaceB
+              : T.lancer,
       );
     case 'touche-rejouer':
       return de({ genre: 'rejouer' }, T.rejouer);

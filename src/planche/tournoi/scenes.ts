@@ -11,7 +11,7 @@ import { codeDePartie, partieA, type EtatDeLaPartie, type EvenementDePartie } fr
 import type { Reponse } from '../../regles/piste';
 import { pochetteAuHasard } from '../../regles/pochette';
 import { prochainDuel, type FaceDuDuel } from '../../regles/tournoi';
-import { TOURNOI } from '../../ressources/reglages';
+import { REGLAGES, TOURNOI } from '../../ressources/reglages';
 import { TABLEE } from '../../ressources/tablee';
 import type { Textes } from '../../ressources/textes';
 import type { Calque } from '../../scene/calque';
@@ -22,10 +22,9 @@ import { dessinerLaPlatine, type EtatDesCommandes } from '../../scene/platine';
 import type { EtatDInterrupteur } from '../../scene/platine/interrupteur';
 import type { Encrier } from '../../scene/rendu/texte';
 import { vueDuDuel, type DuelAuTelephone } from '../../scene/telephone/duel';
-import { vueDuSalon } from '../../scene/telephone/ecrans';
+import { vueDesReglages, vueDuSalon } from '../../scene/telephone/ecrans';
 import { disqueDeLAccueil, manetteDuMode, platineDeLAccueil } from '../../scene/telephone/meuble';
-import { DENSITE, phrase, SUR_LA_PLATINE, touche, toucheAuMilieu, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
-import { largeurDeLaTouche } from '../../scene/touche';
+import { DENSITE, phrase, SUR_LA_PLATINE, toucheAuMilieu, type Ecritoire, type VueDuTelephone } from '../../scene/telephone/pieces';
 import { vueDuPalmares, vueDuTableau } from '../../scene/telephone/tableau';
 import { joueursDExemple } from '../etape5/scenes';
 import type { ImageDePlanche } from '../image';
@@ -62,6 +61,8 @@ function journalJusquAuDuel(textes: Textes, numero: number): EvenementDePartie[]
     { genre: 'ouverture', a: -200, mode: 'tournoi', pistes: L.titres.length },
     ...joueursDExemple(textes).map(({ id, pochette }, rang): EvenementDePartie => ({ genre: 'arrivee', a: -190 + rang, id, pochette })),
   ];
+  // Au premier lancer, le tableau entier, publié d'un coup.
+  if (numero >= 0) journal.push({ genre: 'tableau', a: 0, titres });
   for (let n = 0; n <= numero; n++) {
     const t = partieA(journal, Infinity).tournoi;
     const p = t !== undefined ? prochainDuel(t) : undefined;
@@ -130,25 +131,13 @@ function variantePlaceDeLaManette(a: Ecritoire): ImageDePlanche {
   return ecran('reglages-manette', L.images.reglagesManette, reglages(a, platineDesReglages(a, commandesDuTournoi(a.textes, manette))));
 }
 
-/** Les deux crans de la variante 2, sous la platine : à cette hauteur, à cet écart l'un de l'autre. */
-const CRANS_DU_JEU = { y: 516, ecart: 10 } as const;
-
 /**
- * Variante 2 : la manette garde ses quatre modes, qui ne servent qu'au blind test ; deux crans, sous la platine, choisissent le jeu.
- * Sur la platine elle-même, entre « Secondes » et la manette, un sélecteur n'a pas la place de ses deux noms.
+ * Variante 2, celle du jeu : la manette garde ses quatre modes, qui ne servent qu'au blind test ; deux crans, sous la platine,
+ * choisissent le jeu. Sur la platine elle-même, entre « Secondes » et la manette, un sélecteur n'avait pas la place de ses deux noms.
  */
 function varianteSelecteur(a: Ecritoire): ImageDePlanche {
-  const commandes = commandesDuTournoi(a.textes, manetteDuMode(a.textes, MODES.libre.cran));
-  const r = SUR_LA_PLATINE;
-  const libelles = L.selecteur.positions;
-  const largeurs = libelles.map((libelle) => largeurDeLaTouche({ genre: 'cran', libelle, ajustee: true }, a.encrier.largeur));
-  const enTout = largeurs.reduce((somme, l) => somme + l, 0) + CRANS_DU_JEU.ecart * (largeurs.length - 1);
-  const crans = libelles.map((libelle, rang) => {
-    const avant = largeurs.slice(0, rang).reduce((somme, l) => somme + l + CRANS_DU_JEU.ecart, 0);
-    const x = r.largeur / 2 - enTout / 2 + avant + (largeurs[rang] ?? 0) / 2;
-    return touche(`touche-jeu-${rang + 1}`, 'cran', libelle, r, [x, CRANS_DU_JEU.y], a.encrier, rang === 1 ? 'allumee' : 'repos', true);
-  });
-  return ecran('reglages-selecteur', L.images.reglagesSelecteur, reglages(a, [...platineDesReglages(a, commandes), ...crans]));
+  const reglages = { pistes: TOURNOI.titres.defaut, extrait: REGLAGES.extrait.defaut, son: 'tous' as const };
+  return ecran('reglages-selecteur', L.images.reglagesSelecteur, vueDesReglages(a, MODES.libre, reglages, 'tournoi'));
 }
 
 /** Le salon du tournoi, chez l'hôte : la kraft dit le tournoi et ses titres ; « Lancer le tournoi ». */

@@ -54,6 +54,8 @@ export interface DuelClos extends Duel, Issue {
 export interface EtatDuTournoi {
   /** Combien de titres entrent au tableau. */
   readonly titres: number;
+  /** Le tableau entier, publié au premier lancer : chaque titre à sa place. Rien avant : on ne le connaît qu'au premier duel. */
+  readonly tableau?: readonly Reponse[];
   /** Les duels clos, dans l'ordre où ils se sont joués. */
   readonly clos: readonly DuelClos[];
   readonly enCours?: DuelEnCours;
@@ -189,7 +191,8 @@ export function clore(t: EtatDuTournoi, a: number, issue: Issue): EtatDuTournoi 
   const d = t.enCours;
   if (d === undefined) return t;
   const duel: DuelClos = { a: d.a, faces: d.faces, votes: issue.votes, gagnante: issue.gagnante, par: issue.par, closA: a };
-  return { titres: t.titres, clos: [...t.clos, duel] };
+  const { enCours: _clos, ...reste } = t;
+  return { ...reste, clos: [...t.clos, duel] };
 }
 
 /** Le disque d'or : le titre qui a gagné la finale ; rien tant qu'elle n'est pas close. */

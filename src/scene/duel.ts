@@ -5,21 +5,24 @@
  * le disque entier, et la tête du bras. Ce module dessine une pose ; il ne sait pas qui la demande.
  */
 
+import { depuisLEcran } from '../lowpoly/projection';
+import type { Vec2 } from '../lowpoly/vecteurs';
 import type { Reponse } from '../regles/piste';
 import type { FaceDuDuel } from '../regles/tournoi';
 import type { Densite } from '../ressources/densites';
 import { AMPLEURS } from '../ressources/mouvement';
 import type { Calque, Mesure } from './calque';
-import { dessinerLeDisque, type FaceDessinee } from './disque';
+import { dessinerLeDisque, reglerLeDisqueADeuxFaces, type FaceDessinee } from './disque';
 import { dessinerLeVerso } from './disque/verso';
 import { seulement } from './etiquette/fondu';
 import type { Regard } from './meuble';
 import { HALTES_DU_DISQUE } from './piste/emplacements';
-import { envolDuDisque } from './piste/gestes/retournement';
+import { A_PLAT, angleDuDisqueRetourne, envolDuDisque } from './piste/gestes/retournement';
 import { disqueDeLaPiste, platineDeLaPiste } from './piste/pieces';
 import { POSE_AVANT_LA_PISTE, type PoseDeLaPiste } from './piste/pose';
 import { regardDeLaPiste } from './piste/regard';
-import { angleDuBrasAuRayon, dessinerLaPlatine, type EtatDesCommandes } from './platine';
+import { angleDuBrasAuRayon, dessinerLaPlatine, reglerLaPlatine, type EtatDesCommandes } from './platine';
+import { calquesParNom, type Reglage } from './reglage';
 
 /** Où en est le duel sur la platine, à un instant. */
 export interface PoseDuDuel {
@@ -47,6 +50,15 @@ export function faceEnHaut(retourne: number): FaceDuDuel {
   const tour = ((retourne % (2 * DEMI_TOUR)) + 2 * DEMI_TOUR) % (2 * DEMI_TOUR);
   return tour < DEMI_TOUR / 2 || tour >= (3 * DEMI_TOUR) / 2 ? 'A' : 'B';
 }
+
+/** Le temps qu'une main met à retourner le disque d'un duel, jusqu'à ce qu'il retombe à plat : celui de la révélation. */
+export const DUREE_DU_RETOURNEMENT: number = A_PLAT;
+
+/**
+ * Le disque d'un duel qu'une main retourne, tant de secondes après qu'elle l'a pris : de combien il a tourné depuis la face d'où il
+ * part, de 0 à 180 ; il suit la main comme à la révélation.
+ */
+export const angleDuRetournement = (depuis: number): number => angleDuDisqueRetourne(Math.max(0, depuis));
 
 /** Le regard d'un duel : celui de la révélation, posé sur le disque. */
 export const REGARD_DU_DUEL: Regard = regardDeLaPiste({ regard: AMPLEURS.regardSurLaReponse });
@@ -101,4 +113,31 @@ export function dessinerLeDuel(
     densite,
   );
   return dessinerLaPlatine({ ...platineDeLaPiste(piste), ...decor }, densite, [disque.ombre, disque.disque]);
+}
+
+/**
+ * De quoi régler la platine d'un duel déjà dessinée, d'image en image, sans la redessiner : le disque qui se retourne, le bras sur sa
+ * course, levé ou posé, le levier.
+ * @param dessinee la scène où le duel est dessiné, dans n'importe quelle pose.
+ */
+export function regleurDuDuel(dessinee: Calque, densite: Densite): (pose: PoseDuDuel) => Reglage[] {
+  const bras = calquesParNom(dessinee).get('bras');
+  if (bras === undefined) throw new Error('La scène à régler n’a pas de bras : ce n’est pas un duel.');
+  return (pose) => {
+    const piste = poseDeLaPlatine(pose);
+    const { etiquette: _sansEtiquette, ...disque } = disqueDeLaPiste(piste);
+    return [...reglerLeDisqueADeuxFaces(disque, densite), ...reglerLaPlatine(platineDeLaPiste(piste), densite, bras)];
+  };
+}
+
+/**
+ * La part de la face où se pose le bras quand on glisse le doigt sur le disque, à ce point de l'écran (en px de la scène) : sa
+ * distance au centre du disque, sur le disque, du bord de la course du bras (0) à sa fin (1).
+ */
+export function partSousLeDoigt(point: Vec2): number {
+  const { surLePlateau } = HALTES_DU_DISQUE;
+  const [x, y] = depuisLEcran(point, surLePlateau.hauteur);
+  const rayon = Math.hypot(x - surLePlateau.en[0], y - surLePlateau.en[1]);
+  const { de, a } = AMPLEURS.course;
+  return Math.min(1, Math.max(0, (rayon - de) / (a - de)));
 }

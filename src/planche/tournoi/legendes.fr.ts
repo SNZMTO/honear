@@ -21,12 +21,12 @@ export const LEGENDES_DU_TOURNOI = {
     choisir: {
       titre: 'Choisir le tournoi',
       texte:
-        'La manette a ses quatre places prises. Deux façons de choisir le tournoi : il prend la place d’un mode (ici 1re note, qui reste au registre, comme les 4 choix quand le solo est arrivé : /statistiques dit quel mode est le moins joué) ; ou deux crans, Blind test et Tournoi, se posent sous la platine, et la manette ne sert plus qu’au blind test (sur la platine même, entre « Secondes » et la manette, un sélecteur n’a pas la place de ses deux noms). Dans les deux, « Titres » se grave 8, 16, 32 : la taille du tableau ; « Secondes » garde son sens : ce qu’on peut écouter de chaque face. Au salon, la kraft dit le tournoi et ses titres, la touche « Lancer le tournoi ».',
+        'La manette a ses quatre places prises. Deux façons de choisir le tournoi étaient sur la table : il prend la place d’un mode (ici 1re note) ; ou deux crans, Blind test et Tournoi, se posent sous la platine, et la manette ne sert plus qu’au blind test. C’est la seconde qui est au jeu (toucher la manette ramène au blind test). Dans les deux, « Titres » se grave 8, 16, 32 : la taille du tableau ; « Secondes » garde son sens : ce qu’on peut écouter de chaque face. Au salon, la kraft dit le tournoi et ses titres, la touche « Lancer le tournoi ».',
     },
     duel: {
       titre: 'Un duel',
       texte:
-        'Le regard est celui de la révélation : le disque entier, la tête du bras. Chaque face porte son titre comme le verso d’une piste, pochette au milieu. Chacun écoute à son rythme sur son téléphone : toucher le disque le retourne (le bras se lève, le disque tourne, le bras se repose, chaque face reprend où on l’avait laissée) ; tirer le bras vers le bord revient en arrière. On vote en touchant une étiquette, on change d’avis tant que le duel n’est pas clos. L’éventail dit qui a voté, jamais pour quoi. Le duel se clôt quand tout le monde a voté, ou quand l’hôte le clôt : chacun passe alors sous sa face.',
+        'Le regard est celui de la révélation : le disque entier, la tête du bras. Chaque face porte son titre comme le verso d’une piste, pochette au milieu. Chacun écoute à son rythme sur son téléphone : toucher le disque le retourne (le bras se lève, le disque tourne, le bras se repose, chaque face reprend où on l’avait laissée) ; glisser le doigt sur le disque y pose le bras : vers le bord, on revient en arrière. Une face finie lève le bras ; si l’on n’a pas encore entendu l’autre, le disque se retourne de lui-même. On vote en touchant une étiquette, on change d’avis tant que le duel n’est pas clos. L’éventail dit qui a voté, jamais pour quoi. Le duel se clôt quand tout le monde a voté, ou quand l’hôte le clôt : chacun passe alors sous sa face.',
     },
     fin: {
       titre: 'Entre deux duels, et à la fin',
@@ -79,6 +79,4 @@ export const LEGENDES_DU_TOURNOI = {
   graine: 20261020,
   /** La graine de la pochette du joueur arrivé pendant un duel. */
   retardataire: 4242,
-  /** Les deux crans de la variante 2. */
-  selecteur: { positions: ['Blind test', 'Tournoi'] },
 } as const;

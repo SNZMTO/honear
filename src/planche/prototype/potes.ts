@@ -8,7 +8,7 @@ import type { Action, Connexion, Nouvelle } from '../../regles/messages';
 import { jouer, type ActionDePiste } from '../../regles/piste';
 import type { Pochette } from '../../ressources/pochettes';
 import type { Serveur } from '../../serveur/serveur';
-import { SCENARIO, type PasDUnPote, type Pote } from './scenario';
+import { SCENARIO, VOTES_DES_POTES, type PasDUnPote, type Pote } from './scenario';
 
 export interface Potes {
   /** L'heure passe : chacun fait ce qu'il a à faire. Rend l'heure de son prochain geste, s'il en a un. */
@@ -26,6 +26,8 @@ interface Telephone {
   readonly lancees: number[];
   seance: ActionDePiste[];
   pretPour: number | undefined;
+  /** Au tournoi, les duels ouverts qu'il a vus, par l'heure de leur ouverture : le dernier est celui où il vote. */
+  readonly duels: number[];
   /** Les gestes qu'il a faits, par piste. */
   readonly faits: Set<string>;
 }
@@ -33,14 +35,14 @@ interface Telephone {
 /**
  * Invite les cinq potes dans une room.
  * @param ouverteA l'heure où la room s'est ouverte : ils arrivent après elle, chacun à son heure.
- * @param mode ce qu'ils ont sous le pouce : ils tapent en saisie libre, ils touchent une étiquette en 4 choix.
+ * @param mode ce qu'ils ont sous le pouce : ils tapent en saisie libre, ils touchent une étiquette en 4 choix ; au tournoi, ils votent.
  */
 export function inviterLesPotes(
   serveur: Serveur,
   code: string,
   ouverteA: number,
   pochettes: Readonly<Record<Pote, Pochette>>,
-  mode: 'libre' | 'quatreChoix',
+  mode: 'libre' | 'quatreChoix' | 'tournoi',
 ): Potes {
   const telephones: Telephone[] = SCENARIO.arrivees.map(({ qui }) => ({
     qui,
@@ -51,6 +53,7 @@ export function inviterLesPotes(
     lancees: [],
     seance: [],
     pretPour: undefined,
+    duels: [],
     faits: new Set(),
   }));
 
@@ -61,6 +64,9 @@ export function inviterLesPotes(
         t.jeton = n.jeton;
         t.seance = [...n.seance];
       }
+      // Au tournoi, un duel s'ouvre : il votera.
+      const duel = n.genre === 'evenement' && n.evenement.genre === 'duel' ? n.evenement.a : undefined;
+      if (duel !== undefined && !t.duels.includes(duel)) t.duels.push(duel);
       if (n.genre !== 'piste' && n.genre !== 'etat') return;
       const lancers = (n.genre === 'piste' ? [n.action] : n.seance).filter((a) => a.genre === 'lancer');
       for (const lancer of lancers) if (!t.lancees.includes(lancer.a)) t.lancees.push(lancer.a);
@@ -98,6 +104,16 @@ export function inviterLesPotes(
           if (heure >= arrivee) brancher(t);
           else prochains.push(arrivee);
           continue;
+        }
+        // Au tournoi : un vote par duel, à son heure.
+        const rangDuDuel = t.duels.length - 1;
+        const duel = t.duels[rangDuDuel];
+        if (mode === 'tournoi' && duel !== undefined && t.connexion !== undefined && !t.faits.has(`duel-${duel}`)) {
+          const vote = duel + VOTES_DES_POTES.apres[t.qui];
+          if (heure >= vote) {
+            t.faits.add(`duel-${duel}`);
+            envoyer(t, { genre: 'voter', face: (rangDuDuel + rang) % VOTES_DES_POTES.faceBTousLes === 0 ? 'B' : 'A' });
+          } else prochains.push(vote);
         }
         const numero = t.lancees.length - 1;
         const lancer = t.lancees[numero];

@@ -51,6 +51,7 @@ ${STYLE}
 <div class="commandes" role="group" aria-label="${enXml(R.groupe)}">
 <button type="button" id="mode-libre" data-mode="libre" aria-pressed="true">${enXml(R.libre)}</button>
 <button type="button" id="mode-quatre-choix" data-mode="quatreChoix" aria-pressed="false">${enXml(R.quatreChoix)}</button>
+<button type="button" id="mode-tournoi" data-mode="tournoi" aria-pressed="false">${enXml(R.tournoi)}</button>
 <button type="button" id="recommencer" data-recommencer>${enXml(R.recommencer)}</button>
 </div>
 <p class="note">${enXml(L.intro)}</p>
