@@ -58,9 +58,9 @@ import { DENSITE, SUR_LA_PLATINE, type Ecritoire, type VueDuTelephone } from '..
 import { lignesDeLaPiste, pochetteSurLeVerso, pouceAuPlusGrand, pouceDeLaPiste, tableeDeLaPiste } from '../../scene/telephone/piste';
 import { REGARD_DE_LA_POCHETTE, vueDeLaPochette } from '../../scene/telephone/pochette';
 import { imagesDesTitres, vueDesTitres } from '../../scene/telephone/titres';
-import { vueDuDuel } from '../../scene/telephone/duel';
-import { vueDuPalmares, vueDuTableau } from '../../scene/telephone/tableau';
-import { partSousLeDoigt, POSE_DU_DUEL, regleurDuDuel, type PoseDuDuel } from '../../scene/duel';
+import { pochetteDuDuel, vueDuDuel } from '../../scene/telephone/duel';
+import { imagesDuPalmares, imagesDuTableau, vueDuPalmares, vueDuTableau } from '../../scene/telephone/tableau';
+import { partSousLeDoigt, POSE_DU_DUEL, REGARD_DU_DUEL, regleurDuDuel, type PoseDuDuel } from '../../scene/duel';
 import { calquesDeLaTouche } from '../../scene/touche';
 import { lancerLaBoucle } from '../boucle';
 import { factureVoulue } from '../facture';
@@ -1061,6 +1061,14 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     vider(coucheDeLaTablee);
   }
 
+  /** Les vraies pochettes d'un écran posé sur le meuble : celles des titres joués, du tableau, du podium. */
+  const imagesDe = (e: Exclude<EcranDuTelephone, { readonly genre: 'piste' }>): ImagePosee[] => {
+    const t = e.genre === 'tableau' || e.genre === 'palmares' ? e.etat.tournoi : undefined;
+    if (e.genre === 'titres') return imagesDesTitres(e.joues);
+    if (t === undefined) return [];
+    return e.genre === 'tableau' ? imagesDuTableau(t) : imagesDuPalmares(t);
+  };
+
   /** Au duel, la platine montée dans la couche du meuble, de quoi la régler, et la pose qu'on lui a donnée en dernier. */
   let duelMonte: { readonly montage: Montage; readonly regler: (pose: PoseDuDuel) => Reglage[]; pose: string } | undefined;
   /** La platine du duel, à la pose que ce téléphone lui donne à cette heure : on ne la règle que quand elle change. */
@@ -1073,6 +1081,11 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
     if (ecrite === duelMonte.pose) return;
     duelMonte.pose = ecrite;
     duelMonte.montage.regler(duelMonte.regler(pose));
+    // La vraie pochette de la face du haut, au milieu du disque posé à plat ; rien pendant qu'il se retourne.
+    const tournoi = partieA(room.journal, Infinity).tournoi;
+    const duel = tournoi?.enCours ?? tournoi?.clos[tournoi.clos.length - 1];
+    const sienne = duel !== undefined ? pochetteDuDuel({ A: duel.faces.A.reponse, B: duel.faces.B.reponse }, pose) : undefined;
+    poserLesImages(replacer(sienne !== undefined ? [sienne] : [], REGARD_DU_DUEL, regardMonte), regardMonte);
   }
 
   /** @param cle celle de l'écran à cette proportion de la fenêtre (voir `cleDe`) : le même écran ne se remonte pas. */
@@ -1102,7 +1115,14 @@ export function ouvrirLeTelephone(cadre: HTMLElement, o: OptionsDuTelephone): Te
         : [];
     const objets = p !== undefined ? [...meubleAutour(a, vue.objets, regard), ...rangees, ...classement] : rangees;
     regardMonte = regard;
-    poserLesImages(replacer(e.genre === 'titres' ? imagesDesTitres(e.joues) : [], vue.regard, regard), regard);
+    // Les vraies pochettes, par-dessus leurs vignettes ; sur un grand écran, elles glissent sous le vinyle avec ce qu'on y a posé. Celle
+    // du disque d'un duel suit sa pose, d'image en image (voir `reglerLeDuel`).
+    const glisse = p !== undefined && vue.regard === SUR_LA_PLATINE ? glissementSousLeDisque(vue.objets, SUR_LA_PLATINE, p, a.encrier.largeur) : 0;
+    if (e.genre !== 'duel')
+      poserLesImages(
+        replacer(imagesDe(e), vue.regard, regard).map((i) => ({ ...i, centre: [i.centre[0] + glisse, i.centre[1]] as const })),
+        regard,
+      );
     const touches = new Map(vue.objets.filter((objet) => objet.nom.startsWith('touche-')).map((objet) => [objet.nom, objet] as const));
     // Un autre écran se fond sur l'ancien ; le même, qui change (une lettre tapée, un cran tourné), se repose tel quel.
     const fondre = e.genre !== genre;

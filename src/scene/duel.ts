@@ -74,7 +74,7 @@ export const faceDuDuel = (reponse: Reponse, mesurer: Mesure, densite: Densite):
   dessinerLeVerso({ genre: 'etiquette', reponse }, mesurer, densite);
 
 /** La pose de la piste qui correspond à celle du duel : le disque sur le plateau, le bras sur sa course, le levier qui le tient levé. */
-function poseDeLaPlatine(pose: PoseDuDuel): PoseDeLaPiste {
+export function poseDeLaPisteDuDuel(pose: PoseDuDuel): PoseDeLaPiste {
   const { surLePlateau } = HALTES_DU_DISQUE;
   const { de, a } = AMPLEURS.course;
   const avancement = Math.min(1, Math.max(0, pose.avancement));
@@ -106,7 +106,7 @@ export function dessinerLeDuel(
   mesurer: Mesure,
   densite: Densite,
 ): Calque {
-  const piste = poseDeLaPlatine(pose);
+  const piste = poseDeLaPisteDuDuel(pose);
   const { etiquette: _sansEtiquette, ...surLePlateau } = disqueDeLaPiste(piste);
   const disque = dessinerLeDisque(
     { ...surLePlateau, recto: faceDuDuel(faces.A, mesurer, densite), verso: faceDuDuel(faces.B, mesurer, densite) },
@@ -124,7 +124,7 @@ export function regleurDuDuel(dessinee: Calque, densite: Densite): (pose: PoseDu
   const bras = calquesParNom(dessinee).get('bras');
   if (bras === undefined) throw new Error('La scène à régler n’a pas de bras : ce n’est pas un duel.');
   return (pose) => {
-    const piste = poseDeLaPlatine(pose);
+    const piste = poseDeLaPisteDuDuel(pose);
     const { etiquette: _sansEtiquette, ...disque } = disqueDeLaPiste(piste);
     return [...reglerLeDisqueADeuxFaces(disque, densite), ...reglerLaPlatine(platineDeLaPiste(piste), densite, bras)];
   };

@@ -54,8 +54,8 @@ function votesDuDuel(textes: Textes, numero: number, gagnante: FaceDuDuel): Read
   return Object.fromEntries(joueurs.map((id, rang) => [id, (rang + numero) % joueurs.length < minorite ? autre : gagnante]));
 }
 
-/** Le journal de la room de l'exemple jusqu'au début de ce duel (ouvert, sans vote), ou jusqu'à la fin du tournoi. */
-function journalJusquAuDuel(textes: Textes, numero: number): EvenementDePartie[] {
+/** Le journal de la room de l'exemple jusqu'au début de ce duel (ouvert, sans vote), ou jusqu'à la fin du tournoi (`Infinity`). */
+export function journalJusquAuDuel(textes: Textes, numero: number): EvenementDePartie[] {
   const titres = titresDExemple();
   const journal: EvenementDePartie[] = [
     { genre: 'ouverture', a: -200, mode: 'tournoi', pistes: L.titres.length },
