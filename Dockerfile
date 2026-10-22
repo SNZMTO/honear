@@ -5,7 +5,7 @@
 #   docker build -t honear .        (deploiement/mettre-en-ligne.sh le fait, étiqueté à son commit)
 
 # Node 24 (LTS), Debian 13, figé à son empreinte : la même image à chaque construction.
-ARG NODE=node:24.21.0-trixie-slim@sha256:173f125896c3b47ddf056734c7ea789d04595a6a08769a8f78e0df642781fb66
+ARG NODE=node:24.22.1-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea
 
 FROM ${NODE} AS construction
 WORKDIR /projet
