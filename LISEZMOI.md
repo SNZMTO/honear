@@ -908,7 +908,8 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   qui tient, là où rien n'est écrit, plus une main de squelette agrippée en haut à gauche et une chauve-souris qui vole au-dessus de
   la platine. Au téléphone, seulement la toile, et la citrouille dans un coin du bas, sous les touches, là où son visage se voit le
   mieux. Rien ne se pose sur un texte ni sur une touche (`placement.ts`) ; la flamme vacille, la chauve-souris bat des ailes,
-  l'araignée monte et descend. Pour l'enlever : `SAISON = undefined`.
+  l'araignée monte et descend. Pour l'enlever : `SAISON = undefined`. Éteint depuis le 11 novembre 2026 ; il revient avec
+  `SAISON = 'halloween'`.
 - **Les versions** : la page porte sa version (l'empreinte de son contenu, `META_DE_LA_VERSION`) et la donne en se branchant ;
   une page restée ouverte quand le site a changé est priée de se recharger (code 4001), une fois par version. La largeur du
   cadre se mesure exacte, pas arrondie, pour que les toiles tombent sur les px de l'écran.

@@ -12,7 +12,7 @@ import type { NomDeTeinte } from './palette';
 export type Saison = 'halloween';
 
 /** La saison en cours, s'il y en a une. Halloween ne dure que quelques jours : on l'enlève ensuite. */
-export const SAISON: Saison | undefined = 'halloween';
+export const SAISON: Saison | undefined = undefined;
 
 /** Un point de l'espace. */
 type Point = readonly [number, number, number];
