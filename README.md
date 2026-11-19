@@ -15,6 +15,7 @@
 > low‑poly hi‑fi cabinet, everyone answers from their phone, and a Node/WebSocket server keeps every game in sync. Strict
 > TypeScript, over 500 tests (some of which enforce the architecture itself), a hardened Docker deployment and a GDPR register.
 > Every picture on this page is drawn by the game's own renderer. Code and docs are in French.
+> Full English version: [README.en.md](README.en.md).
 
 <img src=".github/vitrine/bandeau-face-a.svg" alt="Face A : le jeu" width="100%">
 
