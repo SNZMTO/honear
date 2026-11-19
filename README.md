@@ -148,8 +148,8 @@ une partie jouable de bout en bout contre un serveur simulé (`sortie/prototype.
 
 <img src=".github/vitrine/bandeau-piste-cachee.svg" alt="Piste cachée : comment je l'ai construit" width="100%">
 
-Honear est mon projet, de l'idée à la mise en ligne. Claude Code écrit l'essentiel du code et des tests, et les commits
-co-signés le montrent ; moi, je conçois, je fixe les règles que les tests vérifient, je tranche (souvent sur ses
+Honear est mon projet, de l'idée à la mise en ligne. Claude Code écrit l'essentiel du code et des tests ;
+moi, je conçois, je fixe les règles que les tests vérifient, je tranche (souvent sur ses
 recommandations) et j'essaie sur de vrais téléphones.
 
 - **Concevoir avant de coder.** Le jeu est passé par sept étapes, chacune validée sur des planches avant la suivante : le
@@ -164,8 +164,7 @@ recommandations) et j'essaie sur de vrais téléphones.
   journal du serveur, et deux passes d'« audit mobile » ont suivi.
 - **Relire.** Les commits gardent la trace de ce que la relecture a corrigé.
 - **L'historique.** Ce dépôt commence le 12 octobre 2026. Son premier commit importe d'un bloc le projet, développé jusque-là
-  ailleurs sous son ancien nom, Miel d'oreilles, dans une session Claude Code. Chaque commit est à mon nom et co-signé par
-  Claude (l'historique a été réécrit le 18 octobre pour cela, sans rien changer à leur contenu) : `git blame` m'attribue donc
+  ailleurs sous son ancien nom, Miel d'oreilles, dans une session Claude Code. Chaque commit est à mon nom : `git blame` m'attribue donc
   l'essentiel des lignes, mais c'est Claude qui les a écrites. Le chemin d'avant se lit dans les planches et dans les « Ce qui
   a été tranché » du LISEZMOI.
 

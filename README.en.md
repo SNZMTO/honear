@@ -148,8 +148,8 @@ To connect phones from the local network: `HOTE=0.0.0.0 npm run site`. Without n
 
 <img src=".github/vitrine/bandeau-piste-cachee.svg" alt="Hidden track: how I built it" width="100%">
 
-Honear is my project, from the idea to putting it online. Claude Code writes most of the code and the tests, and the
-co-signed commits show it; I design, I set the rules that the tests check, I make the calls (often on its recommendations)
+Honear is my project, from the idea to putting it online. Claude Code writes most of the code and the tests;
+I design, I set the rules that the tests check, I make the calls (often on its recommendations)
 and I try things on real phones.
 
 - **Design before coding.** The game went through seven steps, each validated on boards before the next: the drawing, the
@@ -164,8 +164,7 @@ and I try things on real phones.
   "mobile audit" passes followed.
 - **Reviewing.** The commits keep the trace of what review corrected.
 - **The history.** This repository starts on 12 October 2026. Its first commit imports the whole project in one block; until
-  then it was developed elsewhere under its former name, Miel d'oreilles, in a Claude Code session. Every commit is in my name
-  and co-signed by Claude (the history was rewritten on 18 October for that, without changing their content): `git blame`
+  then it was developed elsewhere under its former name, Miel d'oreilles, in a Claude Code session. Every commit is in my name: `git blame`
   therefore attributes most lines to me, but Claude wrote them. The earlier path can be read in the boards and in the "Ce qui a
   été tranché" sections of the LISEZMOI.
 
