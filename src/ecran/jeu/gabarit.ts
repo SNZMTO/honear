@@ -1,14 +1,15 @@
 /**
  * La page du jeu, en ligne : un document qui tient tout entier dans le téléphone. Le cadre du téléphone prend la fenêtre entière,
  * bord à bord ; le regard en prend la proportion, jusqu'au meuble entier sur un ordinateur. Posé sur l'écran d'accueil d'un
- * téléphone, le jeu s'ouvre en plein écran, comme une application (son manifeste et son icône, le serveur les sert).
+ * téléphone, le jeu s'ouvre en plein écran, comme une application (son manifeste et son icône, le serveur les sert). Aux moteurs
+ * de recherche et aux aperçus d'un lien partagé, la page se présente par sa description et ses balises Open Graph.
  * En bas, les liens des pages légales : à l'accueil et au compte sur un téléphone (le script le dit), toujours sur un ordinateur. Le script est posé à la fin, avec ses polices et ses textes. Sans
  * script, la page dit ce qui lui manque, dans la voix du site.
  */
 
 import { couleur } from '../../lowpoly/tons';
 import { TELEPHONE } from '../../ressources/ecran';
-import { APPLICATION, META_DE_LA_VERSION, PAGES_LEGALES } from '../../ressources/reglages';
+import { APPLICATION, META_DE_LA_VERSION, PAGES_LEGALES, SITE } from '../../ressources/reglages';
 import type { Textes } from '../../ressources/textes';
 import { CARACTERES } from '../../ressources/typo';
 import { enXml } from '../../scene/rendu/balisage';
@@ -70,11 +71,19 @@ body.couche .redresse{display:grid}
  */
 export function pageDuJeu(textes: Textes, script: string, version = ''): string {
   const N = textes.navigateur;
+  const P = textes.presentation;
   return `<!doctype html>
 <html lang="${textes.langue}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual">
+<meta name="description" content="${enXml(P.description)}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="${enXml(textes.logo.nom)}">
+<meta property="og:title" content="${enXml(P.titre)}">
+<meta property="og:description" content="${enXml(P.description)}">
+<meta property="og:url" content="https://${SITE.adresse}/">
+<meta property="og:locale" content="${textes.langue.replace('-', '_')}">
 <meta name="theme-color" content="${couleur('noyer')}">${version !== '' ? `\n<meta name="${META_DE_LA_VERSION}" content="${enXml(version)}">` : ''}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">

@@ -44,6 +44,12 @@ export interface Textes {
     readonly mention: string;
   };
 
+  /** Ce que la page dit d'elle aux moteurs de recherche et aux aperçus d'un lien partagé (une messagerie, un réseau). */
+  readonly presentation: {
+    readonly titre: string;
+    readonly description: string;
+  };
+
   /** Inscriptions gravées sur le socle de la platine. */
   readonly commandes: {
     readonly pistes: string;

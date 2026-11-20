@@ -56,6 +56,12 @@ export const TEXTES: Textes = {
     mention: 'Enregistré entre potes',
   },
 
+  presentation: {
+    titre: 'Honear, le blind test entre potes',
+    description:
+      'Un écran pour la tablée, un téléphone chacun, et des extraits de 30 secondes à reconnaître : des thèmes prêts ou n’importe quelle playlist Deezer publique.',
+  },
+
   commandes: {
     pistes: 'Titres',
     extrait: 'Secondes',

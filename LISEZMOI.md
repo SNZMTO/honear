@@ -932,6 +932,8 @@ Une ombre qui tombe sur une autre surface que celle où son objet est posé port
   ne respire plus, et l'étiquette où l'on tape n'a plus de contour au focus : seul son curseur clignote.
 - **Le tutoriel** : cinq diapositives à la première visite sur un appareil, et « Comment on joue ? » en bas de l'accueil pour les
   revoir (`brancherLeTuto`, `textes.tuto`).
+- **L'aperçu d'un lien** : la page a une description et des balises Open Graph (`textes.presentation`), pour les moteurs de
+  recherche et les aperçus d'un lien partagé (une messagerie, LinkedIn) ; pas d'image d'aperçu.
 - **Le RGPD** : `/confidentialite` et `/mentions-legales`, fabriquées par `npm run construire` (`ecran/jeu/legal.ts`), servies sans
   script ; le serveur y écrit l'adresse du site et celle où écrire (`CONTACT`, sinon celle qui envoie les liens). Leurs liens sont en
   bas de l'accueil et du compte. Un compte où personne ne revient depuis deux ans s'efface, prévenu un mois avant (`entretenir`).
